@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatter - Chat Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/lucide-icons@latest/dist/umd/lucide.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide-icons"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .screen-container {
+            width: 1200px;
+            height: 800px;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-6 gap-10">
+    <h1 class="text-3xl font-bold text-gray-800">Chat Interface</h1>
+    
+    <div class="screen-container bg-white flex">
+        <!-- Left Sidebar - Navigation -->
+        <div class="w-16 bg-indigo-900 flex flex-col items-center py-4">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-6">
+                <i data-lucide="message-square" class="text-indigo-600"></i>
+            </div>
+            <div class="flex flex-col items-center gap-4 mb-8">
+                <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-white bg-indigo-700">
+                    <i data-lucide="message-square"></i>
+                </a>
+                <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                    <i data-lucide="users"></i>
+                </a>
+                <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                    <i data-lucide="dollar-sign"></i>
+                </a>
+            </div>
+            <div class="mt-auto flex flex-col items-center gap-4">
+                <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                    <i data-lucide="settings"></i>
+                </a>
+                <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">BN</div>
+            </div>
+        </div>
+        
+        <!-- Channel Sidebar -->
+        <div class="w-64 bg-indigo-800 text-white flex flex-col">
+            <div class="p-4 border-b border-indigo-700">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold">Channels</h2>
+                    <button class="text-indigo-300 hover:text-white">
+                        <i data-lucide="plus" class="h-5 w-5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-3">
+                <div class="bg-indigo-700 rounded-md flex items-center p-2">
+                    <i data-lucide="search" class="h-4 w-4 text-indigo-300 mr-2"></i>
+                    <input type="text" placeholder="Search channels" class="bg-transparent border-none text-sm text-white placeholder-indigo-300 focus:outline-none w-full" />
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto">
+                <div class="px-3 py-2">
+                    <div class="space-y-1">
+                        <a href="#" class="flex items-center py-1 px-2 rounded bg-indigo-600 text-white">
+                            <span class="text-sm"># A1.1 Morning Class</span>
+                        </a>
+                        <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200">
+                            <span class="text-sm"># B2.2 Evening Class</span>
+                            <span class="ml-auto bg-indigo-500 text-xs rounded-full px-1.5">3</span>
+                        </a>
+                        <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200">
+                            <span class="text-sm"># Teacher's Lounge</span>
+                        </a>
+                        <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200">
+                            <span class="text-sm"># Admin Team</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="px-3 py-2 mt-4">
+                    <div class="flex items-center justify-between text-xs text-indigo-300 mb-2">
+                        <span class="font-semibold">DIRECT MESSAGES</span>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            <span class="text-sm text-indigo-200">Sarah Johnson</span>
+                        </a>
+                        <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700">
+                            <span class="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                            <span class="text-sm text-indigo-200">Alex Chen</span>
+                            <span class="ml-auto bg-indigo-500 text-xs rounded-full px-1.5">1</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Chat Area -->
+        <div class="flex-1 flex flex-col bg-white">
+            <!-- Chat Header -->
+            <div class="h-14 border-b border-gray-200 px-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <h3 class="font-semibold text-gray-800"># A1.1 Morning Class</h3>
+                    <span class="ml-2 text-sm text-gray-500">15 members</span>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <div class="flex items-center space-x-1">
+                    <button onclick="switchTab('messages')" class="px-4 py-2 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 tab-button" data-tab="messages">Messages</button>
+                    <button onclick="switchTab('students')" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 tab-button" data-tab="students">Students</button>
+                    <button onclick="switchTab('tasks')" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 tab-button" data-tab="tasks">Tasks</button>
+                    <button onclick="switchTab('wiki')" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 tab-button" data-tab="wiki">Wiki</button>
+                    <button onclick="switchTab('management')" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 tab-button" data-tab="management">Management</button>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i data-lucide="users" class="h-5 w-5"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i data-lucide="more-horizontal" class="h-5 w-5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Messages Screen -->
+            <div id="messages-screen" class="flex-1 flex flex-col">
+                <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+                    <!-- Message 1 -->
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-white font-medium">SJ</div>
+                        <div class="ml-3">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">Sarah Johnson</span>
+                                <span class="ml-2 text-xs text-gray-500">10:23 AM</span>
+                            </div>
+                            <div class="mt-1 text-gray-800">
+                                Good morning class! Today we'll be focusing on the past perfect tense. Please open your textbooks to page 45.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message 2 -->
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-green-500 flex-shrink-0 flex items-center justify-center text-white font-medium">AC</div>
+                        <div class="ml-3">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">Alex Chen</span>
+                                <span class="ml-2 text-xs text-gray-500">10:25 AM</span>
+                            </div>
+                            <div class="mt-1 text-gray-800">
+                                I have a question about yesterday's homework. Can we review exercise 3?
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message with File -->
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">SJ</div>
+                        <div class="ml-3">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">Sarah Johnson</span>
+                                <span class="ml-2 text-xs text-gray-500">10:30 AM</span>
+                            </div>
+                            <div class="mt-1 text-gray-800">
+                                Here's the worksheet for today's exercises:
+                            </div>
+                            <div class="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center">
+                                <i data-lucide="file-text" class="h-6 w-6 text-indigo-500 mr-3"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Past Perfect Exercises.pdf</p>
+                                    <p class="text-xs text-gray-500">PDF • 2.3 MB</p>
+                                </div>
+                                <button class="ml-auto text-indigo-600 hover:text-indigo-700">
+                                    <i data-lucide="download" class="h-5 w-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Message Input -->
+                <div class="p-4 border-t border-gray-200">
+                    <div class="flex items-end">
+                        <div class="flex-1 bg-gray-100 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white">
+                            <div class="flex items-center mb-2">
+                                <button class="text-gray-500 hover:text-gray-700 mr-2">
+                                    <i data-lucide="plus-circle" class="h-5 w-5"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-gray-700 mr-2">
+                                    <i data-lucide="smile" class="h-5 w-5"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-gray-700">
+                                    <i data-lucide="at-sign" class="h-5 w-5"></i>
+                                </button>
+                            </div>
+                            <div contenteditable="true" class="outline-none text-gray-800 min-h-[24px]" placeholder="Message #A1.1 Morning Class"></div>
+                        </div>
+                        <button class="ml-3 bg-indigo-600 text-white rounded-lg p-2.5 hover:bg-indigo-700">
+                            <i data-lucide="send" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Screen -->
+            <div id="students-screen" class="flex-1 flex flex-col hidden">
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- Student Cards -->
+                        <div class="bg-white p-4 rounded-lg border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">AC</div>
+                                <div class="ml-4">
+                                    <h4 class="font-medium text-gray-900">Alex Chen</h4>
+                                    <p class="text-sm text-gray-500">Intermediate Level</p>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="text-sm text-gray-600">
+                                    <p>Attendance: 95%</p>
+                                    <p>Homework Completion: 88%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Add more student cards as needed -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Screen -->
+            <div id="tasks-screen" class="flex-1 flex flex-col hidden">
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div class="space-y-4">
+                        <!-- Task Items -->
+                        <div class="bg-white p-4 rounded-lg border border-gray-200">
+                            <div class="flex items-center">
+                                <input type="checkbox" class="h-4 w-4 text-indigo-600 rounded border-gray-300">
+                                <div class="ml-4">
+                                    <h4 class="font-medium text-gray-900">Complete Past Perfect Exercises</h4>
+                                    <p class="text-sm text-gray-500">Due: Tomorrow, 3:00 PM</p>
+                                </div>
+                                <div class="ml-auto">
+                                    <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">In Progress</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Add more task items as needed -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wiki Screen -->
+            <div id="wiki-screen" class="flex-1 flex flex-col hidden">
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div class="prose max-w-none">
+                        <h2 class="text-2xl font-bold mb-4">Class Wiki</h2>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                <h3 class="text-lg font-semibold mb-2">Grammar Resources</h3>
+                                <ul class="list-disc pl-4 space-y-2">
+                                    <li>Past Perfect Tense Guide</li>
+                                    <li>Common Irregular Verbs</li>
+                                    <li>Sentence Structure Rules</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                <h3 class="text-lg font-semibold mb-2">Vocabulary Lists</h3>
+                                <ul class="list-disc pl-4 space-y-2">
+                                    <li>Business English Terms</li>
+                                    <li>Academic Word List</li>
+                                    <li>Phrasal Verbs</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Screen -->
+            <div id="management-screen" class="flex-1 flex flex-col hidden">
+                <!-- Class Info -->
+                <div class="grid grid-cols-3 gap-6 p-6">
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-500">Class Details</h3>
+                            <button class="text-indigo-600 text-sm font-medium">Edit</button>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <div class="text-xs text-gray-500">Level</div>
+                                <div class="text-sm font-medium text-gray-900">A1.1 Beginner</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Schedule</div>
+                                <div class="text-sm font-medium text-gray-900">Mon, Wed, Fri • 9:00 - 10:30</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Duration</div>
+                                <div class="text-sm font-medium text-gray-900">Feb 1 - Apr 30, 2024</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-500">Teachers</h3>
+                            <button class="text-indigo-600 text-sm font-medium">Manage</button>
+                        </div>
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium ring-2 ring-white">SJ</div>
+                            <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-medium ring-2 ring-white">MT</div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="text-sm text-gray-900">Sarah Johnson (Lead)</div>
+                            <div class="text-sm text-gray-900">Mai Tran (Assistant)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-500">Students</h3>
+                            <button class="text-indigo-600 text-sm font-medium">Add Student</button>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="text-2xl font-bold text-gray-900">12/15</div>
+                            <div class="text-sm text-gray-500">students enrolled</div>
+                        </div>
+                        <div class="mt-2 flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center text-white text-sm font-medium ring-2 ring-white">JD</div>
+                            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium ring-2 ring-white">AC</div>
+                            <div class="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm font-medium ring-2 ring-white">LN</div>
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm font-medium ring-2 ring-white">+9</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student List -->
+                <div class="p-6 pt-0">
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="relative">
+                                    <input type="text" placeholder="Search students..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <i data-lucide="search" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5"></i>
+                                </div>
+                                <select class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option>All Students</option>
+                                    <option>Active</option>
+                                    <option>Inactive</option>
+                                </select>
+                            </div>
+                            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center">
+                                <i data-lucide="download" class="h-4 w-4 mr-1"></i>
+                                Export List
+                            </button>
+                        </div>
+                        <table class="min-w-full">
+                            <thead>
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center text-white font-medium">JD</div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">John Doe</div>
+                                                <div class="text-sm text-gray-500">john@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">90%</div>
+                                        <div class="text-sm text-gray-500">18/20 classes</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-green-500 h-2 rounded-full" style="width: 75%"></div>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">75% complete</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900">View Details</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">AC</div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">Alex Chen</div>
+                                                <div class="text-sm text-gray-500">alex@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">85%</div>
+                                        <div class="text-sm text-gray-500">17/20 classes</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-green-500 h-2 rounded-full" style="width: 80%"></div>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">80% complete</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900">View Details</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all screens
+            document.querySelectorAll('[id$="-screen"]').forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            
+            // Show selected screen
+            document.getElementById(`${tabName}-screen`).classList.remove('hidden');
+            
+            // Update tab button styles
+            document.querySelectorAll('.tab-button').forEach(button => {
+                if (button.getAttribute('data-tab') === tabName) {
+                    button.classList.remove('text-gray-500');
+                    button.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                } else {
+                    button.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                    button.classList.add('text-gray-500');
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

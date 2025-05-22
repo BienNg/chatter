@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatter - Communication Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/lucide-icons@latest/dist/umd/lucide.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide-icons"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .screen-container {
+            width: 1200px;
+            height: 800px;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-6 gap-10">
+    <h1 class="text-3xl font-bold text-gray-800">Chatter Platform UI</h1>
+    
+    <div class="flex gap-8">
+        <!-- Login Screen -->
+        <div class="screen-container bg-white">
+            <div class="h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50">
+                <div class="w-96 bg-white p-10 rounded-2xl shadow-sm">
+                    <div class="flex flex-col items-center mb-8">
+                        <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-4">
+                            <i data-lucide="message-square" class="text-white"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900">Welcome to Chatter</h2>
+                        <p class="text-gray-500 mt-2 text-center">Your team's central communication hub</p>
+                    </div>
+                    
+                    <form class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition" placeholder="name@company.com" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input type="password" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition" placeholder="••••••••" />
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <input type="checkbox" class="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" id="remember">
+                                <label for="remember" class="ml-2 text-sm text-gray-600">Remember me</label>
+                            </div>
+                            <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Forgot password?</a>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition duration-200 flex items-center justify-center">
+                            Sign In
+                            <i data-lucide="arrow-right" class="ml-2 h-5 w-5"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="mt-6 text-center">
+                        <p class="text-sm text-gray-600">
+                            Don't have an account? <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">Contact your admin</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Interface -->
+        <div class="screen-container bg-white flex">
+            <!-- Left Sidebar - Navigation & Channels -->
+            <div class="w-16 bg-indigo-900 flex flex-col items-center py-4">
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-6">
+                    <i data-lucide="message-square" class="text-indigo-600"></i>
+                </div>
+                <div class="flex flex-col items-center gap-4 mb-8">
+                    <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-white bg-indigo-700">
+                        <i data-lucide="home"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                        <i data-lucide="message-square"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                        <i data-lucide="calendar"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                        <i data-lucide="folder"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                        <i data-lucide="check-square"></i>
+                    </a>
+                </div>
+                <div class="mt-auto flex flex-col items-center gap-4">
+                    <a href="#" class="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
+                        <i data-lucide="settings"></i>
+                    </a>
+                    <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">BN</div>
+                </div>
+            </div>
+            
+            <!-- Channel Sidebar -->
+            <div class="w-64 bg-indigo-800 text-white flex flex-col">
+                <div class="p-4 border-b border-indigo-700">
+                    <div class="flex items-center justify-between">
+                        <h2 class="font-bold">Chatter</h2>
+                        <button class="text-indigo-300 hover:text-white">
+                            <i data-lucide="chevron-down" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-3">
+                    <div class="bg-indigo-700 rounded-md flex items-center p-2">
+                        <i data-lucide="search" class="h-4 w-4 text-indigo-300 mr-2"></i>
+                        <input type="text" placeholder="Search" class="bg-transparent border-none text-sm text-white placeholder-indigo-300 focus:outline-none w-full" />
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto">
+                    <div class="px-3 py-2">
+                        <div class="flex items-center justify-between text-xs text-indigo-300 mb-1">
+                            <span class="font-semibold">CHANNELS</span>
+                            <button><i data-lucide="plus" class="h-4 w-4"></i></button>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <a href="#" class="flex items-center py-1 px-2 rounded bg-indigo-600 text-white">
+                                <span class="text-sm"># general</span>
+                            </a>
+                            <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200">
+                                <span class="text-sm"># marketing</span>
+                                <span class="ml-auto bg-indigo-500 text-xs rounded-full px-1.5">2</span>
+                            </a>
+                            <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200">
+                                <span class="text-sm"># design</span>
+                            </a>
+                            <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200">
+                                <span class="text-sm"># development</span>
+                            </a>
+                            <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200">
+                                <span class="text-sm"># product</span>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="px-3 py-2 mt-4">
+                        <div class="flex items-center justify-between text-xs text-indigo-300 mb-1">
+                            <span class="font-semibold">DIRECT MESSAGES</span>
+                            <button><i data-lucide="plus" class="h-4 w-4"></i></button>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                <span class="text-sm text-indigo-200">Sarah Johnson</span>
+                            </a>
+                            <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700">
+                                <span class="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                                <span class="text-sm text-indigo-200">Alex Chen</span>
+                                <span class="ml-auto bg-indigo-500 text-xs rounded-full px-1.5">1</span>
+                            </a>
+                            <a href="#" class="flex items-center py-1 px-2 rounded hover:bg-indigo-700">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                <span class="text-sm text-indigo-200">Michael Torres</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Chat Area -->
+            <div class="flex-1 flex flex-col bg-white">
+                <!-- Chat Header -->
+                <div class="h-14 border-b border-gray-200 px-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <h3 class="font-semibold text-gray-800"># general</h3>
+                        <span class="ml-2 text-sm text-gray-500">25 members</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button class="text-gray-500 hover:text-gray-700">
+                            <i data-lucide="search" class="h-5 w-5"></i>
+                        </button>
+                        <button class="text-gray-500 hover:text-gray-700">
+                            <i data-lucide="bell" class="h-5 w-5"></i>
+                        </button>
+                        <button class="text-gray-500 hover:text-gray-700">
+                            <i data-lucide="users" class="h-5 w-5"></i>
+                        </button>
+                        <button class="text-gray-500 hover:text-gray-700">
+                            <i data-lucide="more-horizontal" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Chat Messages -->
+                <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+                    <!-- Message 1 -->
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-white font-medium">AK</div>
+                        <div class="ml-3">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">Anna Kim</span>
+                                <span class="ml-2 text-xs text-gray-500">10:23 AM</span>
+                            </div>
+                            <div class="mt-1 text-gray-800">
+                                Hi team! Just a reminder that we have our weekly meeting at 2pm today. Please prepare your updates.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message 2 -->
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-green-500 flex-shrink-0 flex items-center justify-center text-white font-medium">JD</div>
+                        <div class="ml-3">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">James Davis</span>
+                                <span class="ml-2 text-xs text-gray-500">10:30 AM</span>
+                            </div>
+                            <div class="mt-1 text-gray-800">
+                                Thanks for the reminder! I've completed the designs for the new feature. Here's the link to the Figma file:
+                            </div>
+                            <div class="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center">
+                                <i data-lucide="figma" class="h-6 w-6 text-purple-500 mr-3"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">New Feature Designs - Q2</p>
+                                    <p class="text-xs text-gray-500">Figma • Updated 2 hours ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message 3 -->
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">BN</div>
+                        <div class="ml-3">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">Bien Nguyen</span>
+                                <span class="ml-2 text-xs text-gray-500">10:45 AM</span>
+                            </div>
+                            <div class="mt-1 text-gray-800">
+                                These designs look great, James! I especially like the new navigation pattern you've implemented.
+                            </div>
+                            <div class="mt-1 text-gray-800">
+                                I'll be sharing my progress on the backend implementation during the meeting.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Message Input -->
+                <div class="p-4 border-t border-gray-200">
+                    <div class="flex items-end">
+                        <div class="flex-1 bg-gray-100 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white">
+                            <div class="flex items-center mb-2">
+                                <button class="text-gray-500 hover:text-gray-700 mr-2">
+                                    <i data-lucide="plus-circle" class="h-5 w-5"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-gray-700 mr-2">
+                                    <i data-lucide="smile" class="h-5 w-5"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-gray-700">
+                                    <i data-lucide="at-sign" class="h-5 w-5"></i>
+                                </button>
+                            </div>
+                            <div contenteditable="true" class="outline-none text-gray-800 min-h-[24px]" placeholder="Message #general"></div>
+                        </div>
+                        <button class="ml-3 bg-indigo-600 text-white rounded-lg p-2.5 hover:bg-indigo-700">
+                            <i data-lucide="send" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Connect to App.js
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof App !== 'undefined' && App.init) {
+                App.init();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -259,10 +259,64 @@
                 
                 <!-- Message Input -->
                 <div class="p-4 border-t border-gray-200">
-                    <div class="rounded-lg border border-gray-200 bg-white">
-                        <input type="text" 
-                               class="w-full px-4 py-3 text-gray-500 focus:outline-none" 
-                               placeholder="Message #import-s-hai-duong-minh-thu-">
+                    <div class="message-input">
+                        <!-- Formatting Toolbar -->
+                        <div class="flex items-center px-3 py-2 border-b border-gray-200">
+                            <button class="toolbar-button" title="Bold">
+                                <i data-lucide="bold" class="h-4 w-4"></i>
+                            </button>
+                            <button class="toolbar-button" title="Italic">
+                                <i data-lucide="italic" class="h-4 w-4"></i>
+                            </button>
+                            <button class="toolbar-button" title="Strikethrough">
+                                <i data-lucide="strikethrough" class="h-4 w-4"></i>
+                            </button>
+                            <div class="w-px h-4 bg-gray-200 mx-2"></div>
+                            <button class="toolbar-button" title="Link">
+                                <i data-lucide="link" class="h-4 w-4"></i>
+                            </button>
+                            <button class="toolbar-button" title="Bullet List">
+                                <i data-lucide="list" class="h-4 w-4"></i>
+                            </button>
+                            <button class="toolbar-button" title="Numbered List">
+                                <i data-lucide="list-ordered" class="h-4 w-4"></i>
+                            </button>
+                            <button class="toolbar-button" title="Indent">
+                                <i data-lucide="indent" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Message Input Area -->
+                        <div class="px-3 py-2 min-h-[60px]">
+                            <div id="message-editor" 
+                                 contenteditable="true" 
+                                 class="w-full focus:outline-none" 
+                                 placeholder="Message #import-s-hai-duong-minh-thu-"></div>
+                        </div>
+                        
+                        <!-- Bottom Toolbar -->
+                        <div class="flex items-center px-3 py-2 border-t border-gray-200">
+                            <div class="flex items-center space-x-2">
+                                <button class="toolbar-button" id="emoji-button" title="Emoji">
+                                    <i data-lucide="smile" class="h-4 w-4"></i>
+                                </button>
+                                <button class="toolbar-button" title="Mention">
+                                    <i data-lucide="at-sign" class="h-4 w-4"></i>
+                                </button>
+                                <button class="toolbar-button" title="Attach File">
+                                    <i data-lucide="paperclip" class="h-4 w-4"></i>
+                                </button>
+                                <button class="toolbar-button" title="Record">
+                                    <i data-lucide="mic" class="h-4 w-4"></i>
+                                </button>
+                                <button class="toolbar-button" title="Screenshot">
+                                    <i data-lucide="camera" class="h-4 w-4"></i>
+                                </button>
+                            </div>
+                            <button class="ml-auto text-gray-400">
+                                <i data-lucide="corner-down-left" class="h-5 w-5"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -522,6 +576,35 @@
                 }
             });
         }
+
+        // Initialize emoji picker
+        const emojiButton = document.getElementById('emoji-button');
+        const picker = new EmojiButton({
+            position: 'top-start',
+            rootElement: document.getElementById('messages-screen'),
+            theme: 'light'
+        });
+        
+        picker.on('emoji', emoji => {
+            const editor = document.getElementById('message-editor');
+            editor.innerHTML += emoji;
+        });
+        
+        emojiButton.addEventListener('click', () => {
+            picker.togglePicker(emojiButton);
+        });
+        
+        // Initialize mentions
+        const tribute = new Tribute({
+            values: [
+                { key: 'Sarah Johnson', value: 'Sarah Johnson' },
+                { key: 'Alex Chen', value: 'Alex Chen' },
+                { key: 'John Doe', value: 'John Doe' }
+            ],
+            trigger: '@'
+        });
+        
+        tribute.attach(document.getElementById('message-editor'));
     </script>
 </body>
 </html> 

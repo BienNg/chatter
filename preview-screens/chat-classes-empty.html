@@ -249,6 +249,172 @@
         .add-new-teacher:hover {
             background-color: #eef2ff;
         }
+
+        /* Custom select styles */
+        .custom-select-container {
+            position: relative;
+        }
+
+        .custom-select-trigger {
+            min-height: 42px;
+            padding: 8px 12px;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            background-color: white;
+            transition: all 0.2s;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .custom-select-trigger.placeholder {
+            color: #9CA3AF;
+        }
+
+        .custom-select-trigger:hover {
+            border-color: #818cf8;
+        }
+
+        .custom-select-trigger:focus-within {
+            border-color: #6366f1;
+            ring: 2px;
+            ring-color: #818cf8;
+        }
+
+        .custom-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background-color: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 50;
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .custom-select-dropdown.active {
+            display: block;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        .custom-select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .custom-select-option:hover {
+            background-color: #f3f4f6;
+        }
+
+        .custom-select-option.selected {
+            background-color: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .custom-select-option.add-new {
+            border-top: 1px solid #e5e7eb;
+            color: #4f46e5;
+            font-weight: 500;
+        }
+
+        .custom-select-option.add-new:hover {
+            background-color: #eef2ff;
+        }
+
+        /* Toggle switch styles */
+        .toggle-switch-container {
+            display: inline-flex;
+            align-items: center;
+            background-color: #f3f4f6;
+            padding: 4px;
+            border-radius: 9999px;
+            position: relative;
+            width: fit-content;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 160px;
+            height: 32px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: transparent;
+            transition: 0.2s;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8px;
+        }
+
+        .toggle-handle {
+            position: absolute;
+            content: "";
+            height: 28px;
+            width: 80px;
+            background-color: white;
+            transition: 0.2s;
+            border-radius: 9999px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+
+        .toggle-switch input:checked ~ .toggle-handle {
+            transform: translateX(76px);
+        }
+
+        .toggle-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            user-select: none;
+            z-index: 2;
+            position: absolute;
+            width: 80px;
+            text-align: center;
+            transition: color 0.2s;
+        }
+
+        .toggle-label.online {
+            left: 4px;
+        }
+
+        .toggle-label.offline {
+            right: 4px;
+        }
+
+        .toggle-switch input:checked ~ .toggle-label.online,
+        .toggle-switch input:not(:checked) ~ .toggle-label.offline {
+            color: #374151;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-6 gap-10">
@@ -421,29 +587,36 @@
                         <!-- Level -->
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Level</label>
-                            <select name="level" required class="form-select">
-                                <option value="" disabled selected>Select level</option>
-                                <option value="A1.1">A1.1</option>
-                                <option value="A1.2">A1.2</option>
-                                <option value="A2.1">A2.1</option>
-                                <option value="A2.2">A2.2</option>
-                                <option value="B1.1">B1.1</option>
-                                <option value="B1.2">B1.2</option>
-                                <option value="new">New Level...</option>
-                            </select>
+                            <div class="custom-select-container" id="levelSelect">
+                                <div class="custom-select-trigger placeholder">
+                                    <span class="selected-text">Select level</span>
+                                    <i data-lucide="chevron-down" class="h-5 w-5 text-gray-400"></i>
+                                </div>
+                                <div class="custom-select-dropdown">
+                                    <div class="custom-select-option" data-value="A1.1">A1.1</div>
+                                    <div class="custom-select-option" data-value="A1.2">A1.2</div>
+                                    <div class="custom-select-option" data-value="A2.1">A2.1</div>
+                                    <div class="custom-select-option" data-value="A2.2">A2.2</div>
+                                    <div class="custom-select-option" data-value="B1.1">B1.1</div>
+                                    <div class="custom-select-option" data-value="B1.2">B1.2</div>
+                                    <div class="custom-select-option add-new" data-value="new">
+                                        <i data-lucide="plus-circle" class="h-5 w-5"></i>
+                                        <span>New Level...</span>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="level" required>
+                            </div>
                         </div>
                         
                         <!-- Class Format -->
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Format</label>
-                            <div class="flex space-x-6">
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="format" value="online" required class="form-radio">
-                                    <span class="ml-2 text-sm text-gray-700">Online</span>
-                                </label>
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="format" value="offline" required class="form-radio">
-                                    <span class="ml-2 text-sm text-gray-700">Offline</span>
+                            <div class="toggle-switch-container">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="format" value="offline" id="formatToggle" checked>
+                                    <span class="toggle-label online">Online</span>
+                                    <span class="toggle-label offline">Offline</span>
+                                    <span class="toggle-handle"></span>
                                 </label>
                             </div>
                         </div>
@@ -451,14 +624,37 @@
                         <!-- Class Type -->
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Type</label>
-                            <select name="type" required class="form-select">
-                                <option value="" disabled selected>Select type</option>
-                                <option value="G">G</option>
-                                <option value="P">P</option>
-                                <option value="A">A</option>
-                                <option value="M">M</option>
-                                <option value="new">New Type...</option>
-                            </select>
+                            <div class="custom-select-container" id="typeSelect">
+                                <div class="custom-select-trigger placeholder">
+                                    <span class="selected-text">Select type</span>
+                                    <i data-lucide="chevron-down" class="h-5 w-5 text-gray-400"></i>
+                                </div>
+                                <div class="custom-select-dropdown">
+                                    <div class="custom-select-option" data-value="G">G</div>
+                                    <div class="custom-select-option" data-value="P">P</div>
+                                    <div class="custom-select-option" data-value="A">A</div>
+                                    <div class="custom-select-option" data-value="M">M</div>
+                                    <div class="custom-select-option add-new" data-value="new">
+                                        <i data-lucide="plus-circle" class="h-5 w-5"></i>
+                                        <span>New Type...</span>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="type" required>
+                            </div>
+                        </div>
+
+                        <!-- Teachers -->
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Teachers</label>
+                            <div class="teacher-select-container">
+                                <div class="teacher-input-container" id="teacherContainer">
+                                    <input type="text" class="teacher-input" id="teacherInput" placeholder="Search teachers...">
+                                </div>
+                                <div class="teacher-dropdown" id="teacherDropdown">
+                                    <!-- Dropdown content will be populated by JavaScript -->
+                                </div>
+                                <input type="hidden" name="selectedTeachers" id="selectedTeachers">
+                            </div>
                         </div>
                         
                         <!-- Dates -->
@@ -492,20 +688,6 @@
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Google Sheets URL</label>
                             <input type="url" name="sheetsUrl" class="form-input" placeholder="https://docs.google.com/spreadsheets/d/...">
-                        </div>
-
-                        <!-- Teachers -->
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Teachers</label>
-                            <div class="teacher-select-container">
-                                <div class="teacher-input-container" id="teacherContainer">
-                                    <input type="text" class="teacher-input" id="teacherInput" placeholder="Search teachers...">
-                                </div>
-                                <div class="teacher-dropdown" id="teacherDropdown">
-                                    <!-- Dropdown content will be populated by JavaScript -->
-                                </div>
-                                <input type="hidden" name="selectedTeachers" id="selectedTeachers">
-                            </div>
                         </div>
                     </form>
                 </div>
@@ -727,6 +909,63 @@
 
         // Initialize the dropdown
         updateTeacherDropdown();
+
+        // Custom Select Functionality
+        function initializeCustomSelect(containerId) {
+            const container = document.getElementById(containerId);
+            const trigger = container.querySelector('.custom-select-trigger');
+            const dropdown = container.querySelector('.custom-select-dropdown');
+            const hiddenInput = container.querySelector('input[type="hidden"]');
+            const selectedText = trigger.querySelector('.selected-text');
+
+            function closeAllDropdowns() {
+                document.querySelectorAll('.custom-select-dropdown').forEach(d => {
+                    d.classList.remove('active');
+                });
+            }
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isActive = dropdown.classList.contains('active');
+                closeAllDropdowns();
+                if (!isActive) {
+                    dropdown.classList.add('active');
+                }
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                const option = e.target.closest('.custom-select-option');
+                if (option) {
+                    const value = option.dataset.value;
+                    if (value === 'new') {
+                        alert('Add New Option functionality would open a modal');
+                        return;
+                    }
+                    
+                    hiddenInput.value = value;
+                    selectedText.textContent = option.textContent;
+                    trigger.classList.remove('placeholder');
+                    
+                    // Update selected state
+                    dropdown.querySelectorAll('.custom-select-option').forEach(opt => {
+                        opt.classList.toggle('selected', opt === option);
+                    });
+                    
+                    dropdown.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize custom selects
+        initializeCustomSelect('levelSelect');
+        initializeCustomSelect('typeSelect');
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-select-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+        });
     </script>
 </body>
 </html> 

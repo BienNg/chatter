@@ -35,6 +35,38 @@
         .calendar-day.highlighted {
             background-color: #dbeafe;
         }
+        /* Add new table styles */
+        .student-table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .student-table th {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 10;
+            padding: 12px 16px;
+            white-space: nowrap;
+        }
+        .student-table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+        .student-table tr:hover {
+            background-color: #f8fafc;
+        }
+        .truncate {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .email-cell {
+            max-width: 180px;
+        }
+        .transaction-cell {
+            max-width: 220px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-6 gap-10">
@@ -254,136 +286,75 @@
                                     <h3 class="text-lg font-semibold mb-2">Student List</h3>
                                 </div>
                                 <div class="overflow-x-auto">
-                                    <table class="min-w-full">
+                                    <table class="min-w-full student-table">
                                         <thead>
                                             <tr class="border-b border-gray-200">
                                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Name</th>
                                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Email</th>
                                                 <th class="text-right py-3 px-4 text-sm font-medium text-gray-600">Amount (VND)</th>
-                                                <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Transaction</th>
                                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Date</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Anh Kiệt - G60</td>
-                                                <td class="py-3 px-4">kietbui1612@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Anh Kiệt - A1.2 - G60
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/05</td>
+                                                <td class="py-3 px-4 truncate">Anh Kiệt - G60</td>
+                                                <td class="py-3 px-4 truncate email-cell">kietbui1612@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/05</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Minh Thư - G38</td>
-                                                <td class="py-3 px-4">thunguyen98@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Minh Thư - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/04</td>
+                                                <td class="py-3 px-4 truncate">Minh Thư - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">thunguyen98@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/04</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Hoàng Long - G38</td>
-                                                <td class="py-3 px-4">longhoang2000@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Hoàng Long - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/04</td>
+                                                <td class="py-3 px-4 truncate">Hoàng Long - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">longhoang2000@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/04</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Thanh Hà - G38</td>
-                                                <td class="py-3 px-4">hale123@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Thanh Hà - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/03</td>
+                                                <td class="py-3 px-4 truncate">Thanh Hà - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">hale123@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/03</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Đức Anh - G38</td>
-                                                <td class="py-3 px-4">anhdo555@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Đức Anh - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/03</td>
+                                                <td class="py-3 px-4 truncate">Đức Anh - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">anhdo555@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/03</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Mai Linh - G38</td>
-                                                <td class="py-3 px-4">linhmai2002@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Mai Linh - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/02</td>
+                                                <td class="py-3 px-4 truncate">Mai Linh - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">linhmai2002@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/02</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Quang Minh - G38</td>
-                                                <td class="py-3 px-4">minhquang99@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Quang Minh - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/02</td>
+                                                <td class="py-3 px-4 truncate">Quang Minh - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">minhquang99@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/02</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Thu Trang - G38</td>
-                                                <td class="py-3 px-4">trangnt24@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Thu Trang - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/01</td>
+                                                <td class="py-3 px-4 truncate">Thu Trang - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">trangnt24@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/01</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Văn Nam - G38</td>
-                                                <td class="py-3 px-4">namvan2001@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Văn Nam - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/01</td>
+                                                <td class="py-3 px-4 truncate">Văn Nam - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">namvan2001@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/01</td>
                                             </tr>
                                             <tr class="border-b border-gray-100">
-                                                <td class="py-3 px-4">Bảo Ngọc - G38</td>
-                                                <td class="py-3 px-4">ngocpham97@gmail.com</td>
-                                                <td class="py-3 px-4 text-right">5900000</td>
-                                                <td class="py-3 px-4">
-                                                    <div class="flex items-center">
-                                                        <i data-lucide="plus-circle" class="h-4 w-4 text-green-500 mr-2"></i>
-                                                        Bảo Ngọc - A1.2 - G38
-                                                    </div>
-                                                </td>
-                                                <td class="py-3 px-4 text-gray-500">2025/03/01</td>
+                                                <td class="py-3 px-4 truncate">Bảo Ngọc - G38</td>
+                                                <td class="py-3 px-4 truncate email-cell">ngocpham97@gmail.com</td>
+                                                <td class="py-3 px-4 text-right">5,900,000</td>
+                                                <td class="py-3 px-4 text-gray-500 whitespace-nowrap">2025/03/01</td>
                                             </tr>
                                         </tbody>
                                     </table>

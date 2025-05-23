@@ -126,6 +126,129 @@
         .modal-content {
             animation: modalFadeIn 0.2s ease-out;
         }
+
+        /* Teacher multi-select styles */
+        .teacher-select-container {
+            position: relative;
+        }
+
+        .teacher-input-container {
+            min-height: 42px;
+            padding: 2px;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            cursor: text;
+            background-color: white;
+            transition: all 0.2s;
+        }
+
+        .teacher-input-container:focus-within {
+            border-color: #6366f1;
+            ring: 2px;
+            ring-color: #818cf8;
+        }
+
+        .teacher-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: #eef2ff;
+            border-radius: 0.375rem;
+            padding: 2px 8px;
+            margin: 2px;
+            font-size: 0.875rem;
+            color: #4f46e5;
+            gap: 4px;
+        }
+
+        .teacher-tag button {
+            color: #6366f1;
+            padding: 1px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+        }
+
+        .teacher-tag button:hover {
+            background-color: #e0e7ff;
+        }
+
+        .teacher-input {
+            border: none;
+            outline: none;
+            padding: 4px 8px;
+            font-size: 0.875rem;
+            min-width: 120px;
+            flex-grow: 1;
+        }
+
+        .teacher-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background-color: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 50;
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .teacher-dropdown.active {
+            display: block;
+        }
+
+        .teacher-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .teacher-option:hover {
+            background-color: #f3f4f6;
+        }
+
+        .teacher-option.selected {
+            background-color: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .teacher-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #e0e7ff;
+            color: #4f46e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .add-new-teacher {
+            padding: 8px 12px;
+            border-top: 1px solid #e5e7eb;
+            color: #4f46e5;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .add-new-teacher:hover {
+            background-color: #eef2ff;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-6 gap-10">
@@ -370,6 +493,20 @@
                             <label class="block text-sm font-medium text-gray-700">Google Sheets URL</label>
                             <input type="url" name="sheetsUrl" class="form-input" placeholder="https://docs.google.com/spreadsheets/d/...">
                         </div>
+
+                        <!-- Teachers -->
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Teachers</label>
+                            <div class="teacher-select-container">
+                                <div class="teacher-input-container" id="teacherContainer">
+                                    <input type="text" class="teacher-input" id="teacherInput" placeholder="Search teachers...">
+                                </div>
+                                <div class="teacher-dropdown" id="teacherDropdown">
+                                    <!-- Dropdown content will be populated by JavaScript -->
+                                </div>
+                                <input type="hidden" name="selectedTeachers" id="selectedTeachers">
+                            </div>
+                        </div>
                     </form>
                 </div>
 
@@ -467,6 +604,129 @@
                 closeModal();
             }
         });
+
+        // Teacher selection functionality
+        const teachers = [
+            { id: 1, name: 'Sarah Johnson', email: 'sarah.j@example.com', initials: 'SJ' },
+            { id: 2, name: 'Michael Chen', email: 'michael.c@example.com', initials: 'MC' },
+            { id: 3, name: 'Emma Wilson', email: 'emma.w@example.com', initials: 'EW' },
+            { id: 4, name: 'David Kim', email: 'david.k@example.com', initials: 'DK' },
+            { id: 5, name: 'Maria Garcia', email: 'maria.g@example.com', initials: 'MG' },
+            { id: 6, name: 'James Smith', email: 'james.s@example.com', initials: 'JS' }
+        ];
+
+        let selectedTeacherIds = new Set();
+        const teacherContainer = document.getElementById('teacherContainer');
+        const teacherInput = document.getElementById('teacherInput');
+        const teacherDropdown = document.getElementById('teacherDropdown');
+        const selectedTeachersInput = document.getElementById('selectedTeachers');
+
+        function updateTeacherDropdown(searchTerm = '') {
+            const filteredTeachers = teachers.filter(teacher => 
+                teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                !selectedTeacherIds.has(teacher.id)
+            );
+
+            teacherDropdown.innerHTML = filteredTeachers.map(teacher => `
+                <div class="teacher-option" data-id="${teacher.id}">
+                    <div class="teacher-avatar">${teacher.initials}</div>
+                    <div>
+                        <div class="font-medium">${teacher.name}</div>
+                        <div class="text-sm text-gray-500">${teacher.email}</div>
+                    </div>
+                </div>
+            `).join('') + `
+                <div class="add-new-teacher">
+                    <i data-lucide="plus-circle" class="h-5 w-5"></i>
+                    <span>Add New Teacher</span>
+                </div>
+            `;
+
+            // Re-initialize Lucide icons for the new content
+            lucide.createIcons({
+                attrs: {
+                    class: ["lucide"],
+                    strokeWidth: "2",
+                }
+            });
+        }
+
+        function addTeacherTag(teacher) {
+            const tag = document.createElement('div');
+            tag.className = 'teacher-tag';
+            tag.innerHTML = `
+                ${teacher.name}
+                <button type="button" data-id="${teacher.id}">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            `;
+            
+            teacherContainer.insertBefore(tag, teacherInput);
+            selectedTeacherIds.add(teacher.id);
+            updateSelectedTeachersInput();
+            
+            // Re-initialize Lucide icons for the new content
+            lucide.createIcons({
+                attrs: {
+                    class: ["lucide"],
+                    strokeWidth: "2",
+                }
+            });
+        }
+
+        function updateSelectedTeachersInput() {
+            selectedTeachersInput.value = Array.from(selectedTeacherIds).join(',');
+        }
+
+        // Event Listeners
+        teacherInput.addEventListener('focus', () => {
+            updateTeacherDropdown(teacherInput.value);
+            teacherDropdown.classList.add('active');
+        });
+
+        teacherInput.addEventListener('input', () => {
+            updateTeacherDropdown(teacherInput.value);
+            teacherDropdown.classList.add('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!teacherContainer.contains(e.target)) {
+                teacherDropdown.classList.remove('active');
+            }
+        });
+
+        teacherDropdown.addEventListener('click', (e) => {
+            const option = e.target.closest('.teacher-option');
+            if (option) {
+                const teacherId = parseInt(option.dataset.id);
+                const teacher = teachers.find(t => t.id === teacherId);
+                if (teacher) {
+                    addTeacherTag(teacher);
+                    teacherInput.value = '';
+                    updateTeacherDropdown();
+                }
+            }
+
+            const addNew = e.target.closest('.add-new-teacher');
+            if (addNew) {
+                // Here you would typically open a modal to add a new teacher
+                alert('Add New Teacher functionality would open a modal to create a new teacher');
+            }
+        });
+
+        teacherContainer.addEventListener('click', (e) => {
+            const removeButton = e.target.closest('.teacher-tag button');
+            if (removeButton) {
+                const teacherId = parseInt(removeButton.dataset.id);
+                selectedTeacherIds.delete(teacherId);
+                removeButton.closest('.teacher-tag').remove();
+                updateTeacherDropdown(teacherInput.value);
+                updateSelectedTeachersInput();
+            }
+        });
+
+        // Initialize the dropdown
+        updateTeacherDropdown();
     </script>
 </body>
 </html> 

@@ -56,6 +56,43 @@
             color: #9CA3AF;
             pointer-events: none;
         }
+        .message-container {
+            position: relative;
+            padding: 8px;
+            margin: -8px;
+            border-radius: 8px;
+            transition: background-color 0.15s ease;
+        }
+        .message-container:hover {
+            background-color: #F8FAFC;
+        }
+        .message-hover-options {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: none;
+            background-color: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            padding: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .message-container:hover .message-hover-options {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .hover-button {
+            padding: 4px;
+            border-radius: 4px;
+            color: #6B7280;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .hover-button:hover {
+            background-color: #F3F4F6;
+            color: #374151;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-6 gap-10">
@@ -185,9 +222,9 @@
 
                 <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
                     <!-- Message 1 -->
-                    <div class="flex items-start">
+                    <div class="flex items-start message-container">
                         <div class="w-8 h-8 rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-white font-medium">SJ</div>
-                        <div class="ml-3">
+                        <div class="ml-3 flex-grow">
                             <div class="flex items-center">
                                 <span class="font-medium text-gray-900">Sarah Johnson</span>
                                 <span class="ml-2 text-xs text-gray-500">10:23 AM</span>
@@ -196,12 +233,26 @@
                                 Good morning class! Today we'll be focusing on the past perfect tense. Please open your textbooks to page 45.
                             </div>
                         </div>
+                        <div class="message-hover-options">
+                            <button class="hover-button" title="React">
+                                <i data-lucide="smile" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="Reply">
+                                <i data-lucide="reply" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="Forward">
+                                <i data-lucide="forward" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="More">
+                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Message 2 -->
-                    <div class="flex items-start">
+                    <div class="flex items-start message-container">
                         <div class="w-8 h-8 rounded-full bg-green-500 flex-shrink-0 flex items-center justify-center text-white font-medium">AC</div>
-                        <div class="ml-3">
+                        <div class="ml-3 flex-grow">
                             <div class="flex items-center">
                                 <span class="font-medium text-gray-900">Alex Chen</span>
                                 <span class="ml-2 text-xs text-gray-500">10:25 AM</span>
@@ -210,12 +261,26 @@
                                 I have a question about yesterday's homework. Can we review exercise 3?
                             </div>
                         </div>
+                        <div class="message-hover-options">
+                            <button class="hover-button" title="React">
+                                <i data-lucide="smile" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="Reply">
+                                <i data-lucide="reply" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="Forward">
+                                <i data-lucide="forward" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="More">
+                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Message with File -->
-                    <div class="flex items-start">
+                    <div class="flex items-start message-container">
                         <div class="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">SJ</div>
-                        <div class="ml-3">
+                        <div class="ml-3 flex-grow">
                             <div class="flex items-center">
                                 <span class="font-medium text-gray-900">Sarah Johnson</span>
                                 <span class="ml-2 text-xs text-gray-500">10:30 AM</span>
@@ -233,6 +298,20 @@
                                     <i data-lucide="download" class="h-5 w-5"></i>
                                 </button>
                             </div>
+                        </div>
+                        <div class="message-hover-options">
+                            <button class="hover-button" title="React">
+                                <i data-lucide="smile" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="Reply">
+                                <i data-lucide="reply" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="Forward">
+                                <i data-lucide="forward" class="h-4 w-4"></i>
+                            </button>
+                            <button class="hover-button" title="More">
+                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

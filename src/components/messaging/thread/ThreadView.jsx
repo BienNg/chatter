@@ -1,16 +1,24 @@
 // src/components/ThreadView.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, MessageSquare, X, Send } from 'lucide-react';
 
 const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
+    // Add debug log for props
+    console.log('ThreadView props:', { message, replies, isOpen, onClose });
+    
     const [replyText, setReplyText] = useState('');
     const [threadReplies, setThreadReplies] = useState(replies || []);
+
+    // Add effect to log state changes
+    useEffect(() => {
+        console.log('ThreadView state:', { replyText, threadReplies });
+    }, [replyText, threadReplies]);
 
     const handleSendReply = () => {
         if (replyText.trim()) {
             const newReply = {
                 id: Date.now(),
-                user: { name: 'Bien Nguyen', avatar: 'BN', color: 'bg-indigo-500' },
+                author: message.author || { displayName: 'Unknown User' },
                 content: replyText,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 fullTimestamp: `Today at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
@@ -38,8 +46,27 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
 
     if (!isOpen || !message) return null;
 
+    // Get author initials for avatar
+    const getAuthorInitials = (author) => {
+        if (!author) return 'U';
+        return author.displayName?.charAt(0) || author.email?.charAt(0) || 'U';
+    };
+
+    // Get a consistent color based on user email or name
+    const getAuthorColor = (author) => {
+        if (!author) return 'bg-gray-400';
+        const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-indigo-500', 'bg-pink-500'];
+        const str = author.displayName || author.email || '';
+        const index = str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+        return colors[index];
+    };
+
     return (
-        <div className="fixed right-0 top-0 w-96 bg-white border-l border-gray-200 flex flex-col h-screen z-40">
+        <div 
+            className={`fixed right-0 top-0 w-96 bg-white border-l border-gray-200 flex flex-col h-screen z-40
+                transform transition-transform duration-300 ease-in-out
+                ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        >
             {/* Thread Header */}
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between mb-2">
@@ -81,13 +108,17 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
             {/* Original Message */}
             <div className="px-4 py-4 border-b border-gray-200 bg-blue-50">
                 <div className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full ${message.user.color} flex-shrink-0 flex items-center justify-center text-white font-medium`}>
-                        {message.user.avatar}
+                    <div className={`w-8 h-8 rounded-full ${getAuthorColor(message.author)} flex-shrink-0 flex items-center justify-center text-white font-medium`}>
+                        {getAuthorInitials(message.author)}
                     </div>
                     <div className="flex-grow">
                         <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-gray-900">{message.user.name}</span>
-                            <span className="text-xs text-gray-500">{message.timestamp}</span>
+                            <span className="font-medium text-gray-900">
+                                {message.author?.displayName || message.author?.email || 'Unknown User'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                                {message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown time'}
+                            </span>
                         </div>
                         <div className="text-sm text-gray-700 leading-relaxed text-left">
                             {message.content}
@@ -103,12 +134,14 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                 {threadReplies.map((comment) => (
                     <div key={comment.id} className="flex items-start space-x-3">
-                        <div className={`w-6 h-6 rounded-full ${comment.user.color} flex-shrink-0 flex items-center justify-center text-white text-xs font-medium`}>
-                            {comment.user.avatar}
+                        <div className={`w-6 h-6 rounded-full ${getAuthorColor(comment.author)} flex-shrink-0 flex items-center justify-center text-white text-xs font-medium`}>
+                            {getAuthorInitials(comment.author)}
                         </div>
                         <div className="flex-grow">
                             <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-medium text-gray-900 text-sm">{comment.user.name}</span>
+                                <span className="font-medium text-gray-900 text-sm">
+                                    {comment.author?.displayName || comment.author?.email || 'Unknown User'}
+                                </span>
                                 <span className="text-xs text-gray-500">{comment.timestamp}</span>
                             </div>
                             <div className="text-gray-800 text-sm leading-relaxed text-left">

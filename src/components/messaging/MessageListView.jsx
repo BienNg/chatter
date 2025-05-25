@@ -17,6 +17,9 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const messagesEndRef = useRef(null);
 
+    // Add debug log for props
+    console.log('MessageListView props:', { messages, loading, onOpenThread, channelId });
+
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,6 +41,7 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
     };
 
     const handleThreadClick = (messageId) => {
+        console.log('Thread click handler called with messageId:', messageId);
         onOpenThread?.(messageId);
     };
 
@@ -153,7 +157,10 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                     <button
                                         className="p-1.5 hover:bg-gray-100 rounded text-gray-600"
                                         title="Reply in thread"
-                                        onClick={() => handleThreadClick(message.id)}
+                                        onClick={() => {
+                                            console.log('Reply button clicked for message:', message.id);
+                                            handleThreadClick(message.id);
+                                        }}
                                     >
                                         <Reply className="h-4 w-4" />
                                     </button>

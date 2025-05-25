@@ -38,6 +38,9 @@ const MessagingInterface = () => {
     const { messages, loading: messagesLoading, sendMessage } = useMessages(channelId);
     const { currentUser, userProfile, logout } = useAuth();
 
+    // Add debug log for route params
+    console.log('Route params:', { channelId, messageId });
+
     // Set first channel as active if none selected
     useEffect(() => {
         if (channels.length > 0 && !channelId) {
@@ -47,16 +50,25 @@ const MessagingInterface = () => {
 
     const activeChannel = channels.find((channel) => channel.id === channelId);
     const activeThread = messageId ? messages.find((msg) => msg.id === messageId) : null;
+    
+    // Add debug log for active thread and message structure
+    console.log('Active thread details:', {
+        messageId,
+        activeThread,
+        messageStructure: activeThread ? JSON.stringify(activeThread, null, 2) : null
+    });
 
     const handleChannelSelect = (newChannelId) => {
         navigate(`/channels/${newChannelId}`);
     };
 
     const handleOpenThread = (threadMessageId) => {
+        console.log('handleOpenThread called with:', threadMessageId);
         navigate(`/channels/${channelId}/messages/${threadMessageId}`);
     };
 
     const handleCloseThread = () => {
+        console.log('handleCloseThread called');
         navigate(`/channels/${channelId}`);
     };
 
@@ -204,7 +216,7 @@ const MessagingInterface = () => {
 
                 {/* Messages Area */}
                 <div className="flex-1 flex">
-                    <div className={`flex-1 flex flex-col ${activeThread ? 'border-r' : ''}`}>
+                    <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${activeThread ? 'mr-96' : ''}`}>
                         {/* Message List */}
                         <div className="flex-1 overflow-y-auto">
                             {messages.length === 0 ? (
@@ -217,7 +229,7 @@ const MessagingInterface = () => {
                                 <MessageListView
                                     messages={messages}
                                     loading={messagesLoading}
-                                    onThreadClick={handleOpenThread}
+                                    onOpenThread={handleOpenThread}
                                     channelId={channelId}
                                 />
                             )}
@@ -229,13 +241,12 @@ const MessagingInterface = () => {
 
                     {/* Thread View */}
                     {activeThread && (
-                        <div className="w-96">
-                            <ThreadView
-                                message={activeThread}
-                                onClose={handleCloseThread}
-                                channelId={channelId}
-                            />
-                        </div>
+                        <ThreadView
+                            message={activeThread}
+                            onClose={handleCloseThread}
+                            channelId={channelId}
+                            isOpen={true}
+                        />
                     )}
                 </div>
             </div>

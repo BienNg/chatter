@@ -98,7 +98,7 @@ const ThreadView = ({ isOpen, onClose }) => {
                             <span className="font-medium text-gray-900">{originalMessage.user.name}</span>
                             <span className="text-xs text-gray-500">{originalMessage.timestamp}</span>
                         </div>
-                        <div className="text-gray-800 text-sm leading-relaxed">
+                        <div className="text-sm text-gray-700 leading-relaxed text-left">
                             {originalMessage.content}
                         </div>
                         <button className="mt-2 text-xs text-indigo-600 hover:text-indigo-700 font-medium">
@@ -120,7 +120,7 @@ const ThreadView = ({ isOpen, onClose }) => {
                                 <span className="font-medium text-gray-900 text-sm">{comment.user.name}</span>
                                 <span className="text-xs text-gray-500">{comment.timestamp}</span>
                             </div>
-                            <div className="text-gray-800 text-sm leading-relaxed">
+                            <div className="text-gray-800 text-sm leading-relaxed text-left">
                                 {comment.content}
                             </div>
                         </div>
@@ -137,11 +137,12 @@ const ThreadView = ({ isOpen, onClose }) => {
                     <div className="flex-grow">
                         <div
                             contentEditable="true"
-                            className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm min-h-[32px]"
+                            className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm min-h-[32px] text-left"
                             placeholder="Reply to thread..."
                             style={{
                                 whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word'
+                                wordBreak: 'break-word',
+                                textAlign: 'left'
                             }}
                         />
                         <div className="mt-2 flex items-center justify-between">

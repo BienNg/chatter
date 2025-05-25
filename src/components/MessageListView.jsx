@@ -13,64 +13,51 @@ import {
     FileText
 } from 'lucide-react';
 
-const MessageListView = () => {
-    const [messages, setMessages] = useState([
-        {
-            id: 1,
-            user: {
-                name: 'Sarah Johnson',
-                avatar: 'SJ',
-                color: 'bg-blue-500',
-                online: true
-            },
-            content: 'Good morning class! Today we\'ll be focusing on the past perfect tense. Please open your textbooks to page 45.',
-            timestamp: '10:23 AM',
-            fullTimestamp: 'Today at 10:23 AM',
-            reactions: [
-                { emoji: '👍', count: 3, users: ['Alex Chen', 'Mai Tran', 'John Doe'] }
-            ],
-            threadCount: 0
-        },
-        {
-            id: 2,
-            user: {
-                name: 'Alex Chen',
-                avatar: 'AC',
-                color: 'bg-green-500',
-                online: true
-            },
-            content: 'I have a question about yesterday\'s homework. Can we review exercise 3?',
-            timestamp: '10:25 AM',
-            fullTimestamp: 'Today at 10:25 AM',
-            reactions: [],
-            threadCount: 0
-        },
-        {
-            id: 3,
-            user: {
-                name: 'Sarah Johnson',
-                avatar: 'SJ',
-                color: 'bg-blue-500',
-                online: true
-            },
-            content: 'Here\'s the worksheet for today\'s exercises:',
-            timestamp: '10:30 AM',
-            fullTimestamp: 'Today at 10:30 AM',
-            reactions: [
-                { emoji: '❤️', count: 2, users: ['Alex Chen', 'Mai Tran'] },
-                { emoji: '👍', count: 1, users: ['John Doe'] }
-            ],
-            threadCount: 3,
-            attachment: {
-                type: 'pdf',
-                name: 'Past Perfect Exercises.pdf',
-                size: '2.3 MB'
-            }
-        }
-    ]);
-
+const MessageListView = ({ messages: propMessages, onOpenThread, onNewMessage }) => {
+    const [messages, setMessages] = useState(propMessages || []);
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const [typingUsers, setTypingUsers] = useState(['Mai Tran']);
+
+    // Update local messages when props change
+    useEffect(() => {
+        if (propMessages) {
+            setMessages(propMessages);
+        }
+    }, [propMessages]);
+
+    const handleThreadClick = (messageId) => {
+        onOpenThread?.(messageId);
+    };
+
+    const handleNewMessage = (newMessage) => {
+        onNewMessage?.(newMessage);
+    };
+
+    const handleReaction = (messageId, emoji) => {
+        setMessages((prev) =>
+            prev.map((msg) => {
+                if (msg.id === messageId) {
+                    const existingReaction = msg.reactions.find((r) => r.emoji === emoji);
+                    if (existingReaction) {
+                        return {
+                            ...msg,
+                            reactions: msg.reactions.map((r) =>
+                                r.emoji === emoji
+                                    ? { ...r, count: r.count + 1, users: [...r.users, 'Bien Nguyen'] }
+                                    : r
+                            )
+                        };
+                    } else {
+                        return {
+                            ...msg,
+                            reactions: [...msg.reactions, { emoji, count: 1, users: ['Bien Nguyen'] }]
+                        };
+                    }
+                }
+                return msg;
+            })
+        );
+    };
 
     return (
         <div className="flex-1 flex flex-col bg-white">
@@ -142,6 +129,7 @@ const MessageListView = () => {
                                                 key={idx}
                                                 className="inline-flex items-center px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition"
                                                 title={reaction.users.join(', ')}
+                                                onClick={() => handleReaction(message.id, reaction.emoji)}
                                             >
                                                 <span className="mr-1">{reaction.emoji}</span>
                                                 <span className="text-gray-700 font-medium">{reaction.count}</span>
@@ -152,7 +140,10 @@ const MessageListView = () => {
 
                                 {/* Thread Indicator */}
                                 {message.threadCount > 0 && (
-                                    <button className="mt-2 flex items-center text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                                    <button
+                                        onClick={() => handleThreadClick(message.id)}
+                                        className="mt-2 flex items-center text-sm text-indigo-600 hover:text-indigo-700 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition"
+                                    >
                                         <MessageSquare className="h-4 w-4 mr-1" />
                                         {message.threadCount} {message.threadCount === 1 ? 'reply' : 'replies'}
                                     </button>
@@ -163,10 +154,18 @@ const MessageListView = () => {
                         {/* Hover Actions */}
                         {hoveredMessage === message.id && (
                             <div className="message-hover-options absolute top-0 right-0 bg-white border border-gray-200 rounded-lg shadow-sm p-1 flex items-center space-x-1">
-                                <button className="hover-button p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Add reaction">
+                                <button
+                                    className="hover-button p-1.5 hover:bg-gray-100 rounded text-gray-600"
+                                    title="Add reaction"
+                                    onClick={() => handleReaction(message.id, '👍')}
+                                >
                                     <Smile className="h-4 w-4" />
                                 </button>
-                                <button className="hover-button p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Reply in thread">
+                                <button
+                                    className="hover-button p-1.5 hover:bg-gray-100 rounded text-gray-600"
+                                    title="Reply in thread"
+                                    onClick={() => handleThreadClick(message.id)}
+                                >
                                     <Reply className="h-4 w-4" />
                                 </button>
                                 <button className="hover-button p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Forward">
@@ -193,8 +192,8 @@ const MessageListView = () => {
                 )}
             </div>
 
-            {/* Message Input - Now integrated at the bottom */}
-            <MessageComposition />
+            {/* Message Input */}
+            <MessageComposition onSendMessage={handleNewMessage} />
         </div>
     );
 };

@@ -1,54 +1,45 @@
 // src/components/ThreadView.jsx
 import React, { useState } from 'react';
-import { ArrowLeft, Users, MessageSquare, X } from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, X, Send } from 'lucide-react';
 
-const ThreadView = ({ isOpen, onClose }) => {
-    const [originalMessage] = useState({
-        id: 3,
-        user: {
-            name: 'Sarah Johnson',
-            avatar: 'SJ',
-            color: 'bg-blue-500'
-        },
-        content: 'Here\'s the worksheet for today\'s exercises: Can everyone please complete exercises 1-5 for homework?',
-        timestamp: '10:30 AM',
-        fullTimestamp: 'Today at 10:30 AM'
-    });
+const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
+    const [replyText, setReplyText] = useState('');
+    const [threadReplies, setThreadReplies] = useState(replies || []);
 
-    const [threadComments] = useState([
-        {
-            id: 31,
-            user: { name: 'Alex Chen', avatar: 'AC', color: 'bg-green-500' },
-            content: 'Thanks for sharing! Should we focus on the past perfect section?',
-            timestamp: '10:35 AM',
-            fullTimestamp: 'Today at 10:35 AM'
-        },
-        {
-            id: 32,
-            user: { name: 'Mai Tran', avatar: 'MT', color: 'bg-purple-500' },
-            content: 'I have a question about exercise 3. The sentence structure seems different from what we learned last week.',
-            timestamp: '10:40 AM',
-            fullTimestamp: 'Today at 10:40 AM'
-        },
-        {
-            id: 33,
-            user: { name: 'Sarah Johnson', avatar: 'SJ', color: 'bg-blue-500' },
-            content: 'Good question, Mai! Exercise 3 introduces the passive voice with past perfect. We\'ll review this in tomorrow\'s class.',
-            timestamp: '10:45 AM',
-            fullTimestamp: 'Today at 10:45 AM'
+    const handleSendReply = () => {
+        if (replyText.trim()) {
+            const newReply = {
+                id: Date.now(),
+                user: { name: 'Bien Nguyen', avatar: 'BN', color: 'bg-indigo-500' },
+                content: replyText,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                fullTimestamp: `Today at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            };
+            
+            setThreadReplies((prev) => [...prev, newReply]);
+            onNewReply?.(message.id, replyText);
+            setReplyText('');
         }
-    ]);
+    };
 
-    const [participants] = useState([
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendReply();
+        }
+    };
+
+    const participants = [
         { name: 'Sarah Johnson', avatar: 'SJ', color: 'bg-blue-500' },
         { name: 'Alex Chen', avatar: 'AC', color: 'bg-green-500' },
-        { name: 'Mai Tran', avatar: 'MT', color: 'bg-purple-500' }
-    ]);
+        { name: 'Mai Tran', avatar: 'MT', color: 'bg-purple-500' },
+        { name: 'Bien Nguyen', avatar: 'BN', color: 'bg-indigo-500' }
+    ];
 
-    if (!isOpen) return null;
+    if (!isOpen || !message) return null;
 
     return (
-        <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full">
+        <div className="fixed right-0 top-0 w-96 bg-white border-l border-gray-200 flex flex-col h-screen z-40">
             {/* Thread Header */}
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between mb-2">
@@ -73,7 +64,7 @@ const ThreadView = ({ isOpen, onClose }) => {
                 <div className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <div className="flex -space-x-1">
-                        {participants.map(participant => (
+                        {participants.map((participant) => (
                             <div
                                 key={participant.name}
                                 className={`w-6 h-6 rounded-full ${participant.color} flex items-center justify-center text-white text-xs font-medium ring-2 ring-white`}
@@ -90,16 +81,16 @@ const ThreadView = ({ isOpen, onClose }) => {
             {/* Original Message */}
             <div className="px-4 py-4 border-b border-gray-200 bg-blue-50">
                 <div className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full ${originalMessage.user.color} flex-shrink-0 flex items-center justify-center text-white font-medium`}>
-                        {originalMessage.user.avatar}
+                    <div className={`w-8 h-8 rounded-full ${message.user.color} flex-shrink-0 flex items-center justify-center text-white font-medium`}>
+                        {message.user.avatar}
                     </div>
                     <div className="flex-grow">
                         <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-gray-900">{originalMessage.user.name}</span>
-                            <span className="text-xs text-gray-500">{originalMessage.timestamp}</span>
+                            <span className="font-medium text-gray-900">{message.user.name}</span>
+                            <span className="text-xs text-gray-500">{message.timestamp}</span>
                         </div>
                         <div className="text-sm text-gray-700 leading-relaxed text-left">
-                            {originalMessage.content}
+                            {message.content}
                         </div>
                         <button className="mt-2 text-xs text-indigo-600 hover:text-indigo-700 font-medium">
                             Jump to message
@@ -110,7 +101,7 @@ const ThreadView = ({ isOpen, onClose }) => {
 
             {/* Thread Comments */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-                {threadComments.map(comment => (
+                {threadReplies.map((comment) => (
                     <div key={comment.id} className="flex items-start space-x-3">
                         <div className={`w-6 h-6 rounded-full ${comment.user.color} flex-shrink-0 flex items-center justify-center text-white text-xs font-medium`}>
                             {comment.user.avatar}
@@ -135,23 +126,30 @@ const ThreadView = ({ isOpen, onClose }) => {
                         BN
                     </div>
                     <div className="flex-grow">
-                        <div
-                            contentEditable="true"
-                            className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm min-h-[32px] text-left"
+                        <textarea
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-none"
+                            rows={2}
                             placeholder="Reply to thread..."
-                            style={{
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                                textAlign: 'left'
-                            }}
                         />
                         <div className="mt-2 flex items-center justify-between">
                             <div className="flex items-center space-x-2 text-xs text-gray-500">
                                 <MessageSquare className="h-3 w-3" />
-                                <span>Also send to #import-s-hai-duong-minh-thu-</span>
+                                <span>Also send to #general</span>
                             </div>
-                            <button className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition">
-                                Send
+                            <button 
+                                onClick={handleSendReply}
+                                disabled={!replyText.trim()}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition flex items-center space-x-1 ${
+                                    replyText.trim()
+                                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                                <Send className="h-3 w-3" />
+                                <span>Send</span>
                             </button>
                         </div>
                     </div>

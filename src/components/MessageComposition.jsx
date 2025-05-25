@@ -15,10 +15,11 @@ import {
     Camera,
     CornerDownLeft,
     X,
-    Upload
+    Upload,
+    Send
 } from 'lucide-react';
 
-const MessageComposition = () => {
+const MessageComposition = ({ onSendMessage }) => {
     const [message, setMessage] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -37,6 +38,28 @@ const MessageComposition = () => {
 
     const commonEmojis = ['😀', '😊', '👍', '❤️', '😂', '🎉', '👏', '🔥'];
 
+    const handleSend = () => {
+        if (message.trim() || attachedFiles.length > 0) {
+            onSendMessage?.({
+                content: message.trim() || '[File attachment]',
+                attachments: attachedFiles
+            });
+            
+            setMessage('');
+            setAttachedFiles([]);
+            if (editorRef.current) {
+                editorRef.current.textContent = '';
+            }
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
     const handleFileUpload = (e) => {
         const files = Array.from(e.target.files);
         setIsUploading(true);
@@ -49,7 +72,7 @@ const MessageComposition = () => {
                 clearInterval(interval);
                 setIsUploading(false);
                 setUploadProgress(0);
-                setAttachedFiles(prev => [...prev, ...files.map(file => ({
+                setAttachedFiles((prev) => [...prev, ...files.map((file) => ({
                     id: Date.now() + Math.random(),
                     name: file.name,
                     size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
@@ -60,18 +83,34 @@ const MessageComposition = () => {
     };
 
     const removeFile = (fileId) => {
-        setAttachedFiles(prev => prev.filter(file => file.id !== fileId));
+        setAttachedFiles((prev) => prev.filter((file) => file.id !== fileId));
     };
 
     const handleMention = (text) => {
         if (text.includes('@')) {
             const query = text.split('@').pop().toLowerCase();
-            const suggestions = users.filter(user =>
+            const suggestions = users.filter((user) =>
                 user.name.toLowerCase().includes(query)
             );
             setMentionSuggestions(suggestions);
         } else {
             setMentionSuggestions([]);
+        }
+    };
+
+    const insertEmoji = (emoji) => {
+        if (editorRef.current) {
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(document.createTextNode(emoji));
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            setMessage(editorRef.current.textContent);
+            setShowEmojiPicker(false);
+            editorRef.current.focus();
         }
     };
 
@@ -158,11 +197,12 @@ const MessageComposition = () => {
                         ref={editorRef}
                         contentEditable="true"
                         className="w-full focus:outline-none min-h-[24px] text-left empty:before:content-[attr(placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
-                        placeholder="Message #import-s-hai-duong-minh-thu-"
+                        placeholder="Message #general"
                         onInput={(e) => {
                             setMessage(e.target.textContent);
                             handleMention(e.target.textContent);
                         }}
+                        onKeyDown={handleKeyDown}
                         style={{
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
@@ -211,9 +251,7 @@ const MessageComposition = () => {
                                             <button
                                                 key={emoji}
                                                 className="p-2 hover:bg-gray-100 rounded text-lg"
-                                                onClick={() => {
-                                                    setShowEmojiPicker(false);
-                                                }}
+                                                onClick={() => insertEmoji(emoji)}
                                             >
                                                 {emoji}
                                             </button>
@@ -240,9 +278,24 @@ const MessageComposition = () => {
                             <Camera className="h-4 w-4" />
                         </button>
                     </div>
-                    <button className="ml-auto text-gray-400">
-                        <CornerDownLeft className="h-5 w-5" />
-                    </button>
+                    
+                    <div className="ml-auto flex items-center space-x-2">
+                        <button className="text-gray-400">
+                            <CornerDownLeft className="h-5 w-5" />
+                        </button>
+                        <button 
+                            onClick={handleSend}
+                            disabled={!message.trim() && attachedFiles.length === 0}
+                            className={`p-2 rounded-lg transition ${
+                                message.trim() || attachedFiles.length > 0
+                                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
+                            title="Send message"
+                        >
+                            <Send className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Hidden File Input */}

@@ -1,59 +1,143 @@
 // src/components/MessagingInterface.jsx
 import React, { useState } from 'react';
 import MessageListView from './MessageListView';
-import MessageComposition from './MessageComposition';
-import RealTimeUpdates from './RealTimeUpdates';
 import ThreadView from './ThreadView';
-import CommentComposition from './CommentComposition';
-import NestedComments from './NestedComments';
 
 const MessagingInterface = () => {
-  const [currentScreen, setCurrentScreen] = useState(1);
-  const [currentState, setCurrentState] = useState(1);
-  const [showThread, setShowThread] = useState(false);
-
-  const screens = {
-    1: {
-      title: 'Channel Message Interface',
-      states: {
-        1: { title: 'Message List View', component: MessageListView },
-        2: { title: 'Message Composition', component: MessageComposition },
-        3: { title: 'Real-Time Updates', component: RealTimeUpdates }
-      }
+  const [activeThread, setActiveThread] = useState(null);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      user: {
+        name: 'Sarah Johnson',
+        avatar: 'SJ',
+        color: 'bg-blue-500',
+        online: true
+      },
+      content: 'Good morning class! Today we\'ll be focusing on the past perfect tense. Please open your textbooks to page 45.',
+      timestamp: '10:23 AM',
+      fullTimestamp: 'Today at 10:23 AM',
+      reactions: [
+        { emoji: '👍', count: 3, users: ['Alex Chen', 'Mai Tran', 'John Doe'] }
+      ],
+      threadCount: 0
     },
-    2: {
-      title: 'Comment Threading',
-      states: {
-        1: { title: 'Thread View', component: ThreadView },
-        2: { title: 'Comment Composition', component: CommentComposition },
-        3: { title: 'Nested Comments', component: NestedComments }
+    {
+      id: 2,
+      user: {
+        name: 'Alex Chen',
+        avatar: 'AC',
+        color: 'bg-green-500',
+        online: true
+      },
+      content: 'I have a question about yesterday\'s homework. Can we review exercise 3?',
+      timestamp: '10:25 AM',
+      fullTimestamp: 'Today at 10:25 AM',
+      reactions: [],
+      threadCount: 0
+    },
+    {
+      id: 3,
+      user: {
+        name: 'Sarah Johnson',
+        avatar: 'SJ',
+        color: 'bg-blue-500',
+        online: true
+      },
+      content: 'Here\'s the worksheet for today\'s exercises: Can everyone please complete exercises 1-5 for homework?',
+      timestamp: '10:30 AM',
+      fullTimestamp: 'Today at 10:30 AM',
+      reactions: [
+        { emoji: '❤️', count: 2, users: ['Alex Chen', 'Mai Tran'] },
+        { emoji: '👍', count: 1, users: ['John Doe'] }
+      ],
+      threadCount: 3,
+      attachment: {
+        type: 'pdf',
+        name: 'Past Perfect Exercises.pdf',
+        size: '2.3 MB'
       }
+    }
+  ]);
+
+  const [threadMessages] = useState({
+    3: [
+      {
+        id: 31,
+        user: { name: 'Alex Chen', avatar: 'AC', color: 'bg-green-500' },
+        content: 'Thanks for sharing! Should we focus on the past perfect section?',
+        timestamp: '10:35 AM',
+        fullTimestamp: 'Today at 10:35 AM'
+      },
+      {
+        id: 32,
+        user: { name: 'Mai Tran', avatar: 'MT', color: 'bg-purple-500' },
+        content: 'I have a question about exercise 3. The sentence structure seems different from what we learned last week.',
+        timestamp: '10:40 AM',
+        fullTimestamp: 'Today at 10:40 AM'
+      },
+      {
+        id: 33,
+        user: { name: 'Sarah Johnson', avatar: 'SJ', color: 'bg-blue-500' },
+        content: 'Good question, Mai! Exercise 3 introduces the passive voice with past perfect. We\'ll review this in tomorrow\'s class.',
+        timestamp: '10:45 AM',
+        fullTimestamp: 'Today at 10:45 AM'
+      }
+    ]
+  });
+
+  const handleOpenThread = (messageId) => {
+    const message = messages.find((msg) => msg.id === messageId);
+    if (message) {
+      setActiveThread({
+        ...message,
+        replies: threadMessages[messageId] || []
+      });
     }
   };
 
-  const renderCurrentComponent = () => {
-    const screen = screens[currentScreen];
-    const state = screen.states[currentState];
-    const Component = state.component;
+  const handleCloseThread = () => {
+    setActiveThread(null);
+  };
 
-    // Special handling for threading components
-    if (currentScreen === 2) {
-      return (
-        <div className="flex h-full">
-          {/* Main chat area (reduced width when thread is open) */}
-          <div className="flex-1 transition-all duration-300">
-            <MessageListView />
-          </div>
-          {/* Thread panel */}
-          <Component 
-            isOpen={true} 
-            onClose={() => setShowThread(false)}
-          />
-        </div>
-      );
+  const handleNewMessage = (newMessage) => {
+    const messageData = {
+      ...newMessage,
+      id: Date.now(),
+      user: { name: 'Bien Nguyen', avatar: 'BN', color: 'bg-indigo-500', online: true },
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      fullTimestamp: `Today at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      reactions: [],
+      threadCount: 0
+    };
+    
+    setMessages((prev) => [...prev, messageData]);
+  };
+
+  const handleNewThreadReply = (messageId, reply) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, threadCount: msg.threadCount + 1 }
+          : msg
+      )
+    );
+    
+    // Update active thread if it's open
+    if (activeThread && activeThread.id === messageId) {
+      const newReply = {
+        id: Date.now(),
+        user: { name: 'Bien Nguyen', avatar: 'BN', color: 'bg-indigo-500' },
+        content: reply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        fullTimestamp: `Today at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+      };
+      
+      setActiveThread((prev) => ({
+        ...prev,
+        replies: [...prev.replies, newReply]
+      }));
     }
-
-    return <Component />;
   };
 
   return (
@@ -78,7 +162,7 @@ const MessagingInterface = () => {
           </button>
           <button className="w-10 h-10 rounded-lg flex items-center justify-center text-indigo-300 hover:bg-indigo-800 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6l.5 6h-7L8 7z" />
             </svg>
           </button>
         </div>
@@ -97,10 +181,10 @@ const MessagingInterface = () => {
       <div className="w-64 bg-indigo-800 text-white flex flex-col">
         <div className="p-4 border-b border-indigo-700">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold">Channels</h2>
+            <h2 className="font-bold">Chatter</h2>
             <button className="text-indigo-300 hover:text-white">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
@@ -111,32 +195,49 @@ const MessagingInterface = () => {
             <svg className="w-4 h-4 text-indigo-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input type="text" placeholder="Search channels" className="bg-transparent border-none text-sm text-white placeholder-indigo-300 focus:outline-none w-full" />
+            <input type="text" placeholder="Search" className="bg-transparent border-none text-sm text-white placeholder-indigo-300 focus:outline-none w-full" />
           </div>
         </div>
         
         <div className="flex-1 overflow-y-auto">
           <div className="px-3 py-2">
+            <div className="flex items-center justify-between text-xs text-indigo-300 mb-1">
+              <span className="font-semibold">CHANNELS</span>
+              <button>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
+            </div>
+            
             <div className="space-y-1">
               <button className="flex items-center py-1 px-2 rounded bg-indigo-600 text-white w-full text-left">
-                <span className="text-sm"># A1.1 Morning Class</span>
+                <span className="text-sm"># general</span>
               </button>
               <button className="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200 w-full text-left">
-                <span className="text-sm"># B2.2 Evening Class</span>
-                <span className="ml-auto bg-indigo-500 text-xs rounded-full px-1.5">3</span>
+                <span className="text-sm"># marketing</span>
+                <span className="ml-auto bg-indigo-500 text-xs rounded-full px-1.5">2</span>
               </button>
               <button className="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200 w-full text-left">
-                <span className="text-sm"># Teacher's Lounge</span>
+                <span className="text-sm"># design</span>
               </button>
               <button className="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200 w-full text-left">
-                <span className="text-sm"># Admin Team</span>
+                <span className="text-sm"># development</span>
+              </button>
+              <button className="flex items-center py-1 px-2 rounded hover:bg-indigo-700 text-indigo-200 w-full text-left">
+                <span className="text-sm"># product</span>
               </button>
             </div>
           </div>
           
           <div className="px-3 py-2 mt-4">
-            <div className="flex items-center justify-between text-xs text-indigo-300 mb-2">
+            <div className="flex items-center justify-between text-xs text-indigo-300 mb-1">
               <span className="font-semibold">DIRECT MESSAGES</span>
+              <button>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
             </div>
             
             <div className="space-y-1">
@@ -149,29 +250,39 @@ const MessagingInterface = () => {
                 <span className="text-sm text-indigo-200">Alex Chen</span>
                 <span className="ml-auto bg-indigo-500 text-xs rounded-full px-1.5">1</span>
               </button>
+              <button className="flex items-center py-1 px-2 rounded hover:bg-indigo-700 w-full text-left">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                <span className="text-sm text-indigo-200">Michael Torres</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
       
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className={`flex-1 flex flex-col bg-white transition-all duration-300 ${activeThread ? 'mr-96' : ''}`}>
         {/* Chat Header */}
         <div className="h-14 border-b border-gray-200 px-4 flex items-center justify-between">
           <div className="flex items-center">
-            <h3 className="font-semibold text-gray-800">#G38</h3>
-            <span className="ml-2 text-sm text-gray-500">5 members</span>
+            <h3 className="font-semibold text-gray-800"># general</h3>
+            <span className="ml-2 text-sm text-gray-500">25 members</span>
           </div>
-          
-          {/* Tab Navigation */}
-          <div className="flex items-center space-x-1">
-            <button className="px-4 py-2 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600">Messages</button>
-            <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Classes</button>
-            <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Tasks</button>
-            <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Wiki</button>
-          </div>
-          
           <div className="flex items-center space-x-3">
+            <button className="text-gray-500 hover:text-gray-700">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            <button className="text-gray-500 hover:text-gray-700">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.343 4.343l15.314 15.314M5 5l14 14" />
+              </svg>
+            </button>
+            <button className="text-gray-500 hover:text-gray-700">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </button>
             <button className="text-gray-500 hover:text-gray-700">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
@@ -180,56 +291,24 @@ const MessagingInterface = () => {
           </div>
         </div>
         
-        {/* Dynamic Content */}
-        {renderCurrentComponent()}
+        {/* Message List */}
+        <MessageListView 
+          messages={messages}
+          onOpenThread={handleOpenThread}
+          onNewMessage={handleNewMessage}
+        />
       </div>
 
-      {/* Floating Screen Navigation - Bottom Right */}
-      <div className="fixed bottom-6 right-6 bg-white rounded-2xl shadow-xl border border-gray-200 p-4 z-50">
-        <div className="mb-3">
-          <h4 className="text-sm font-semibold text-gray-900 mb-2">Screen Navigation</h4>
-          <div className="flex space-x-2">
-            {Object.entries(screens).map(([screenNum, screen]) => (
-              <button
-                key={screenNum}
-                onClick={() => {
-                  setCurrentScreen(parseInt(screenNum));
-                  setCurrentState(1);
-                  if (screenNum === '2') setShowThread(true);
-                }}
-                className={`w-8 h-8 rounded-lg font-semibold text-sm transition-all duration-200 ${
-                  currentScreen === parseInt(screenNum)
-                    ? 'bg-indigo-600 text-white shadow-lg transform scale-105'
-                    : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-600 hover:scale-105'
-                }`}
-                title={`Screen ${screenNum}: ${screen.title}`}
-              >
-                {screenNum}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div>
-          <h5 className="text-xs font-medium text-gray-600 mb-2">States</h5>
-          <div className="flex space-x-1">
-            {Object.entries(screens[currentScreen].states).map(([stateNum, state]) => (
-              <button
-                key={stateNum}
-                onClick={() => setCurrentState(parseInt(stateNum))}
-                className={`w-6 h-6 rounded-md text-xs font-medium transition-all duration-200 ${
-                  currentState === parseInt(stateNum)
-                    ? 'bg-indigo-500 text-white shadow-md transform scale-110'
-                    : 'bg-gray-200 text-gray-500 hover:bg-indigo-200 hover:text-indigo-600 hover:scale-110'
-                }`}
-                title={`State ${stateNum}: ${state.title}`}
-              >
-                {stateNum}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Thread Panel - Conditionally Rendered */}
+      {activeThread && (
+        <ThreadView 
+          message={activeThread}
+          replies={activeThread.replies}
+          isOpen={true}
+          onClose={handleCloseThread}
+          onNewReply={handleNewThreadReply}
+        />
+      )}
     </div>
   );
 };

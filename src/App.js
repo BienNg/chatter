@@ -1,22 +1,25 @@
-import logo from './logo.svg';
+// src/App.js - Updated to include OnboardingFlow
+import React, { useState } from 'react';
+import OnboardingFlow from './components/OnboardingFlow';
 import './App.css';
 
 function App() {
+  const [showOnboarding, setShowOnboarding] = useState(true);
+
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
+  }
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+        <p>Main Application Content</p>
+        <button 
+          onClick={() => setShowOnboarding(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
         >
-          Learn React
-        </a>
+          Show Onboarding
+        </button>
       </header>
     </div>
   );

@@ -19,10 +19,12 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
 
     const channelTypes = [
         { id: 'general', name: 'General' },
-        { id: 'project', name: 'Project' },
-        { id: 'department', name: 'Department' },
-        { id: 'announcement', name: 'Announcement' },
-        { id: 'social', name: 'Social' }
+        { id: 'class', name: 'Class' },
+        { id: 'import', name: 'Import' },
+        { id: 'social-media', name: 'Social Media' },
+        { id: 'management', name: 'Management' },
+        { id: 'customer-support', name: 'Customer Support' },
+        { id: 'bookkeeping', name: 'Bookkeeping' }
     ];
 
     const handleSubmit = async (e) => {

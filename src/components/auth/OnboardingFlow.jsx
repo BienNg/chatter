@@ -1,9 +1,9 @@
 // src/components/OnboardingFlow.jsx
 import React, { useState } from 'react';
 import { Check, Upload, User, Users, DollarSign, MessageSquare, Headphones, Camera, Plus } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../../firebase';
 
 const OnboardingFlow = ({ onComplete }) => {
     const [currentScreen, setCurrentScreen] = useState(1);

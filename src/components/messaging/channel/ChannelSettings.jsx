@@ -1,9 +1,9 @@
 // src/components/ChannelSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, UserPlus, Users, Settings } from 'lucide-react';
-import { useChannelManagement } from '../hooks/useChannelManagement';
-import { useAuth } from '../contexts/AuthContext';
-import { canManageChannelMembers, hasManagementRole } from '../utils/roleUtils';
+import { useChannelManagement } from '../../../hooks/useChannelManagement';
+import { useAuth } from '../../../contexts/AuthContext';
+import { canManageChannelMembers, hasManagementRole } from '../../../utils/roleUtils';
 
 const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
     const [activeTab, setActiveTab] = useState('members');

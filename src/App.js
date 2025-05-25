@@ -1,9 +1,8 @@
 // src/App.js
 import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './components/Login';
-import OnboardingFlow from './components/OnboardingFlow';
-import MessagingInterface from './components/MessagingInterface';
+import { Login, OnboardingFlow } from './components/auth';
+import { MessagingInterface } from './components/messaging';
 import './App.css';
 
 function AppContent() {

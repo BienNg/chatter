@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { X, Hash, Lock } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useAuth } from '../contexts/AuthContext';
+import { db } from '../../../firebase';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
     const [channelData, setChannelData] = useState({

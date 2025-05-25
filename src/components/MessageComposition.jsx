@@ -41,7 +41,6 @@ const MessageComposition = () => {
     const files = Array.from(e.target.files);
     setIsUploading(true);
     
-    // Simulate upload progress
     let progress = 0;
     const interval = setInterval(() => {
       progress += 10;
@@ -78,29 +77,29 @@ const MessageComposition = () => {
 
   return (
     <div className="p-4">
-      <div className="message-input">
+      <div className="message-input border border-gray-200 rounded-lg bg-white focus-within:border-indigo-500 focus-within:shadow-[0_0_0_2px_rgba(99,102,241,0.1)]">
         {/* Formatting Toolbar */}
-        <div className="flex items-center px-3 py-2 border-b border-gray-200 space-x-2">
-          <button className="toolbar-button" title="Bold">
+        <div className="flex items-center px-3 py-2 border-b border-gray-200">
+          <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Bold">
             <Bold className="h-4 w-4" />
           </button>
-          <button className="toolbar-button" title="Italic">
+          <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Italic">
             <Italic className="h-4 w-4" />
           </button>
-          <button className="toolbar-button" title="Strikethrough">
+          <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Strikethrough">
             <Strikethrough className="h-4 w-4" />
           </button>
           <div className="w-px h-4 bg-gray-200 mx-2"></div>
-          <button className="toolbar-button" title="Link">
+          <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Link">
             <Link className="h-4 w-4" />
           </button>
-          <button className="toolbar-button" title="Bullet List">
+          <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Bullet List">
             <List className="h-4 w-4" />
           </button>
-          <button className="toolbar-button" title="Numbered List">
+          <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Numbered List">
             <ListOrdered className="h-4 w-4" />
           </button>
-          <button className="toolbar-button" title="Indent">
+          <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Indent">
             <Indent className="h-4 w-4" />
           </button>
         </div>
@@ -109,7 +108,7 @@ const MessageComposition = () => {
         {attachedFiles.length > 0 && (
           <div className="px-3 py-2 border-b border-gray-200">
             <div className="space-y-2">
-              {attachedFiles.map(file => (
+              {attachedFiles.map((file) => (
                 <div key={file.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center mr-3">
@@ -158,7 +157,7 @@ const MessageComposition = () => {
           <div 
             ref={editorRef}
             contentEditable="true" 
-            className="w-full focus:outline-none min-h-[24px]" 
+            className="w-full focus:outline-none min-h-[24px] empty:before:content-[attr(placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none" 
             placeholder="Message #import-s-hai-duong-minh-thu-"
             onInput={(e) => {
               setMessage(e.target.textContent);
@@ -173,12 +172,11 @@ const MessageComposition = () => {
           {/* Mention Suggestions */}
           {mentionSuggestions.length > 0 && (
             <div className="absolute bottom-full left-3 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg max-w-xs">
-              {mentionSuggestions.map(user => (
+              {mentionSuggestions.map((user) => (
                 <button
                   key={user.id}
                   className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
                   onClick={() => {
-                    // Handle mention insertion
                     setMentionSuggestions([]);
                   }}
                 >
@@ -197,7 +195,7 @@ const MessageComposition = () => {
           <div className="flex items-center space-x-2">
             <div className="relative">
               <button 
-                className="toolbar-button" 
+                className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" 
                 title="Emoji"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               >
@@ -208,12 +206,11 @@ const MessageComposition = () => {
               {showEmojiPicker && (
                 <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
                   <div className="grid grid-cols-4 gap-2">
-                    {commonEmojis.map(emoji => (
+                    {commonEmojis.map((emoji) => (
                       <button
                         key={emoji}
                         className="p-2 hover:bg-gray-100 rounded text-lg"
                         onClick={() => {
-                          // Handle emoji insertion
                           setShowEmojiPicker(false);
                         }}
                       >
@@ -225,20 +222,20 @@ const MessageComposition = () => {
               )}
             </div>
             
-            <button className="toolbar-button" title="Mention">
+            <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Mention">
               <AtSign className="h-4 w-4" />
             </button>
             <button 
-              className="toolbar-button" 
+              className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" 
               title="Attach File"
               onClick={() => fileInputRef.current?.click()}
             >
               <Paperclip className="h-4 w-4" />
             </button>
-            <button className="toolbar-button" title="Record">
+            <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Record">
               <Mic className="h-4 w-4" />
             </button>
-            <button className="toolbar-button" title="Screenshot">
+            <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Screenshot">
               <Camera className="h-4 w-4" />
             </button>
           </div>

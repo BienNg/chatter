@@ -1,5 +1,6 @@
 // src/components/MessageListView.jsx
 import React, { useState, useEffect } from 'react';
+import MessageComposition from './MessageComposition';
 import { 
   MessageSquare, 
   Smile, 
@@ -191,6 +192,9 @@ const MessageListView = () => {
           </div>
         )}
       </div>
+
+      {/* Message Input - Now integrated at the bottom */}
+      <MessageComposition />
     </div>
   );
 };

@@ -8,9 +8,9 @@ import { useAuth } from '../../../contexts/AuthContext';
 const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
     const [channelData, setChannelData] = useState({
         name: '',
-        description: '',
         type: 'general',
-        isPrivate: true
+        isPrivate: false,
+        showTypeDropdown: false
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -18,11 +18,11 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
     const { currentUser } = useAuth();
 
     const channelTypes = [
-        { id: 'general', name: 'General', description: 'General team discussions' },
-        { id: 'project', name: 'Project', description: 'Project-specific coordination' },
-        { id: 'department', name: 'Department', description: 'Department-level communication' },
-        { id: 'announcement', name: 'Announcement', description: 'Important announcements' },
-        { id: 'social', name: 'Social', description: 'Casual team conversations' }
+        { id: 'general', name: 'General' },
+        { id: 'project', name: 'Project' },
+        { id: 'department', name: 'Department' },
+        { id: 'announcement', name: 'Announcement' },
+        { id: 'social', name: 'Social' }
     ];
 
     const handleSubmit = async (e) => {
@@ -40,7 +40,6 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
             const timestamp = serverTimestamp();
             const channelRef = await addDoc(collection(db, 'channels'), {
                 name: channelData.name.trim(),
-                description: channelData.description.trim(),
                 type: channelData.type,
                 members: [currentUser.uid], // Creator is automatically a member
                 admins: [currentUser.uid], // Creator is automatically an admin
@@ -54,8 +53,8 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
                 }
             });
 
-            // Wait a brief moment to ensure Firestore has processed the write
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Close the modal immediately
+            onClose();
 
             // Call the onChannelCreated callback with the new channel ID
             if (onChannelCreated) {
@@ -65,12 +64,10 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
             // Reset form
             setChannelData({
                 name: '',
-                description: '',
                 type: 'general',
-                isPrivate: true
+                isPrivate: false,
+                showTypeDropdown: false
             });
-            
-            onClose();
         } catch (error) {
             console.error('Error creating channel:', error);
             setError('Failed to create channel: ' + error.message);
@@ -108,57 +105,75 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
                         <input
                             type="text"
                             value={channelData.name}
-                            onChange={(e) => setChannelData((prev) => ({ ...prev, name: e.target.value }))}
+                            onChange={(e) => {
+                                const value = e.target.value.replace(/[^a-z0-9-]/g, '');
+                                setChannelData((prev) => ({ ...prev, name: value }));
+                            }}
                             placeholder="e.g., project-alpha, marketing-team"
                             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             required
+                            autoFocus
                         />
-                        <p className="text-xs text-gray-500 mt-1">Use lowercase letters, numbers, and hyphens</p>
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                        <textarea
-                            value={channelData.description}
-                            onChange={(e) => setChannelData((prev) => ({ ...prev, description: e.target.value }))}
-                            placeholder="What's this channel about?"
-                            rows={3}
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
+                        <p className="text-xs text-gray-500 mt-1">Only lowercase letters, numbers, and hyphens allowed</p>
                     </div>
 
                     {/* Channel Type */}
-                    <div>
+                    <div className="relative">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Channel Type</label>
-                        <select
-                            value={channelData.type}
-                            onChange={(e) => setChannelData((prev) => ({ ...prev, type: e.target.value }))}
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            {channelTypes.map((type) => (
-                                <option key={type.id} value={type.id}>
-                                    {type.name} - {type.description}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setChannelData(prev => ({ ...prev, showTypeDropdown: !prev.showTypeDropdown }))}
+                                className="w-full px-4 py-2 text-left border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                            >
+                                <span className="text-sm text-gray-900">
+                                    {channelTypes.find(t => t.id === channelData.type)?.name || 'Select type'}
+                                </span>
+                            </button>
+                            
+                            {channelData.showTypeDropdown && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                                    {channelTypes.map((type) => (
+                                        <button
+                                            key={type.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setChannelData(prev => ({ 
+                                                    ...prev, 
+                                                    type: type.id,
+                                                    showTypeDropdown: false 
+                                                }));
+                                            }}
+                                            className="w-full px-4 py-2 text-left hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                                        >
+                                            <span className="text-sm text-gray-900">{type.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Privacy Setting */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                            <Lock className="h-5 w-5 text-gray-500 mr-3" />
-                            <div>
-                                <p className="text-sm font-medium text-gray-900">Private Channel</p>
-                                <p className="text-xs text-gray-500">Only invited members can access</p>
+                    <div className="flex items-start p-4 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                            <div className="flex items-center">
+                                <Lock className="h-5 w-5 text-gray-500 mr-3" />
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">Private Channel</p>
+                                    <p className="text-xs text-gray-500">Only invited members can access</p>
+                                </div>
                             </div>
                         </div>
-                        <input
-                            type="checkbox"
-                            checked={channelData.isPrivate}
-                            onChange={(e) => setChannelData((prev) => ({ ...prev, isPrivate: e.target.checked }))}
-                            className="h-4 w-4 text-indigo-600 rounded"
-                        />
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={channelData.isPrivate}
+                                onChange={(e) => setChannelData((prev) => ({ ...prev, isPrivate: e.target.checked }))}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
                     </div>
 
                     {/* Action Buttons */}

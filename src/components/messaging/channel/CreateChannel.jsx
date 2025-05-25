@@ -37,6 +37,7 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
             setError('');
             setLoading(true);
 
+            const timestamp = serverTimestamp();
             const channelRef = await addDoc(collection(db, 'channels'), {
                 name: channelData.name.trim(),
                 description: channelData.description.trim(),
@@ -44,8 +45,8 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
                 members: [currentUser.uid], // Creator is automatically a member
                 admins: [currentUser.uid], // Creator is automatically an admin
                 createdBy: currentUser.uid,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
+                createdAt: timestamp,
+                updatedAt: timestamp,
                 settings: {
                     allowMemberInvites: false,
                     isPrivate: channelData.isPrivate,
@@ -53,7 +54,13 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
                 }
             });
 
-            onChannelCreated?.(channelRef.id);
+            // Wait a brief moment to ensure Firestore has processed the write
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Call the onChannelCreated callback with the new channel ID
+            if (onChannelCreated) {
+                onChannelCreated(channelRef.id);
+            }
             
             // Reset form
             setChannelData({
@@ -65,6 +72,7 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
             
             onClose();
         } catch (error) {
+            console.error('Error creating channel:', error);
             setError('Failed to create channel: ' + error.message);
         } finally {
             setLoading(false);

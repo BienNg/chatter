@@ -1,6 +1,5 @@
 // src/components/MessageListView.jsx (Updated for real-time)
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageComposition } from './composition';
 import {
     MessageSquare,
     Smile,
@@ -14,7 +13,7 @@ import {
     Clock
 } from 'lucide-react';
 
-const MessageListView = ({ messages, loading, onOpenThread, onNewMessage, channelId }) => {
+const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const messagesEndRef = useRef(null);
 
@@ -40,10 +39,6 @@ const MessageListView = ({ messages, loading, onOpenThread, onNewMessage, channe
 
     const handleThreadClick = (messageId) => {
         onOpenThread?.(messageId);
-    };
-
-    const handleNewMessage = (newMessage) => {
-        onNewMessage?.(newMessage);
     };
 
     if (loading) {
@@ -181,9 +176,6 @@ const MessageListView = ({ messages, loading, onOpenThread, onNewMessage, channe
                 )}
                 <div ref={messagesEndRef} />
             </div>
-
-            {/* Message Input */}
-            <MessageComposition onSendMessage={handleNewMessage} />
         </div>
     );
 };

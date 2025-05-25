@@ -7,10 +7,20 @@ import {
     onSnapshot, 
     orderBy,
     doc,
-    getDoc 
+    getDoc,
+    enableIndexedDbPersistence
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+    } else if (err.code === 'unimplemented') {
+        console.warn('The current browser does not support persistence.');
+    }
+});
 
 export const useChannels = () => {
     const [channels, setChannels] = useState([]);
@@ -32,24 +42,26 @@ export const useChannels = () => {
         const channelsQuery = query(
             collection(db, 'channels'),
             where('members', 'array-contains', currentUser.uid),
-            orderBy('updatedAt', 'desc')
+            orderBy('createdAt', 'desc') // Changed from updatedAt to createdAt for new channels
         );
 
         const unsubscribe = onSnapshot(
             channelsQuery,
-            (snapshot) => {
-                const channelData = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setChannels(channelData);
-                setLoading(false);
-                setError(null);
-            },
-            (err) => {
-                console.error('Error fetching channels:', err);
-                setError(err.message);
-                setLoading(false);
+            {
+                next: (snapshot) => {
+                    const channelData = snapshot.docs.map((doc) => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setChannels(channelData);
+                    setLoading(false);
+                    setError(null);
+                },
+                error: (err) => {
+                    console.error('Error fetching channels:', err);
+                    setError(err.message);
+                    setLoading(false);
+                }
             }
         );
 

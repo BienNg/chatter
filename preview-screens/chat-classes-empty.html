@@ -578,33 +578,36 @@
                 
                 <div class="p-6">
                     <form id="createClassForm" class="space-y-6">
-                        <!-- Name -->
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Class Name</label>
-                            <input type="text" name="className" required class="form-input" placeholder="Enter class name">
-                        </div>
-                        
-                        <!-- Level -->
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Level</label>
-                            <div class="custom-select-container" id="levelSelect">
-                                <div class="custom-select-trigger placeholder">
-                                    <span class="selected-text">Select level</span>
-                                    <i data-lucide="chevron-down" class="h-5 w-5 text-gray-400"></i>
-                                </div>
-                                <div class="custom-select-dropdown">
-                                    <div class="custom-select-option" data-value="A1.1">A1.1</div>
-                                    <div class="custom-select-option" data-value="A1.2">A1.2</div>
-                                    <div class="custom-select-option" data-value="A2.1">A2.1</div>
-                                    <div class="custom-select-option" data-value="A2.2">A2.2</div>
-                                    <div class="custom-select-option" data-value="B1.1">B1.1</div>
-                                    <div class="custom-select-option" data-value="B1.2">B1.2</div>
-                                    <div class="custom-select-option add-new" data-value="new">
-                                        <i data-lucide="plus-circle" class="h-5 w-5"></i>
-                                        <span>New Level...</span>
+                        <!-- Name and Level in one row -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Name -->
+                            <div class="space-y-1">
+                                <label class="block text-sm font-medium text-gray-700">Class Name</label>
+                                <input type="text" name="className" required class="form-input" placeholder="Enter class name">
+                            </div>
+                            
+                            <!-- Level -->
+                            <div class="space-y-1">
+                                <label class="block text-sm font-medium text-gray-700">Level</label>
+                                <div class="custom-select-container" id="levelSelect">
+                                    <div class="custom-select-trigger placeholder">
+                                        <span class="selected-text">Select level</span>
+                                        <i data-lucide="chevron-down" class="h-5 w-5 text-gray-400"></i>
                                     </div>
+                                    <div class="custom-select-dropdown">
+                                        <div class="custom-select-option" data-value="A1.1">A1.1</div>
+                                        <div class="custom-select-option" data-value="A1.2">A1.2</div>
+                                        <div class="custom-select-option" data-value="A2.1">A2.1</div>
+                                        <div class="custom-select-option" data-value="A2.2">A2.2</div>
+                                        <div class="custom-select-option" data-value="B1.1">B1.1</div>
+                                        <div class="custom-select-option" data-value="B1.2">B1.2</div>
+                                        <div class="custom-select-option add-new" data-value="new">
+                                            <i data-lucide="plus-circle" class="h-5 w-5"></i>
+                                            <span>New Level...</span>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="level" required>
                                 </div>
-                                <input type="hidden" name="level" required>
                             </div>
                         </div>
                         

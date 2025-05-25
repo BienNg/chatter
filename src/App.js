@@ -1,26 +1,53 @@
-// src/App.js - Updated to include OnboardingFlow
+// src/App.js - Clean full-screen version
 import React, { useState } from 'react';
 import OnboardingFlow from './components/OnboardingFlow';
+import MessagingInterface from './components/MessagingInterface';
 import './App.css';
 
 function App() {
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [currentView, setCurrentView] = useState('messaging');
 
-  if (showOnboarding) {
-    return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
-  }
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'onboarding':
+        return <OnboardingFlow onComplete={() => setCurrentView('messaging')} />;
+      case 'messaging':
+        return <MessagingInterface />;
+      default:
+        return <MessagingInterface />;
+    }
+  };
 
   return (
     <div className="App">
-      <header className="App-header">
-        <p>Main Application Content</p>
-        <button 
-          onClick={() => setShowOnboarding(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          Show Onboarding
-        </button>
-      </header>
+      {/* View Toggle - Top Right Corner */}
+      <div className="fixed top-6 right-6 z-50">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-2 flex space-x-1">
+          <button
+            onClick={() => setCurrentView('onboarding')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${currentView === 'onboarding'
+                ? 'bg-indigo-600 text-white shadow-md transform scale-105'
+                : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 hover:scale-105'
+              }`}
+          >
+            Onboarding
+          </button>
+          <button
+            onClick={() => setCurrentView('messaging')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${currentView === 'messaging'
+                ? 'bg-indigo-600 text-white shadow-md transform scale-105'
+                : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 hover:scale-105'
+              }`}
+          >
+            Messaging
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="min-h-screen">
+        {renderCurrentView()}
+      </div>
     </div>
   );
 }

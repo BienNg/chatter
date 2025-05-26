@@ -192,11 +192,11 @@ const MessageComposition = ({ onSendMessage }) => {
                 )}
 
                 {/* Message Input Area */}
-                <div className="px-3 py-2 min-h-[60px] relative">
+                <div className="px-3 py-2 min-h-[60px] max-h-[200px] relative overflow-auto">
                     <div
                         ref={editorRef}
                         contentEditable="true"
-                        className="w-full focus:outline-none min-h-[24px] text-left empty:before:content-[attr(placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
+                        className="w-full focus:outline-none min-h-[24px] max-h-full text-left empty:before:content-[attr(placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none overflow-y-auto"
                         placeholder="Message #general"
                         onInput={(e) => {
                             setMessage(e.target.textContent);
@@ -206,7 +206,8 @@ const MessageComposition = ({ onSendMessage }) => {
                         style={{
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
-                            textAlign: 'left'
+                            textAlign: 'left',
+                            overflowY: 'auto'
                         }}
                     />
 

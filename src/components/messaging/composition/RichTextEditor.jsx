@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
     Bold,
     Italic,
@@ -10,7 +10,7 @@ import {
     Link
 } from 'lucide-react';
 
-const RichTextEditor = ({ 
+const RichTextEditor = forwardRef(({ 
     value = '', 
     onChange, 
     placeholder = 'Type your message...', 
@@ -18,10 +18,30 @@ const RichTextEditor = ({
     className = '',
     disabled = false,
     isDraftSaved = false
-}) => {
+}, ref) => {
     const editorRef = useRef(null);
     const [selection, setSelection] = useState(null);
     const [activeFormats, setActiveFormats] = useState(new Set());
+
+    // Expose methods to parent component
+    useImperativeHandle(ref, () => ({
+        focus: () => {
+            if (editorRef.current) {
+                editorRef.current.focus();
+            }
+        },
+        clear: () => {
+            if (editorRef.current) {
+                // Mark as internal update to prevent triggering onChange
+                isInternalUpdate.current = true;
+                editorRef.current.innerHTML = '';
+                // Don't call onChange here - let the parent handle state updates
+            }
+        },
+        getContent: () => {
+            return editorRef.current?.innerHTML || '';
+        }
+    }), [onChange]);
 
     // Initialize editor content (only on mount, not on every value change)
     useEffect(() => {
@@ -30,29 +50,41 @@ const RichTextEditor = ({
         }
     }, []); // Only run on mount
 
-    // Separate effect for external value updates (like loading drafts)
+    // Separate effect for external value updates (like loading drafts or clearing)
     const isInternalUpdate = useRef(false);
     useEffect(() => {
-        if (editorRef.current && value !== editorRef.current.innerHTML && !isInternalUpdate.current) {
-            // Save cursor position
-            const selection = window.getSelection();
-            let cursorPosition = 0;
-            if (selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                cursorPosition = range.startOffset;
-            }
+        if (editorRef.current && !isInternalUpdate.current) {
+            const currentContent = editorRef.current.innerHTML;
+            const normalizedValue = value || '';
+            const normalizedCurrent = currentContent || '';
             
-            editorRef.current.innerHTML = value;
-            
-            // Restore cursor position
-            if (cursorPosition > 0 && editorRef.current.firstChild) {
-                const range = document.createRange();
-                const textNode = editorRef.current.firstChild;
-                const maxOffset = textNode.textContent?.length || 0;
-                range.setStart(textNode, Math.min(cursorPosition, maxOffset));
-                range.collapse(true);
-                selection.removeAllRanges();
-                selection.addRange(range);
+            // Update if values are different (including empty string clearing)
+            if (normalizedValue !== normalizedCurrent) {
+                // Save cursor position
+                const selection = window.getSelection();
+                let cursorPosition = 0;
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    cursorPosition = range.startOffset;
+                }
+                
+                editorRef.current.innerHTML = normalizedValue;
+                
+                // Restore cursor position (only if there's content)
+                if (cursorPosition > 0 && normalizedValue && editorRef.current.firstChild) {
+                    try {
+                        const range = document.createRange();
+                        const textNode = editorRef.current.firstChild;
+                        const maxOffset = textNode.textContent?.length || 0;
+                        range.setStart(textNode, Math.min(cursorPosition, maxOffset));
+                        range.collapse(true);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } catch (error) {
+                        // Ignore cursor restoration errors
+                        console.debug('Could not restore cursor position:', error);
+                    }
+                }
             }
         }
         isInternalUpdate.current = false;
@@ -253,6 +285,6 @@ const RichTextEditor = ({
             `}</style>
         </div>
     );
-};
+});
 
 export default RichTextEditor; 

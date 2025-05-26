@@ -14,7 +14,7 @@ import ThreadPreview from './thread/ThreadPreview';
 import MessageHoverActions from './MessageHoverActions';
 import DeleteMessageModal from './DeleteMessageModal';
 import UndoDeleteToast from './UndoDeleteToast';
-import MessageEditor from './MessageEditor';
+import MessageComposition from './composition/MessageComposition';
 import { useTasks } from '../../hooks/useTasks';
 const MessageListView = ({ 
     messages, 
@@ -123,11 +123,11 @@ const MessageListView = ({
         setEditingMessage(message);
     };
 
-    const handleEditSave = async (newContent) => {
+    const handleEditSave = async (messageData) => {
         if (!editingMessage) return;
 
         try {
-            await editMessage(editingMessage.id, newContent);
+            await editMessage(editingMessage.id, messageData.content);
             setEditingMessage(null);
         } catch (error) {
             console.error('Failed to edit message:', error);
@@ -303,11 +303,16 @@ const MessageListView = ({
                         if (editingMessage && editingMessage.id === message.id) {
                             return (
                                 <div key={message.id} className="message-container p-2 -m-2">
-                                    <MessageEditor
-                                        message={editingMessage}
-                                        onSave={handleEditSave}
+                                    <MessageComposition
+                                        mode="edit"
+                                        initialContent={editingMessage.content}
+                                        initialAttachments={editingMessage.attachments || []}
+                                        onSendMessage={handleEditSave}
                                         onCancel={handleEditCancel}
                                         isLoading={false}
+                                        editMessage={editingMessage}
+                                        maxLength={4000}
+                                        compact={true}
                                     />
                                 </div>
                             );

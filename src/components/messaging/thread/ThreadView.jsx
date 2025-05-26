@@ -1,89 +1,38 @@
 // src/components/ThreadView.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Users, MessageSquare, X, Send } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { ArrowLeft, Users, MessageSquare, X } from 'lucide-react';
 import { useThreadReplies } from '../../../hooks/useThreadReplies';
-import { useDrafts } from '../../../hooks/useDrafts';
+import MessageComposition from '../composition/MessageComposition';
 
 const ThreadView = ({ message, isOpen, onClose, channelId }) => {
     // Add debug log for props
     console.log('ThreadView props:', { message, isOpen, onClose, channelId });
     
-    const [replyText, setReplyText] = useState('');
-    const autoSaveTimeoutRef = useRef(null);
     const { 
         replies: threadReplies, 
         loading: repliesLoading, 
         sendReply, 
         participants: replyParticipants 
     } = useThreadReplies(channelId, message?.id);
-    
-    const { getDraft, saveDraft, clearDraft, hasDraft } = useDrafts();
-
-    // Load draft on mount or thread change
-    useEffect(() => {
-        if (channelId && message?.id) {
-            const draft = getDraft(channelId, message.id);
-            if (draft) {
-                setReplyText(draft.content || '');
-            } else {
-                setReplyText('');
-            }
-        }
-    }, [channelId, message?.id, getDraft]);
-
-    // Auto-save draft with debouncing
-    const autoSaveDraft = useCallback(() => {
-        if (autoSaveTimeoutRef.current) {
-            clearTimeout(autoSaveTimeoutRef.current);
-        }
-
-        autoSaveTimeoutRef.current = setTimeout(() => {
-            if (channelId && message?.id && replyText.trim()) {
-                saveDraft(channelId, replyText, [], message.id);
-            }
-        }, 1000);
-    }, [channelId, message?.id, replyText, saveDraft]);
-
-    // Trigger auto-save when content changes
-    useEffect(() => {
-        if (channelId && message?.id && replyText.trim()) {
-            autoSaveDraft();
-        }
-        return () => {
-            if (autoSaveTimeoutRef.current) {
-                clearTimeout(autoSaveTimeoutRef.current);
-            }
-        };
-    }, [replyText, autoSaveDraft]);
 
     // Add effect to log state changes
     useEffect(() => {
-        console.log('ThreadView state:', { replyText, threadReplies, repliesLoading });
-    }, [replyText, threadReplies, repliesLoading]);
+        console.log('ThreadView state:', { threadReplies, repliesLoading });
+    }, [threadReplies, repliesLoading]);
 
-    const handleSendReply = async () => {
-        if (replyText.trim()) {
+    const handleSendReply = async (messageData) => {
+        if (messageData.content.trim()) {
             try {
-                await sendReply(replyText);
+                await sendReply(messageData.content);
                 
-                // Clear draft after sending
-                if (channelId && message?.id) {
-                    clearDraft(channelId, message.id);
-                }
-                
-                setReplyText('');
+                // Clear draft after sending is handled by MessageComposition
             } catch (error) {
                 console.error('Failed to send reply:', error);
             }
         }
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSendReply();
-        }
-    };
+
 
     // Extract participants from message and replies
     const getThreadParticipants = () => {
@@ -103,7 +52,6 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
     };
 
     const participants = getThreadParticipants();
-    const isDraftSaved = channelId && message?.id && hasDraft(channelId, message.id);
 
     if (!isOpen || !message) return null;
 
@@ -219,53 +167,18 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
             </div>
 
             {/* Thread Reply Input */}
-            <div className="px-4 py-3 border-t border-gray-200 flex-shrink-0">
-                <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white text-xs font-medium">
-                        BN
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <textarea
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-none break-words"
-                            rows={2}
-                            placeholder="Reply to thread..."
-                            style={{
-                                wordBreak: 'break-word',
-                                overflowWrap: 'anywhere',
-                                whiteSpace: 'pre-wrap'
-                            }}
-                        />
-                        <div className="mt-2 flex items-center justify-between">
-                            <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <div className="flex items-center space-x-2">
-                                    <MessageSquare className="h-3 w-3" />
-                                    <span>Also send to #general</span>
-                                </div>
-                                {isDraftSaved && (
-                                    <div className="flex items-center space-x-1">
-                                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                        <span>Draft saved</span>
-                                    </div>
-                                )}
-                            </div>
-                            <button 
-                                onClick={handleSendReply}
-                                disabled={!replyText.trim()}
-                                className={`px-3 py-1 text-xs font-medium rounded-md transition flex items-center space-x-1 ${
-                                    replyText.trim()
-                                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                }`}
-                            >
-                                <Send className="h-3 w-3" />
-                                <span>Send</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div className="flex-shrink-0 p-4">
+                <MessageComposition
+                    onSendMessage={handleSendReply}
+                    channelId={channelId}
+                    threadId={message?.id}
+                    placeholder="Reply to thread..."
+                    mode="comment"
+                    compact={true}
+                    showFileUpload={true}
+                    showEmoji={true}
+                    showMentions={true}
+                />
             </div>
         </div>
     );

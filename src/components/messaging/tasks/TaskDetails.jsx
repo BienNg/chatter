@@ -19,13 +19,13 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
         return <TaskDetailsEmpty />;
     }
 
-    const handleSendMessage = async (content) => {
-        if (!content.trim() || isLoading) return;
+    const handleSendMessage = async (messageData) => {
+        if (!messageData.content.trim() || isLoading) return;
         
         try {
             setIsLoading(true);
             // Use the same reply system as message threads
-            await sendReply(content);
+            await sendReply(messageData.content);
             console.log('Reply added to unified thread:', task.sourceMessageId);
         } catch (error) {
             console.error('Failed to add reply to thread:', error);
@@ -52,27 +52,33 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
     };
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Source Message Section */}
-            <TaskSourceMessage 
-                sourceMessage={task.sourceMessageData}
-                onJumpToMessage={handleJumpToMessage}
-                onDeleteTask={handleDeleteTask}
-            />
+        <div className="h-full flex flex-col">
+            {/* Source Message Section - Fixed height */}
+            <div className="flex-shrink-0">
+                <TaskSourceMessage 
+                    sourceMessage={task.sourceMessageData}
+                    onJumpToMessage={handleJumpToMessage}
+                    onDeleteTask={handleDeleteTask}
+                />
+            </div>
 
-            {/* Thread Conversation - Uses unified threading system */}
+            {/* Thread Conversation - Scrollable content area */}
             <TaskThread 
                 taskId={task.id}
                 sourceMessageId={task.sourceMessageId}
                 channelId={channelId}
             />
 
-            {/* Message Composer - Uses unified threading system */}
-            <TaskComposer 
-                onSendMessage={handleSendMessage}
-                placeholder="Add a comment..."
-                isLoading={isLoading}
-            />
+            {/* Message Composer - Fixed height */}
+            <div className="flex-shrink-0">
+                <TaskComposer 
+                    onSendMessage={handleSendMessage}
+                    placeholder="Add a comment..."
+                    isLoading={isLoading}
+                    channelId={channelId}
+                    threadId={task?.sourceMessageId}
+                />
+            </div>
         </div>
     );
 };

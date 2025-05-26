@@ -33,7 +33,7 @@ const TaskReply = ({ reply, taskId }) => {
                         {formatTimestamp(reply.createdAt)}
                     </span>
                 </div>
-                <div className="mt-1 text-gray-800 text-left">
+                <div className="mt-1 text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
                     {reply.content}
                 </div>
                 {/* Future: Add reply actions like edit, delete, react */}

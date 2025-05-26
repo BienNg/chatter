@@ -99,11 +99,13 @@ const TaskTab = ({ channelId }) => {
                             )}
                         </div>
                     </div>
-                    <TaskDetails 
-                        task={selectedTask}
-                        channelId={channelId}
-                        onTaskUpdate={handleTaskSelect}
-                    />
+                    <div className="flex-1 min-h-0">
+                        <TaskDetails 
+                            task={selectedTask}
+                            channelId={channelId}
+                            onTaskUpdate={handleTaskSelect}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

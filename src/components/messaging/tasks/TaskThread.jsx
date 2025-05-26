@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import TaskReply from './TaskReply';
@@ -6,6 +6,9 @@ import TaskReply from './TaskReply';
 const TaskThread = ({ taskId, sourceMessageId, channelId }) => {
     const [replies, setReplies] = useState([]);
     const [loading, setLoading] = useState(true);
+    const messagesEndRef = useRef(null);
+    const previousReplyCountRef = useRef(0);
+    const hasInitiallyScrolledRef = useRef(false);
 
     // Real-time listener for message replies (unified threading system)
     useEffect(() => {
@@ -39,6 +42,35 @@ const TaskThread = ({ taskId, sourceMessageId, channelId }) => {
         return () => unsubscribe();
     }, [channelId, sourceMessageId]);
 
+    // Auto-scroll to bottom when new replies are added or on initial load
+    useEffect(() => {
+        const currentReplyCount = replies.length;
+        const previousReplyCount = previousReplyCountRef.current;
+        
+        // Scroll to bottom if:
+        // 1. New replies were added (currentReplyCount > previousReplyCount)
+        // 2. Initial load with existing replies (!hasInitiallyScrolledRef.current && currentReplyCount > 0)
+        if ((currentReplyCount > previousReplyCount && currentReplyCount > 0) || 
+            (!hasInitiallyScrolledRef.current && currentReplyCount > 0 && !loading)) {
+            
+            // Use a small timeout to ensure DOM is updated
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+            
+            hasInitiallyScrolledRef.current = true;
+        }
+        
+        // Update the ref with current count
+        previousReplyCountRef.current = currentReplyCount;
+    }, [replies, loading]);
+
+    // Reset scroll tracking when switching tasks
+    useEffect(() => {
+        hasInitiallyScrolledRef.current = false;
+        previousReplyCountRef.current = 0;
+    }, [sourceMessageId]);
+
     if (loading) {
         return (
             <div className="flex-1 flex items-center justify-center">
@@ -51,7 +83,7 @@ const TaskThread = ({ taskId, sourceMessageId, channelId }) => {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
             {replies.length === 0 ? (
                 <div className="text-center py-8">
                     <p className="text-gray-500 text-sm">No comments yet. Start the conversation!</p>
@@ -65,6 +97,7 @@ const TaskThread = ({ taskId, sourceMessageId, channelId }) => {
                     />
                 ))
             )}
+            <div ref={messagesEndRef} />
         </div>
     );
 };

@@ -286,7 +286,7 @@ const MessagingInterface = () => {
                             </div>
 
                             {/* Message Input */}
-                            <div className="flex-shrink-0 border-t border-gray-200 bg-white">
+                            <div className="flex-shrink-0 bg-white">
                                 <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
                                     <MessageComposition 
                                         onSendMessage={handleSendMessage} 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { MessageSquare, Clock } from 'lucide-react';
+import './ThreadPreview.css';
 
 const ThreadPreview = ({ 
     message, 
@@ -50,40 +51,40 @@ const ThreadPreview = ({
     if (threadData.replyCount === 0) return null;
 
     return (
-        <div className={`mt-2 ${className}`}>
+        <div className={`thread-preview-container ${className}`}>
             <button
                 onClick={() => onOpenThread(message.id)}
-                className="group flex items-center space-x-3 p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-150 w-full text-left border border-gray-200 hover:border-indigo-200"
+                className="thread-preview-button"
             >
                 {/* Thread participants avatars */}
-                <div className="flex -space-x-1 flex-shrink-0">
+                <div className="thread-preview-avatars">
                     {threadData.participants.slice(0, 3).map((participant, index) => (
                         <div
                             key={participant.id || index}
-                            className={`w-6 h-6 rounded-full ${getAuthorColor(participant)} flex items-center justify-center text-white text-xs font-medium ring-2 ring-white`}
+                            className={`thread-preview-avatar ${getAuthorColor(participant)}`}
                             title={participant.displayName || participant.email}
                         >
                             {getAuthorInitials(participant)}
                         </div>
                     ))}
                     {threadData.participants.length > 3 && (
-                        <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium ring-2 ring-white">
+                        <div className="thread-preview-avatar bg-gray-400">
                             +{threadData.participants.length - 3}
                         </div>
                     )}
                 </div>
 
-                {/* Thread info */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
+                {/* Thread info - Fixed width container */}
+                <div className="thread-preview-content">
+                    <div className="thread-preview-header">
                         <MessageSquare className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-                        <span className="text-sm font-medium text-indigo-600">
+                        <span className="thread-preview-count">
                             {threadData.replyCount} {threadData.replyCount === 1 ? 'reply' : 'replies'}
                         </span>
                         {threadData.lastActivity && (
                             <>
-                                <span className="text-gray-300">•</span>
-                                <span className="text-xs text-gray-500 flex items-center">
+                                <span className="thread-preview-separator">•</span>
+                                <span className="thread-preview-time">
                                     <Clock className="h-3 w-3 mr-1" />
                                     {formatTimestamp(threadData.lastActivity)}
                                 </span>
@@ -91,21 +92,21 @@ const ThreadPreview = ({
                         )}
                     </div>
                     
-                    {/* Latest reply preview */}
+                    {/* Latest reply preview - Consistent truncation */}
                     {threadData.lastReply && (
-                        <div className="text-sm text-gray-600 truncate">
-                            <span className="font-medium">
+                        <div className="thread-preview-reply">
+                            <span className="thread-preview-reply-author">
                                 {threadData.lastReply.author?.displayName || 'Someone'}:
                             </span>
-                            <span className="ml-1">
+                            <span className="thread-preview-reply-content">
                                 {threadData.lastReply.content}
                             </span>
                         </div>
                     )}
                 </div>
 
-                {/* View thread indicator */}
-                <div className="text-xs text-gray-400 group-hover:text-indigo-600 transition-colors duration-150 flex-shrink-0">
+                {/* View thread indicator - Always visible */}
+                <div className="thread-preview-action">
                     View thread
                 </div>
             </button>

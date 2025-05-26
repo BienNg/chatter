@@ -2,17 +2,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     MessageSquare,
-    Smile,
-    MoreHorizontal,
-    Reply,
-    Forward,
-    Heart,
-    ThumbsUp,
     Download,
     FileText,
     Clock
 } from 'lucide-react';
 import ThreadPreview from './thread/ThreadPreview';
+import MessageHoverActions from './MessageHoverActions';
 import { addMockThreadData } from '../../utils/mockThreadData';
 
 const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
@@ -40,6 +35,8 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
         previousMessageCountRef.current = currentMessageCount;
     }, [messages]);
 
+
+
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return '';
         
@@ -58,6 +55,41 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
     const handleThreadClick = (messageId) => {
         console.log('Thread click handler called with messageId:', messageId);
         onOpenThread?.(messageId);
+    };
+
+    const handleAddReaction = (messageId, emoji) => {
+        console.log('Adding reaction:', emoji, 'to message:', messageId);
+        // TODO: Implement reaction functionality
+    };
+
+    const handleShareMessage = (messageId) => {
+        console.log('Sharing message:', messageId);
+        // TODO: Implement share functionality
+    };
+
+    const handleBookmarkMessage = (messageId) => {
+        console.log('Bookmarking message:', messageId);
+        // TODO: Implement bookmark functionality
+    };
+
+    const handleEditMessage = (messageId) => {
+        console.log('Editing message:', messageId);
+        // TODO: Implement edit functionality
+    };
+
+    const handleDeleteMessage = (messageId) => {
+        console.log('Deleting message:', messageId);
+        // TODO: Implement delete functionality
+    };
+
+    const handlePinMessage = (messageId) => {
+        console.log('Pinning message:', messageId);
+        // TODO: Implement pin functionality
+    };
+
+    const handleReportMessage = (messageId) => {
+        console.log('Reporting message:', messageId);
+        // TODO: Implement report functionality
     };
 
     if (loading) {
@@ -155,38 +187,20 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                 </div>
                             </div>
 
-                            {/* Hover Actions */}
+                            {/* Slack-style Hover Actions */}
                             {hoveredMessage === message.id && (
-                                <div className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-lg shadow-lg p-1 flex items-center space-x-1 z-10">
-                                    <button
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150"
-                                        title="Add reaction"
-                                    >
-                                        <Smile className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150"
-                                        title="Reply in thread"
-                                        onClick={() => {
-                                            console.log('Reply button clicked for message:', message.id);
-                                            handleThreadClick(message.id);
-                                        }}
-                                    >
-                                        <Reply className="h-4 w-4" />
-                                    </button>
-                                    <button 
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150" 
-                                        title="Forward"
-                                    >
-                                        <Forward className="h-4 w-4" />
-                                    </button>
-                                    <button 
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150" 
-                                        title="More actions"
-                                    >
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </button>
-                                </div>
+                                <MessageHoverActions
+                                    messageId={message.id}
+                                    messageContent={message.content}
+                                    onReplyInThread={handleThreadClick}
+                                    onAddReaction={handleAddReaction}
+                                    onShareMessage={handleShareMessage}
+                                    onBookmarkMessage={handleBookmarkMessage}
+                                    onEditMessage={handleEditMessage}
+                                    onDeleteMessage={handleDeleteMessage}
+                                    onPinMessage={handlePinMessage}
+                                    onReportMessage={handleReportMessage}
+                                />
                             )}
                         </div>
                     ))

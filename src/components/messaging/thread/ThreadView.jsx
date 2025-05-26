@@ -1,19 +1,60 @@
 // src/components/ThreadView.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, Users, MessageSquare, X, Send } from 'lucide-react';
 import { useThreadReplies } from '../../../hooks/useThreadReplies';
+import { useDrafts } from '../../../hooks/useDrafts';
 
 const ThreadView = ({ message, isOpen, onClose, channelId }) => {
     // Add debug log for props
     console.log('ThreadView props:', { message, isOpen, onClose, channelId });
     
     const [replyText, setReplyText] = useState('');
+    const autoSaveTimeoutRef = useRef(null);
     const { 
         replies: threadReplies, 
         loading: repliesLoading, 
         sendReply, 
         participants: replyParticipants 
     } = useThreadReplies(channelId, message?.id);
+    
+    const { getDraft, saveDraft, clearDraft, hasDraft } = useDrafts();
+
+    // Load draft on mount or thread change
+    useEffect(() => {
+        if (channelId && message?.id) {
+            const draft = getDraft(channelId, message.id);
+            if (draft) {
+                setReplyText(draft.content || '');
+            } else {
+                setReplyText('');
+            }
+        }
+    }, [channelId, message?.id, getDraft]);
+
+    // Auto-save draft with debouncing
+    const autoSaveDraft = useCallback(() => {
+        if (autoSaveTimeoutRef.current) {
+            clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        autoSaveTimeoutRef.current = setTimeout(() => {
+            if (channelId && message?.id && replyText.trim()) {
+                saveDraft(channelId, replyText, [], message.id);
+            }
+        }, 1000);
+    }, [channelId, message?.id, replyText, saveDraft]);
+
+    // Trigger auto-save when content changes
+    useEffect(() => {
+        if (channelId && message?.id && replyText.trim()) {
+            autoSaveDraft();
+        }
+        return () => {
+            if (autoSaveTimeoutRef.current) {
+                clearTimeout(autoSaveTimeoutRef.current);
+            }
+        };
+    }, [replyText, autoSaveDraft]);
 
     // Add effect to log state changes
     useEffect(() => {
@@ -24,6 +65,12 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
         if (replyText.trim()) {
             try {
                 await sendReply(replyText);
+                
+                // Clear draft after sending
+                if (channelId && message?.id) {
+                    clearDraft(channelId, message.id);
+                }
+                
                 setReplyText('');
             } catch (error) {
                 console.error('Failed to send reply:', error);
@@ -56,6 +103,7 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
     };
 
     const participants = getThreadParticipants();
+    const isDraftSaved = channelId && message?.id && hasDraft(channelId, message.id);
 
     if (!isOpen || !message) return null;
 
@@ -191,9 +239,17 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                             }}
                         />
                         <div className="mt-2 flex items-center justify-between">
-                            <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                <MessageSquare className="h-3 w-3" />
-                                <span>Also send to #general</span>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                <div className="flex items-center space-x-2">
+                                    <MessageSquare className="h-3 w-3" />
+                                    <span>Also send to #general</span>
+                                </div>
+                                {isDraftSaved && (
+                                    <div className="flex items-center space-x-1">
+                                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                        <span>Draft saved</span>
+                                    </div>
+                                )}
                             </div>
                             <button 
                                 onClick={handleSendReply}

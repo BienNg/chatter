@@ -1,5 +1,5 @@
 // src/components/NestedComments.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -7,9 +7,13 @@ import {
   ArrowUpRight,
   CornerDownRight
 } from 'lucide-react';
+import { useDrafts } from '../../../hooks/useDrafts';
 
-const NestedComments = () => {
+const NestedComments = ({ channelId, threadId }) => {
   const [expandedThreads, setExpandedThreads] = useState(new Set([1]));
+  const [replyText, setReplyText] = useState('');
+  const autoSaveTimeoutRef = useRef(null);
+  const { getDraft, saveDraft, clearDraft, hasDraft } = useDrafts();
   const [nestedComments] = useState([
     {
       id: 1,
@@ -64,6 +68,57 @@ const NestedComments = () => {
     }
   ]);
 
+  // Load draft on mount or thread change
+  useEffect(() => {
+    if (channelId && threadId) {
+      const draft = getDraft(channelId, threadId);
+      if (draft) {
+        setReplyText(draft.content || '');
+      } else {
+        setReplyText('');
+      }
+    }
+  }, [channelId, threadId, getDraft]);
+
+  // Auto-save draft with debouncing
+  const autoSaveDraft = useCallback(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      if (channelId && threadId && replyText.trim()) {
+        saveDraft(channelId, replyText, [], threadId);
+      }
+    }, 1000);
+  }, [channelId, threadId, replyText, saveDraft]);
+
+  // Trigger auto-save when content changes
+  useEffect(() => {
+    if (channelId && threadId && replyText.trim()) {
+      autoSaveDraft();
+    }
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [replyText, autoSaveDraft]);
+
+  const handleSendReply = () => {
+    if (replyText.trim()) {
+      // Handle sending the reply here
+      console.log('Sending reply:', replyText);
+      
+      // Clear draft after sending
+      if (channelId && threadId) {
+        clearDraft(channelId, threadId);
+      }
+      
+      setReplyText('');
+    }
+  };
+
   const toggleThread = (commentId) => {
     const newExpanded = new Set(expandedThreads);
     if (newExpanded.has(commentId)) {
@@ -78,6 +133,8 @@ const NestedComments = () => {
     const indentWidth = Math.min(level * 24, 48); // Max indent of 48px
     return { paddingLeft: `${indentWidth}px` };
   };
+
+  const isDraftSaved = channelId && threadId && hasDraft(channelId, threadId);
 
   const renderComment = (comment, parentId = null) => {
     const hasReplies = comment.replies && comment.replies.length > 0;
@@ -220,12 +277,36 @@ const NestedComments = () => {
           <div className="w-6 h-6 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white text-xs font-medium">
             BN
           </div>
-          <input
-            type="text"
-            placeholder="Add to discussion..."
-            className="flex-grow px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-          />
-          <button className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
+          <div className="flex-grow">
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendReply();
+                }
+              }}
+              placeholder="Add to discussion..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            />
+            {isDraftSaved && (
+              <div className="mt-1 flex items-center text-xs text-gray-500">
+                <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                <span>Draft saved</span>
+              </div>
+            )}
+          </div>
+          <button 
+            onClick={handleSendReply}
+            disabled={!replyText.trim()}
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition ${
+              replyText.trim()
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
             Send
           </button>
         </div>

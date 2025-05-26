@@ -48,7 +48,7 @@ const MessageComposition = ({ onSendMessage, channelId, threadId = null, placeho
         }
     }, [channelId, threadId, getDraft]);
 
-    // Auto-save draft with debouncing - memoized to prevent infinite loops
+    // Auto-save draft with debouncing
     const autoSaveDraft = useCallback(() => {
         if (autoSaveTimeoutRef.current) {
             clearTimeout(autoSaveTimeoutRef.current);
@@ -59,7 +59,7 @@ const MessageComposition = ({ onSendMessage, channelId, threadId = null, placeho
                 saveDraft(channelId, message, attachedFiles, threadId);
             }
         }, 1000);
-    }, [channelId, threadId, saveDraft]); // Removed message and attachedFiles to prevent infinite loops
+    }, [channelId, threadId, message, attachedFiles, saveDraft]);
 
     // Trigger auto-save when content changes
     useEffect(() => {

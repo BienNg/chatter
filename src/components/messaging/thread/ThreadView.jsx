@@ -61,6 +61,16 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
         return colors[index];
     };
 
+    // Combine original message with replies for unified display
+    const allMessages = [
+        {
+            ...message,
+            id: message.id || 'original',
+            timestamp: message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown time'
+        },
+        ...threadReplies
+    ];
+
     return (
         <div 
             className={`fixed right-0 top-0 w-96 bg-white border-l border-gray-200 flex flex-col h-screen z-40 min-h-0
@@ -105,47 +115,24 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
                 </div>
             </div>
 
-            {/* Original Message */}
-            <div className="px-4 py-4 border-b border-gray-200 bg-blue-50 flex-shrink-0">
-                <div className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full ${getAuthorColor(message.author)} flex-shrink-0 flex items-center justify-center text-white font-medium`}>
-                        {getAuthorInitials(message.author)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-gray-900">
-                                {message.author?.displayName || message.author?.email || 'Unknown User'}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                                {message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown time'}
-                            </span>
-                        </div>
-                        <div className="text-sm text-gray-700 leading-relaxed text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
-                            {message.content}
-                        </div>
-                        <button className="mt-2 text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-                            Jump to message
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Thread Comments */}
+            {/* All Messages (Original + Replies) */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
-                {threadReplies.map((comment) => (
-                    <div key={comment.id} className="flex items-start space-x-3">
-                        <div className={`w-6 h-6 rounded-full ${getAuthorColor(comment.author)} flex-shrink-0 flex items-center justify-center text-white text-xs font-medium`}>
-                            {getAuthorInitials(comment.author)}
+                {allMessages.map((msg, index) => (
+                    <div key={msg.id || index} className="flex items-start space-x-3">
+                        <div className={`w-8 h-8 rounded-full ${getAuthorColor(msg.author)} flex-shrink-0 flex items-center justify-center text-white font-medium`}>
+                            {getAuthorInitials(msg.author)}
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-medium text-gray-900 text-sm">
-                                    {comment.author?.displayName || comment.author?.email || 'Unknown User'}
+                                <span className="font-medium text-gray-900">
+                                    {msg.author?.displayName || msg.author?.email || 'Unknown User'}
                                 </span>
-                                <span className="text-xs text-gray-500">{comment.timestamp}</span>
+                                <span className="text-xs text-gray-500">
+                                    {msg.timestamp}
+                                </span>
                             </div>
-                            <div className="text-gray-800 text-sm leading-relaxed text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
-                                {comment.content}
+                            <div className="text-sm text-gray-700 leading-relaxed text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
+                                {msg.content}
                             </div>
                         </div>
                     </div>

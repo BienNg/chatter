@@ -19,7 +19,7 @@ const TaskThread = ({ taskId, sourceMessageId, channelId }) => {
         
         // Listen to replies on the source message
         const repliesRef = collection(db, 'channels', channelId, 'messages', sourceMessageId, 'replies');
-        const repliesQuery = query(repliesRef, orderBy('timestamp', 'asc'));
+        const repliesQuery = query(repliesRef, orderBy('createdAt', 'asc'));
         
         const unsubscribe = onSnapshot(repliesQuery, 
             (snapshot) => {

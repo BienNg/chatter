@@ -30,7 +30,7 @@ const TaskReply = ({ reply, taskId }) => {
                     </span>
                     <span className="ml-2 text-xs text-gray-500 flex items-center">
                         <Clock className="w-3 h-3 mr-1" />
-                        {formatTimestamp(reply.timestamp)}
+                        {formatTimestamp(reply.createdAt)}
                     </span>
                 </div>
                 <div className="mt-1 text-gray-800 text-left">

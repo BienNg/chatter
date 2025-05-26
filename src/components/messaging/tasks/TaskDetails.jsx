@@ -4,13 +4,16 @@ import TaskThread from './TaskThread';
 import TaskComposer from './TaskComposer';
 import TaskDetailsEmpty from './TaskDetailsEmpty';
 import { useTasks } from '../../../hooks/useTasks';
+import { useThreadReplies } from '../../../hooks/useThreadReplies';
 
 const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
-    const [messageContent, setMessageContent] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
     // Use real useTasks hook for task operations
-    const { addTaskReply } = useTasks(channelId);
+    const { deleteTask } = useTasks(channelId);
+    
+    // Use unified threading system - same as message threads
+    const { sendReply } = useThreadReplies(channelId, task?.sourceMessageId);
 
     if (!task) {
         return <TaskDetailsEmpty />;
@@ -21,10 +24,11 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
         
         try {
             setIsLoading(true);
-            await addTaskReply(task.id, content);
-            console.log('Reply added to task:', task.id);
+            // Use the same reply system as message threads
+            await sendReply(content);
+            console.log('Reply added to unified thread:', task.sourceMessageId);
         } catch (error) {
-            console.error('Failed to add reply to task:', error);
+            console.error('Failed to add reply to thread:', error);
         } finally {
             setIsLoading(false);
         }
@@ -39,7 +43,8 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
     const handleDeleteTask = async () => {
         if (window.confirm('Are you sure you want to delete this task?')) {
             try {
-                await onTaskDelete?.(task.id);
+                await deleteTask(task.id);
+                console.log('Task deleted successfully');
             } catch (error) {
                 console.error('Failed to delete task:', error);
             }
@@ -62,7 +67,7 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
                 channelId={channelId}
             />
 
-            {/* Message Composer */}
+            {/* Message Composer - Uses unified threading system */}
             <TaskComposer 
                 onSendMessage={handleSendMessage}
                 placeholder="Add a comment..."

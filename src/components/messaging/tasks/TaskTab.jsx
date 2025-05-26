@@ -103,7 +103,6 @@ const TaskTab = ({ channelId }) => {
                         task={selectedTask}
                         channelId={channelId}
                         onTaskUpdate={handleTaskSelect}
-                        onTaskDelete={handleTaskDelete}
                     />
                 </div>
             </div>

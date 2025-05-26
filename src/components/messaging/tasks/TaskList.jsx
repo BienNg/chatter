@@ -15,6 +15,7 @@ const TaskList = ({ tasks, selectedTask, onTaskSelect, channelId }) => {
                     task={task}
                     isSelected={selectedTask?.id === task.id}
                     onSelect={() => onTaskSelect(task)}
+                    channelId={channelId}
                 />
             ))}
         </div>

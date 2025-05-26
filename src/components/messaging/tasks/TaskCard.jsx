@@ -1,8 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, MessageCircle } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../firebase';
 
-const TaskCard = ({ task, isSelected, onSelect }) => {
-    const { sourceMessageData, status, lastActivity, createdAt } = task;
+const TaskCard = ({ task, isSelected, onSelect, channelId }) => {
+    const { sourceMessageData, status, lastActivity, createdAt, sourceMessageId } = task;
+    const [liveReplyCount, setLiveReplyCount] = useState(0);
+
+    // Get live reply count from the source message
+    useEffect(() => {
+        if (!channelId || !sourceMessageId) return;
+
+        const messageRef = doc(db, 'channels', channelId, 'messages', sourceMessageId);
+        const unsubscribe = onSnapshot(messageRef, 
+            (doc) => {
+                if (doc.exists()) {
+                    const messageData = doc.data();
+                    setLiveReplyCount(messageData.replyCount || 0);
+                }
+            },
+            (error) => {
+                console.error('Error fetching live reply count:', error);
+            }
+        );
+
+        return () => unsubscribe();
+    }, [channelId, sourceMessageId]);
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return '';
@@ -58,10 +81,10 @@ const TaskCard = ({ task, isSelected, onSelect }) => {
                         {sourceMessageData.content}
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                        {sourceMessageData.replyCount > 0 && (
+                        {liveReplyCount > 0 && (
                             <div className="flex items-center text-xs text-gray-500">
                                 <MessageCircle className="w-3 h-3 mr-1" />
-                                {sourceMessageData.replyCount} {sourceMessageData.replyCount === 1 ? 'reply' : 'replies'}
+                                {liveReplyCount} {liveReplyCount === 1 ? 'reply' : 'replies'}
                             </div>
                         )}
                         {lastActivity && (

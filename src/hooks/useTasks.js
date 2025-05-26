@@ -57,6 +57,47 @@ export const useTasks = (channelId) => {
         return () => unsubscribe();
     }, [channelId]);
 
+    // Listen for thread activity and update task lastActivity
+    useEffect(() => {
+        if (!channelId || tasks.length === 0) return;
+
+        const unsubscribers = [];
+
+        tasks.forEach(task => {
+            if (task.sourceMessageId) {
+                // Listen to replies on the source message
+                const repliesRef = collection(db, 'channels', channelId, 'messages', task.sourceMessageId, 'replies');
+                const repliesQuery = query(repliesRef, orderBy('createdAt', 'desc'));
+                
+                const unsubscribe = onSnapshot(repliesQuery, 
+                    (snapshot) => {
+                        if (!snapshot.empty) {
+                            // Get the latest reply
+                            const latestReply = snapshot.docs[0].data();
+                            
+                            // Update task lastActivity
+                            const taskRef = doc(db, 'channels', channelId, 'tasks', task.id);
+                            updateDoc(taskRef, {
+                                lastActivity: latestReply.createdAt || serverTimestamp()
+                            }).catch(err => {
+                                console.error('Error updating task lastActivity:', err);
+                            });
+                        }
+                    },
+                    (err) => {
+                        console.error('Error listening to thread replies for task:', task.id, err);
+                    }
+                );
+                
+                unsubscribers.push(unsubscribe);
+            }
+        });
+
+        return () => {
+            unsubscribers.forEach(unsubscribe => unsubscribe());
+        };
+    }, [channelId, tasks]);
+
     const createTaskFromMessage = async (messageId, messageData) => {
         if (!currentUser || !channelId) {
             throw new Error('User not authenticated or channel not selected');
@@ -188,57 +229,8 @@ export const useTasks = (channelId) => {
         }
     };
 
-    const addTaskReply = async (taskId, content) => {
-        try {
-            // Find the task to get source message ID
-            const task = tasks.find(t => t.id === taskId);
-            if (!task || !task.sourceMessageId) {
-                throw new Error('Task or source message not found');
-            }
-
-            // Add reply to the source message thread (unified threading)
-            const repliesRef = collection(db, 'channels', channelId, 'messages', task.sourceMessageId, 'replies');
-            const replyData = {
-                content,
-                authorId: currentUser.uid,
-                author: {
-                    id: currentUser.uid,
-                    displayName: userProfile?.fullName || currentUser.displayName || currentUser.email,
-                    email: currentUser.email,
-                    avatar: userProfile?.avatar || null
-                },
-                timestamp: serverTimestamp(),
-                mentions: [], // TODO: Extract mentions from content
-                reactions: [],
-                parentMessageId: task.sourceMessageId
-            };
-            
-            const batch = writeBatch(db);
-            
-            // Add the reply
-            const replyRef = doc(repliesRef);
-            batch.set(replyRef, replyData);
-            
-            // Update task last activity
-            const taskRef = doc(db, 'channels', channelId, 'tasks', taskId);
-            batch.update(taskRef, {
-                lastActivity: serverTimestamp()
-            });
-            
-            // Update source message reply count
-            const messageRef = doc(db, 'channels', channelId, 'messages', task.sourceMessageId);
-            batch.update(messageRef, {
-                lastReplyAt: serverTimestamp(),
-                replyCount: (task.sourceMessageData.replyCount || 0) + 1
-            });
-            
-            await batch.commit();
-        } catch (err) {
-            console.error('Error adding task reply:', err);
-            setError(err);
-            throw err;
-        }
-    };
+    // Note: Task replies now use the unified threading system via useThreadReplies
+    // This ensures task conversations and message threads are exactly the same data
 
     return {
         tasks,
@@ -247,7 +239,6 @@ export const useTasks = (channelId) => {
         createTaskFromMessage,
         updateTaskParticipants,
         markTaskComplete,
-        deleteTask,
-        addTaskReply
+        deleteTask
     };
 }; 

@@ -6,9 +6,17 @@ import {
     orderBy, 
     onSnapshot,
     addDoc,
+    updateDoc,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    writeBatch,
+    arrayRemove,
     serverTimestamp,
     limit
 } from 'firebase/firestore';
+import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -16,6 +24,7 @@ export const useMessages = (channelId) => {
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [deletingMessages, setDeletingMessages] = useState(new Set());
     
     const { currentUser, userProfile } = useAuth();
 
@@ -73,7 +82,11 @@ export const useMessages = (channelId) => {
                 reactions: [],
                 replyCount: 0,
                 createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
+                deleted: false,
+                deletedAt: null,
+                deletedBy: null,
+                deletionType: null
             };
 
             await addDoc(collection(db, 'channels', channelId, 'messages'), messageData);
@@ -83,10 +96,257 @@ export const useMessages = (channelId) => {
         }
     };
 
+    // Permission check for message deletion
+    const canDeleteMessage = async (message) => {
+        if (!currentUser || !message) return false;
+
+        // User can delete their own messages
+        if (message.authorId === currentUser.uid) return true;
+
+        // Check if user is channel admin/moderator
+        try {
+            const channelDoc = await getDoc(doc(db, 'channels', channelId));
+            if (channelDoc.exists()) {
+                const channelData = channelDoc.data();
+                if (channelData.admins?.includes(currentUser.uid) || 
+                    channelData.moderators?.includes(currentUser.uid)) {
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('Error checking channel permissions:', error);
+        }
+
+        // Check if user is system admin
+        if (userProfile?.role === 'admin') return true;
+
+        return false;
+    };
+
+    // Check if message is within edit window
+    const isWithinEditWindow = (message, editWindowMinutes = 15) => {
+        if (!message.createdAt) return false;
+        
+        const messageTime = message.createdAt.toDate();
+        const now = new Date();
+        const diffMinutes = (now - messageTime) / (1000 * 60);
+        
+        return diffMinutes <= editWindowMinutes;
+    };
+
+    // Check if message has replies
+    const hasReplies = async (messageId) => {
+        try {
+            const repliesQuery = query(
+                collection(db, 'channels', channelId, 'messages', messageId, 'replies'),
+                limit(1)
+            );
+            const repliesSnapshot = await getDocs(repliesQuery);
+            return !repliesSnapshot.empty;
+        } catch (error) {
+            console.error('Error checking replies:', error);
+            return false;
+        }
+    };
+
+    // Handle file attachments on deletion
+    const handleAttachmentsOnDelete = async (message, deleteType) => {
+        if (!message.attachments?.length || deleteType !== 'hard') return;
+
+        try {
+            const storage = getStorage();
+            const deletePromises = message.attachments.map(attachment => {
+                if (attachment.storageRef) {
+                    return deleteObject(ref(storage, attachment.storageRef));
+                }
+            });
+            
+            await Promise.allSettled(deletePromises);
+        } catch (error) {
+            console.error('Error deleting attachments:', error);
+        }
+    };
+
+    // Handle pinned message removal
+    const handlePinnedMessageDeletion = async (messageId) => {
+        try {
+            const channelRef = doc(db, 'channels', channelId);
+            const channelDoc = await getDoc(channelRef);
+            
+            if (channelDoc.exists()) {
+                const pinnedMessages = channelDoc.data().pinnedMessages || [];
+                if (pinnedMessages.includes(messageId)) {
+                    await updateDoc(channelRef, {
+                        pinnedMessages: arrayRemove(messageId)
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error removing pinned message:', error);
+        }
+    };
+
+    // Handle reactions on deletion
+    const handleReactionsOnDelete = async (messageId, deleteType) => {
+        if (deleteType !== 'hard') return;
+
+        try {
+            const reactionsRef = collection(db, 'channels', channelId, 'messages', messageId, 'reactions');
+            const batch = writeBatch(db);
+            
+            const reactionsSnapshot = await getDocs(reactionsRef);
+            reactionsSnapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            
+            if (!reactionsSnapshot.empty) {
+                await batch.commit();
+            }
+        } catch (error) {
+            console.error('Error deleting reactions:', error);
+        }
+    };
+
+    // Main delete message function
+    const deleteMessage = async (messageId, options = {}) => {
+        if (!messageId || !channelId || !currentUser) {
+            throw new Error('Missing required parameters for message deletion');
+        }
+
+        // Find the message
+        const message = messages.find(msg => msg.id === messageId);
+        if (!message) {
+            throw new Error('Message not found');
+        }
+
+        // Check permissions
+        const hasPermission = await canDeleteMessage(message);
+        if (!hasPermission) {
+            throw new Error('You do not have permission to delete this message');
+        }
+
+        // Check if already being deleted
+        if (deletingMessages.has(messageId)) {
+            throw new Error('Message is already being deleted');
+        }
+
+        setDeletingMessages(prev => new Set(prev).add(messageId));
+
+        try {
+            const messageRef = doc(db, 'channels', channelId, 'messages', messageId);
+            
+            // Determine deletion type
+            let deleteType = options.deleteType || 'soft';
+            
+            // Force soft delete if message has replies (unless explicitly overridden)
+            if (!options.forceHard) {
+                const messageHasReplies = await hasReplies(messageId);
+                if (messageHasReplies) {
+                    deleteType = 'soft';
+                }
+            }
+
+            // Check time window for regular users
+            const isOwnMessage = message.authorId === currentUser.uid;
+            const withinEditWindow = isWithinEditWindow(message);
+            
+            if (isOwnMessage && !withinEditWindow && !userProfile?.role === 'admin') {
+                throw new Error('You can only delete your own messages within 15 minutes of posting');
+            }
+
+            if (deleteType === 'soft') {
+                // Soft delete: mark as deleted but preserve data
+                await updateDoc(messageRef, {
+                    deleted: true,
+                    deletedAt: serverTimestamp(),
+                    deletedBy: currentUser.uid,
+                    deletionType: 'soft',
+                    deletionReason: options.reason || null
+                });
+            } else {
+                // Hard delete: remove completely
+                await handleAttachmentsOnDelete(message, 'hard');
+                await handleReactionsOnDelete(messageId, 'hard');
+                await handlePinnedMessageDeletion(messageId);
+                
+                // Delete the message document
+                await deleteDoc(messageRef);
+            }
+
+            return {
+                success: true,
+                deleteType,
+                messageId,
+                canUndo: deleteType === 'soft'
+            };
+
+        } catch (error) {
+            console.error('Error deleting message:', error);
+            throw error;
+        } finally {
+            setDeletingMessages(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(messageId);
+                return newSet;
+            });
+        }
+    };
+
+    // Undo soft delete
+    const undoDeleteMessage = async (messageId) => {
+        if (!messageId || !channelId) {
+            throw new Error('Missing required parameters for undo');
+        }
+
+        try {
+            const messageRef = doc(db, 'channels', channelId, 'messages', messageId);
+            const messageDoc = await getDoc(messageRef);
+            
+            if (!messageDoc.exists()) {
+                throw new Error('Message not found');
+            }
+
+            const messageData = messageDoc.data();
+            if (!messageData.deleted || messageData.deletionType !== 'soft') {
+                throw new Error('Message cannot be restored');
+            }
+
+            // Check if user can undo (original author or admin)
+            const canUndo = messageData.authorId === currentUser.uid || 
+                           messageData.deletedBy === currentUser.uid ||
+                           userProfile?.role === 'admin';
+            
+            if (!canUndo) {
+                throw new Error('You do not have permission to restore this message');
+            }
+
+            await updateDoc(messageRef, {
+                deleted: false,
+                deletedAt: null,
+                deletedBy: null,
+                deletionType: null,
+                deletionReason: null,
+                restoredAt: serverTimestamp(),
+                restoredBy: currentUser.uid
+            });
+
+            return { success: true, messageId };
+
+        } catch (error) {
+            console.error('Error undoing message deletion:', error);
+            throw error;
+        }
+    };
+
     return {
         messages,
         loading,
         error,
-        sendMessage
+        sendMessage,
+        deleteMessage,
+        undoDeleteMessage,
+        canDeleteMessage,
+        isWithinEditWindow,
+        deletingMessages
     };
 };

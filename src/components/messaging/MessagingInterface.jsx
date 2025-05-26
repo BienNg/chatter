@@ -36,7 +36,16 @@ const MessagingInterface = () => {
     const [activeTab, setActiveTab] = useState('Messages');
     
     const { channels, loading: channelsLoading, getChannelById } = useChannels();
-    const { messages, loading: messagesLoading, sendMessage } = useMessages(channelId);
+    const { 
+        messages, 
+        loading: messagesLoading, 
+        sendMessage,
+        deleteMessage,
+        undoDeleteMessage,
+        canDeleteMessage,
+        isWithinEditWindow,
+        deletingMessages
+    } = useMessages(channelId);
     const { currentUser, userProfile, logout } = useAuth();
     const { 
         openThread, 
@@ -254,6 +263,11 @@ const MessagingInterface = () => {
                                     loading={messagesLoading}
                                     onOpenThread={handleOpenThread}
                                     channelId={channelId}
+                                    deleteMessage={deleteMessage}
+                                    undoDeleteMessage={undoDeleteMessage}
+                                    canDeleteMessage={canDeleteMessage}
+                                    isWithinEditWindow={isWithinEditWindow}
+                                    deletingMessages={deletingMessages}
                                 />
                             )}
                         </div>

@@ -8,10 +8,24 @@ import {
 } from 'lucide-react';
 import ThreadPreview from './thread/ThreadPreview';
 import MessageHoverActions from './MessageHoverActions';
+import DeleteMessageModal from './DeleteMessageModal';
+import UndoDeleteToast from './UndoDeleteToast';
 import { addMockThreadData } from '../../utils/mockThreadData';
 
-const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
+const MessageListView = ({ 
+    messages, 
+    loading, 
+    onOpenThread, 
+    channelId,
+    deleteMessage,
+    undoDeleteMessage,
+    canDeleteMessage,
+    isWithinEditWindow,
+    deletingMessages
+}) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, message: null });
+    const [undoToast, setUndoToast] = useState({ isVisible: false, messageId: null, messagePreview: '', deleteType: 'soft' });
     const messagesEndRef = useRef(null);
     const previousMessageCountRef = useRef(0);
     
@@ -77,9 +91,64 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
         // TODO: Implement edit functionality
     };
 
-    const handleDeleteMessage = (messageId) => {
-        console.log('Deleting message:', messageId);
-        // TODO: Implement delete functionality
+    const handleDeleteMessage = async (messageId) => {
+        const message = messages.find(m => m.id === messageId);
+        if (!message) return;
+
+        // Check if user can delete this message
+        const hasPermission = await canDeleteMessage(message);
+        if (!hasPermission) {
+            console.error('No permission to delete this message');
+            return;
+        }
+
+        // Show delete confirmation modal
+        setDeleteModal({
+            isOpen: true,
+            message: message
+        });
+    };
+
+    const handleDeleteConfirm = async (options) => {
+        const { message } = deleteModal;
+        if (!message) return;
+
+        try {
+            const result = await deleteMessage(message.id, options);
+            
+            // Close modal
+            setDeleteModal({ isOpen: false, message: null });
+            
+            if (result.success && result.canUndo) {
+                // Show undo toast for soft deletes
+                setUndoToast({
+                    isVisible: true,
+                    messageId: result.messageId,
+                    messagePreview: message.content || '',
+                    deleteType: result.deleteType
+                });
+            }
+        } catch (error) {
+            console.error('Failed to delete message:', error);
+            // Keep modal open to show error
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteModal({ isOpen: false, message: null });
+    };
+
+    const handleUndoDelete = async () => {
+        try {
+            await undoDeleteMessage(undoToast.messageId);
+        } catch (error) {
+            console.error('Failed to undo delete:', error);
+            throw error; // Let the toast component handle the error
+        }
+    };
+
+    const handleUndoDismiss = () => {
+        setUndoToast({ isVisible: false, messageId: null, messagePreview: '', deleteType: 'soft' });
     };
 
     const handlePinMessage = (messageId) => {
@@ -116,35 +185,68 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                         </div>
                     </div>
                 ) : (
-                    messagesWithThreadData.map((message) => (
-                        <div
-                            key={message.id}
-                            className="message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-150"
-                            onMouseEnter={() => setHoveredMessage(message.id)}
-                            onMouseLeave={() => setHoveredMessage(null)}
-                        >
-                            <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
-                                    {message.author?.displayName?.charAt(0) || 
-                                     message.author?.email?.charAt(0) || 'U'}
+                    messagesWithThreadData.map((message) => {
+                        // Handle deleted messages
+                        if (message.deleted) {
+                            return (
+                                <div
+                                    key={message.id}
+                                    className="message-container relative group rounded-lg p-2 -m-2 opacity-60"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-gray-400 flex-shrink-0 flex items-center justify-center text-white font-medium">
+                                            {message.author?.displayName?.charAt(0) || 
+                                             message.author?.email?.charAt(0) || 'U'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="font-medium text-gray-500 truncate">
+                                                    {message.author?.displayName || message.author?.email || 'Unknown User'}
+                                                </span>
+                                                <span className="text-xs text-gray-400 flex-shrink-0">
+                                                    {formatTimestamp(message.createdAt)}
+                                                </span>
+                                            </div>
+                                            <div className="text-gray-500 italic text-sm">
+                                                [Message deleted]
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                            );
+                        }
 
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-medium text-gray-900 truncate">
-                                            {message.author?.displayName || message.author?.email || 'Unknown User'}
-                                        </span>
-                                        <span className="text-xs text-gray-500 flex-shrink-0">
-                                            {formatTimestamp(message.createdAt)}
-                                        </span>
-                                        {!message.createdAt && (
-                                            <Clock className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                                        )}
+                        return (
+                            <div
+                                key={message.id}
+                                className={`message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-150 ${
+                                    deletingMessages?.has(message.id) ? 'opacity-50 pointer-events-none' : ''
+                                }`}
+                                onMouseEnter={() => setHoveredMessage(message.id)}
+                                onMouseLeave={() => setHoveredMessage(null)}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
+                                        {message.author?.displayName?.charAt(0) || 
+                                         message.author?.email?.charAt(0) || 'U'}
                                     </div>
 
-                                    <div className="text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
-                                        {message.content}
-                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-medium text-gray-900 truncate">
+                                                {message.author?.displayName || message.author?.email || 'Unknown User'}
+                                            </span>
+                                            <span className="text-xs text-gray-500 flex-shrink-0">
+                                                {formatTimestamp(message.createdAt)}
+                                            </span>
+                                            {!message.createdAt && (
+                                                <Clock className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                            )}
+                                        </div>
+
+                                        <div className="text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
+                                            {message.content}
+                                        </div>
 
                                     {/* File Attachments */}
                                     {message.attachments && message.attachments.length > 0 && (
@@ -179,7 +281,7 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                         </div>
                                     )}
 
-                                    {/* Thread Preview */}
+                                                                        {/* Thread Preview */}
                                     <ThreadPreview 
                                         message={message}
                                         onOpenThread={handleThreadClick}
@@ -188,7 +290,7 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                             </div>
 
                             {/* Slack-style Hover Actions */}
-                            {hoveredMessage === message.id && (
+                            {hoveredMessage === message.id && !deletingMessages?.has(message.id) && (
                                 <MessageHoverActions
                                     messageId={message.id}
                                     messageContent={message.content}
@@ -203,10 +305,32 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                 />
                             )}
                         </div>
-                    ))
+                        );
+                    })
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteMessageModal
+                message={deleteModal.message}
+                isOpen={deleteModal.isOpen}
+                onConfirm={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
+                canHardDelete={true} // TODO: Check user permissions
+                hasReplies={deleteModal.message?.replyCount > 0}
+                isPinned={false} // TODO: Check if message is pinned
+                isWithinEditWindow={deleteModal.message ? isWithinEditWindow(deleteModal.message) : true}
+            />
+
+            {/* Undo Delete Toast */}
+            <UndoDeleteToast
+                isVisible={undoToast.isVisible}
+                onUndo={handleUndoDelete}
+                onDismiss={handleUndoDismiss}
+                messagePreview={undoToast.messagePreview}
+                deleteType={undoToast.deleteType}
+            />
         </div>
     );
 };

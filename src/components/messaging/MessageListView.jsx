@@ -57,11 +57,11 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-white">
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
                 {messages.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center">
+                    <div className="flex items-center justify-center h-full">
                         <div className="text-center py-12">
                             <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
@@ -72,30 +72,30 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                     messages.map((message) => (
                         <div
                             key={message.id}
-                            className="message-container relative"
+                            className="message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-150"
                             onMouseEnter={() => setHoveredMessage(message.id)}
                             onMouseLeave={() => setHoveredMessage(null)}
                         >
-                            <div className="flex items-start">
-                                <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium relative">
+                            <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
                                     {message.author?.displayName?.charAt(0) || 
                                      message.author?.email?.charAt(0) || 'U'}
                                 </div>
 
-                                <div className="ml-3 flex-grow">
-                                    <div className="flex items-center">
-                                        <span className="font-medium text-gray-900">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-medium text-gray-900 truncate">
                                             {message.author?.displayName || message.author?.email || 'Unknown User'}
                                         </span>
-                                        <span className="ml-2 text-xs text-gray-500">
+                                        <span className="text-xs text-gray-500 flex-shrink-0">
                                             {formatTimestamp(message.createdAt)}
                                         </span>
                                         {!message.createdAt && (
-                                            <Clock className="ml-2 h-3 w-3 text-gray-400" />
+                                            <Clock className="h-3 w-3 text-gray-400 flex-shrink-0" />
                                         )}
                                     </div>
 
-                                    <div className="mt-1 text-gray-800 text-left">
+                                    <div className="text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
                                         {message.content}
                                     </div>
 
@@ -104,12 +104,12 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                         <div className="mt-2 space-y-2">
                                             {message.attachments.map((attachment, idx) => (
                                                 <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center max-w-sm">
-                                                    <FileText className="h-6 w-6 text-indigo-500 mr-3" />
-                                                    <div className="flex-grow">
-                                                        <p className="text-sm font-medium text-gray-800">{attachment.name}</p>
+                                                    <FileText className="h-6 w-6 text-indigo-500 mr-3 flex-shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-gray-800 truncate">{attachment.name}</p>
                                                         <p className="text-xs text-gray-500">{attachment.type} • {attachment.size}</p>
                                                     </div>
-                                                    <button className="ml-auto text-indigo-600 hover:text-indigo-700">
+                                                    <button className="ml-3 text-indigo-600 hover:text-indigo-700 flex-shrink-0">
                                                         <Download className="h-5 w-5" />
                                                     </button>
                                                 </div>
@@ -119,11 +119,11 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
 
                                     {/* Reactions */}
                                     {message.reactions && message.reactions.length > 0 && (
-                                        <div className="mt-2 flex items-center space-x-1">
+                                        <div className="mt-2 flex items-center flex-wrap gap-1">
                                             {message.reactions.map((reaction, idx) => (
                                                 <button
                                                     key={idx}
-                                                    className="inline-flex items-center px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition"
+                                                    className="inline-flex items-center px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors duration-150"
                                                 >
                                                     <span className="mr-1">{reaction.emoji}</span>
                                                     <span className="text-gray-700 font-medium">{reaction.count}</span>
@@ -136,9 +136,9 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                     {message.replyCount > 0 && (
                                         <button
                                             onClick={() => handleThreadClick(message.id)}
-                                            className="mt-2 flex items-center text-sm text-indigo-600 hover:text-indigo-700 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition"
+                                            className="mt-2 flex items-center text-sm text-indigo-600 hover:text-indigo-700 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors duration-150"
                                         >
-                                            <MessageSquare className="h-4 w-4 mr-1" />
+                                            <MessageSquare className="h-4 w-4 mr-1 flex-shrink-0" />
                                             {message.replyCount} {message.replyCount === 1 ? 'reply' : 'replies'}
                                         </button>
                                     )}
@@ -147,15 +147,15 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
 
                             {/* Hover Actions */}
                             {hoveredMessage === message.id && (
-                                <div className="absolute top-0 right-0 bg-white border border-gray-200 rounded-lg shadow-sm p-1 flex items-center space-x-1">
+                                <div className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-lg shadow-lg p-1 flex items-center space-x-1 z-10">
                                     <button
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600"
+                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150"
                                         title="Add reaction"
                                     >
                                         <Smile className="h-4 w-4" />
                                     </button>
                                     <button
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600"
+                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150"
                                         title="Reply in thread"
                                         onClick={() => {
                                             console.log('Reply button clicked for message:', message.id);
@@ -165,13 +165,13 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                         <Reply className="h-4 w-4" />
                                     </button>
                                     <button 
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600" 
+                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150" 
                                         title="Forward"
                                     >
                                         <Forward className="h-4 w-4" />
                                     </button>
                                     <button 
-                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600" 
+                                        className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors duration-150" 
                                         title="More actions"
                                     >
                                         <MoreHorizontal className="h-4 w-4" />

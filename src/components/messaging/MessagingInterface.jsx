@@ -186,7 +186,7 @@ const MessagingInterface = () => {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col bg-white">
+            <div className="flex-1 flex flex-col bg-white overflow-hidden">
                 {/* Channel Header & Tabs */}
                 {activeChannel && (
                     <>
@@ -215,10 +215,10 @@ const MessagingInterface = () => {
                 )}
 
                 {/* Messages Area */}
-                <div className="flex-1 flex">
-                    <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${activeThread ? 'mr-96' : ''}`}>
+                <div className="flex-1 flex min-h-0 overflow-hidden">
+                    <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
                         {/* Message List */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div className="flex-1 min-h-0 overflow-hidden">
                             {messages.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
                                     <MessageSquare className="w-12 h-12 mb-4" />
@@ -236,7 +236,9 @@ const MessagingInterface = () => {
                         </div>
 
                         {/* Message Input */}
-                        <MessageComposition onSendMessage={handleSendMessage} />
+                        <div className="flex-shrink-0 border-t border-gray-200 bg-white">
+                            <MessageComposition onSendMessage={handleSendMessage} />
+                        </div>
                     </div>
 
                     {/* Thread View */}

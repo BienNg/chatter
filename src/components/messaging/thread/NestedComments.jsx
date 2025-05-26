@@ -185,7 +185,7 @@ const NestedComments = ({ channelId, threadId }) => {
               )}
             </div>
             
-            <div className="text-gray-800 text-sm leading-relaxed">
+            <div className="text-gray-800 text-sm leading-relaxed text-left">
               {comment.content}
             </div>
             

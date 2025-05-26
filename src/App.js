@@ -5,7 +5,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThreadProvider } from './contexts/ThreadContext';
 import { Login, OnboardingFlow } from './components/auth';
 import { MessagingInterface } from './components/messaging';
-import './App.css';
 
 // Protected Route wrapper component
 const ProtectedRoute = ({ children }) => {

@@ -28,6 +28,7 @@ import { CreateChannel } from './channel';
 import { ChannelSettings } from './channel';
 import { MessageComposition } from './composition';
 import ErrorBoundary from './ErrorBoundary';
+import { TaskTab } from './tasks';
 
 const MessagingInterface = () => {
     const { channelId, messageId } = useParams();
@@ -251,60 +252,71 @@ const MessagingInterface = () => {
                     </>
                 )}
 
-                {/* Messages Area */}
-                <div className="flex-1 flex min-h-0 overflow-hidden">
-                    <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
-                        {/* Message List */}
-                        <div className="flex-1 min-h-0 overflow-hidden">
-                            {messages.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                                    <MessageSquare className="w-12 h-12 mb-4" />
-                                    <p className="text-lg font-medium">No messages yet</p>
-                                    <p className="text-sm">Be the first to send a message in this channel!</p>
-                                </div>
-                            ) : (
-                                <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
-                                    <MessageListView
-                                        messages={messages}
-                                        loading={messagesLoading}
-                                        onOpenThread={handleOpenThread}
+                {/* Tab Content Area */}
+                {activeTab === 'Messages' ? (
+                    <div className="flex-1 flex min-h-0 overflow-hidden">
+                        <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
+                            {/* Message List */}
+                            <div className="flex-1 min-h-0 overflow-hidden">
+                                {messages.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                        <MessageSquare className="w-12 h-12 mb-4" />
+                                        <p className="text-lg font-medium">No messages yet</p>
+                                        <p className="text-sm">Be the first to send a message in this channel!</p>
+                                    </div>
+                                ) : (
+                                    <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
+                                        <MessageListView
+                                            messages={messages}
+                                            loading={messagesLoading}
+                                            onOpenThread={handleOpenThread}
+                                            channelId={channelId}
+                                            deleteMessage={deleteMessage}
+                                            undoDeleteMessage={undoDeleteMessage}
+                                            canDeleteMessage={canDeleteMessage}
+                                            isWithinEditWindow={isWithinEditWindow}
+                                            deletingMessages={deletingMessages}
+                                            editMessage={editMessage}
+                                            togglePinMessage={togglePinMessage}
+                                            getPinnedMessages={getPinnedMessages}
+                                            isMessagePinned={isMessagePinned}
+                                        />
+                                    </ErrorBoundary>
+                                )}
+                            </div>
+
+                            {/* Message Input */}
+                            <div className="flex-shrink-0 border-t border-gray-200 bg-white">
+                                <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
+                                    <MessageComposition 
+                                        onSendMessage={handleSendMessage} 
                                         channelId={channelId}
-                                        deleteMessage={deleteMessage}
-                                        undoDeleteMessage={undoDeleteMessage}
-                                        canDeleteMessage={canDeleteMessage}
-                                        isWithinEditWindow={isWithinEditWindow}
-                                        deletingMessages={deletingMessages}
-                                        editMessage={editMessage}
-                                        togglePinMessage={togglePinMessage}
-                                        getPinnedMessages={getPinnedMessages}
-                                        isMessagePinned={isMessagePinned}
+                                        placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
                                     />
                                 </ErrorBoundary>
-                            )}
+                            </div>
                         </div>
 
-                        {/* Message Input */}
-                        <div className="flex-shrink-0 border-t border-gray-200 bg-white">
-                            <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
-                                <MessageComposition 
-                                    onSendMessage={handleSendMessage} 
-                                    channelId={channelId}
-                                    placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
-                                />
-                            </ErrorBoundary>
+                        {/* Thread View */}
+                        {activeThread && (
+                            <ThreadView
+                                message={activeThread}
+                                onClose={handleCloseThread}
+                                channelId={channelId}
+                                isOpen={true}
+                            />
+                        )}
+                    </div>
+                ) : activeTab === 'Tasks' ? (
+                    <TaskTab channelId={channelId} />
+                ) : (
+                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                        <div className="text-center">
+                            <p className="text-lg font-medium">{activeTab} tab</p>
+                            <p className="text-sm">Coming soon...</p>
                         </div>
                     </div>
-
-                    {/* Thread View */}
-                    {activeThread && (
-                        <ThreadView
-                            message={activeThread}
-                            onClose={handleCloseThread}
-                            channelId={channelId}
-                            isOpen={true}
-                        />
-                    )}
-                </div>
+                )}
             </div>
 
             {/* Modals */}

@@ -1,25 +1,17 @@
 // src/components/MessageComposition.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-    Bold,
-    Italic,
-    Strikethrough,
-    Link,
-    List,
-    ListOrdered,
-    Indent,
     Smile,
     AtSign,
     Paperclip,
-    Mic,
-    Camera,
-    CornerDownLeft,
     X,
     Upload,
     Send
 } from 'lucide-react';
+import RichTextEditor from './RichTextEditor';
+import { useDrafts } from '../../../hooks/useDrafts';
 
-const MessageComposition = ({ onSendMessage }) => {
+const MessageComposition = ({ onSendMessage, channelId, threadId = null, placeholder }) => {
     const [message, setMessage] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -27,7 +19,10 @@ const MessageComposition = ({ onSendMessage }) => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [mentionSuggestions, setMentionSuggestions] = useState([]);
     const fileInputRef = useRef(null);
-    const editorRef = useRef(null);
+    const richEditorRef = useRef(null);
+    const autoSaveTimeoutRef = useRef(null);
+
+    const { getDraft, saveDraft, clearDraft, hasDraft } = useDrafts();
 
     const users = [
         { id: 1, name: 'Sarah Johnson', avatar: 'SJ' },
@@ -38,6 +33,46 @@ const MessageComposition = ({ onSendMessage }) => {
 
     const commonEmojis = ['😀', '😊', '👍', '❤️', '😂', '🎉', '👏', '🔥'];
 
+    // Load draft on mount or channel/thread change
+    useEffect(() => {
+        if (channelId) {
+            const draft = getDraft(channelId, threadId);
+            if (draft) {
+                setMessage(draft.content || '');
+                setAttachedFiles(draft.attachments || []);
+                // Always use rich text mode
+            } else {
+                setMessage('');
+                setAttachedFiles([]);
+            }
+        }
+    }, [channelId, threadId, getDraft]);
+
+    // Auto-save draft with debouncing - memoized to prevent infinite loops
+    const autoSaveDraft = useCallback(() => {
+        if (autoSaveTimeoutRef.current) {
+            clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        autoSaveTimeoutRef.current = setTimeout(() => {
+            if (channelId && (message.trim() || attachedFiles.length > 0)) {
+                saveDraft(channelId, message, attachedFiles, threadId);
+            }
+        }, 1000);
+    }, [channelId, threadId, saveDraft]); // Removed message and attachedFiles to prevent infinite loops
+
+    // Trigger auto-save when content changes
+    useEffect(() => {
+        if (channelId && (message.trim() || attachedFiles.length > 0)) {
+            autoSaveDraft();
+        }
+        return () => {
+            if (autoSaveTimeoutRef.current) {
+                clearTimeout(autoSaveTimeoutRef.current);
+            }
+        };
+    }, [message, attachedFiles, autoSaveDraft]);
+
     const handleSend = () => {
         if (message.trim() || attachedFiles.length > 0) {
             onSendMessage?.({
@@ -45,10 +80,17 @@ const MessageComposition = ({ onSendMessage }) => {
                 attachments: attachedFiles
             });
             
+            // Clear draft after sending
+            if (channelId) {
+                clearDraft(channelId, threadId);
+            }
+            
             setMessage('');
             setAttachedFiles([]);
-            if (editorRef.current) {
-                editorRef.current.textContent = '';
+            
+            // Clear the rich text editor
+            if (richEditorRef.current) {
+                richEditorRef.current.innerHTML = '';
             }
         }
     };
@@ -99,49 +141,37 @@ const MessageComposition = ({ onSendMessage }) => {
     };
 
     const insertEmoji = (emoji) => {
-        if (editorRef.current) {
+        const currentEditor = richEditorRef.current;
+        if (currentEditor) {
             const selection = window.getSelection();
-            const range = selection.getRangeAt(0);
-            range.deleteContents();
-            range.insertNode(document.createTextNode(emoji));
-            range.collapse(false);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            
-            setMessage(editorRef.current.textContent);
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(document.createTextNode(emoji));
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                const newContent = currentEditor.innerHTML;
+                setMessage(newContent);
+            } else {
+                // If no selection, append to end
+                setMessage(prev => prev + emoji);
+            }
             setShowEmojiPicker(false);
-            editorRef.current.focus();
+            currentEditor.focus();
         }
     };
+
+    // Always use rich text
+
+    const currentPlaceholder = placeholder || (threadId ? 'Reply to thread...' : `Message #${channelId || 'general'}`);
+    const isDraftSaved = channelId && hasDraft(channelId, threadId);
 
     return (
         <div className="p-4 bg-white">
             <div className="message-input border border-gray-200 rounded-lg bg-white focus-within:border-indigo-500 focus-within:shadow-[0_0_0_2px_rgba(99,102,241,0.1)]">
-                {/* Formatting Toolbar */}
-                <div className="flex items-center px-3 py-2 border-b border-gray-200">
-                    <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Bold">
-                        <Bold className="h-4 w-4" />
-                    </button>
-                    <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Italic">
-                        <Italic className="h-4 w-4" />
-                    </button>
-                    <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Strikethrough">
-                        <Strikethrough className="h-4 w-4" />
-                    </button>
-                    <div className="w-px h-4 bg-gray-200 mx-2"></div>
-                    <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Link">
-                        <Link className="h-4 w-4" />
-                    </button>
-                    <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Bullet List">
-                        <List className="h-4 w-4" />
-                    </button>
-                    <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Numbered List">
-                        <ListOrdered className="h-4 w-4" />
-                    </button>
-                    <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Indent">
-                        <Indent className="h-4 w-4" />
-                    </button>
-                </div>
+                {/* Rich text editor will have its own toolbar */}
 
                 {/* File Attachments */}
                 {attachedFiles.length > 0 && (
@@ -192,24 +222,18 @@ const MessageComposition = ({ onSendMessage }) => {
                 )}
 
                 {/* Message Input Area */}
-                <div className="px-3 py-2 min-h-[60px] max-h-[200px] relative">
-                    <div
-                        ref={editorRef}
-                        contentEditable="true"
-                        className="w-full focus:outline-none min-h-[24px] max-h-[168px] text-left empty:before:content-[attr(placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none overflow-y-auto break-words whitespace-pre-wrap resize-none"
-                        placeholder="Message #general"
-                        onInput={(e) => {
-                            setMessage(e.target.textContent);
-                            handleMention(e.target.textContent);
+                <div className="relative">
+                    <RichTextEditor
+                        ref={richEditorRef}
+                        value={message}
+                        onChange={(content) => {
+                            setMessage(content);
+                            handleMention(content);
                         }}
                         onKeyDown={handleKeyDown}
-                        style={{
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                            overflowWrap: 'anywhere',
-                            textAlign: 'left',
-                            lineHeight: '1.5'
-                        }}
+                        placeholder={currentPlaceholder}
+                        className="border-0"
+                        isDraftSaved={isDraftSaved}
                     />
 
                     {/* Mention Suggestions */}
@@ -273,18 +297,9 @@ const MessageComposition = ({ onSendMessage }) => {
                         >
                             <Paperclip className="h-4 w-4" />
                         </button>
-                        <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Record">
-                            <Mic className="h-4 w-4" />
-                        </button>
-                        <button className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200" title="Screenshot">
-                            <Camera className="h-4 w-4" />
-                        </button>
                     </div>
                     
                     <div className="ml-auto flex items-center space-x-2">
-                        <button className="text-gray-400">
-                            <CornerDownLeft className="h-5 w-5" />
-                        </button>
                         <button 
                             onClick={handleSend}
                             disabled={!message.trim() && attachedFiles.length === 0}
@@ -311,8 +326,14 @@ const MessageComposition = ({ onSendMessage }) => {
             </div>
 
             {/* Draft Indicator */}
-            <div className="mt-2 text-xs text-gray-500">
-                Draft saved • Enter to send, Shift+Enter for new line
+            <div className="mt-2 text-xs text-gray-500 flex items-center space-x-2">
+                {isDraftSaved && (
+                    <span className="flex items-center">
+                        <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                        Draft saved
+                    </span>
+                )}
+                <span>Enter to send, Shift+Enter for new line</span>
             </div>
         </div>
     );

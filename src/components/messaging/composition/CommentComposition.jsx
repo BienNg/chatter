@@ -1,5 +1,5 @@
 // src/components/CommentComposition.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Bell, 
   BellOff, 
@@ -10,11 +10,17 @@ import {
   AtSign,
   Link2
 } from 'lucide-react';
+import RichTextEditor from './RichTextEditor';
+import { useDrafts } from '../../../hooks/useDrafts';
 
-const CommentComposition = () => {
+const CommentComposition = ({ channelId, threadId, onSendMessage }) => {
   const [comment, setComment] = useState('');
   const [isFollowing, setIsFollowing] = useState(true);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const richEditorRef = useRef(null);
+  const autoSaveTimeoutRef = useRef(null);
+
+  const { getDraft, saveDraft, clearDraft, hasDraft } = useDrafts();
 
   const threadSummary = {
     replies: 3,
@@ -25,6 +31,65 @@ const CommentComposition = () => {
     ],
     lastActivity: '2 minutes ago'
   };
+
+  // Load draft on mount or thread change
+  useEffect(() => {
+    if (channelId && threadId) {
+      const draft = getDraft(channelId, threadId);
+      if (draft) {
+        setComment(draft.content || '');
+      } else {
+        setComment('');
+      }
+    }
+  }, [channelId, threadId, getDraft]);
+
+  // Auto-save draft with debouncing
+  const autoSaveDraft = useCallback(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      if (channelId && threadId && comment.trim()) {
+        saveDraft(channelId, comment, [], threadId);
+      }
+    }, 1000);
+  }, [channelId, threadId, comment, saveDraft]);
+
+  // Trigger auto-save when content changes
+  useEffect(() => {
+    autoSaveDraft();
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [autoSaveDraft]);
+
+  const handleSend = () => {
+    if (comment.trim()) {
+      onSendMessage?.({
+        content: comment.trim()
+      });
+      
+      // Clear draft after sending
+      if (channelId && threadId) {
+        clearDraft(channelId, threadId);
+      }
+      
+      setComment('');
+      
+              // Clear the rich text editor
+        if (richEditorRef.current) {
+          richEditorRef.current.innerHTML = '';
+        }
+    }
+  };
+
+  // Always use rich text
+
+  const isDraftSaved = channelId && threadId && hasDraft(channelId, threadId);
 
   return (
     <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full">
@@ -126,12 +191,14 @@ const CommentComposition = () => {
               BN
             </div>
             <div className="flex-grow">
-              <textarea
+              {/* Rich Text Editor */}
+              <RichTextEditor
+                ref={richEditorRef}
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
-                rows={4}
+                onChange={setComment}
                 placeholder="Add a comment to this thread..."
+                className="border border-gray-200 rounded-lg"
+                isDraftSaved={isDraftSaved}
               />
             </div>
           </div>
@@ -157,6 +224,7 @@ const CommentComposition = () => {
                 {isFollowing ? 'You\'ll be notified of replies' : 'You won\'t be notified'}
               </div>
               <button 
+                onClick={handleSend}
                 disabled={!comment.trim()}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition flex items-center space-x-2 ${
                   comment.trim() 

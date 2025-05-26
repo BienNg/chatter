@@ -27,6 +27,7 @@ import { ThreadView } from './thread';
 import { CreateChannel } from './channel';
 import { ChannelSettings } from './channel';
 import { MessageComposition } from './composition';
+import ErrorBoundary from './ErrorBoundary';
 
 const MessagingInterface = () => {
     const { channelId, messageId } = useParams();
@@ -40,11 +41,15 @@ const MessagingInterface = () => {
         messages, 
         loading: messagesLoading, 
         sendMessage,
+        editMessage,
         deleteMessage,
         undoDeleteMessage,
         canDeleteMessage,
         isWithinEditWindow,
-        deletingMessages
+        deletingMessages,
+        togglePinMessage,
+        getPinnedMessages,
+        isMessagePinned
     } = useMessages(channelId);
     const { currentUser, userProfile, logout } = useAuth();
     const { 
@@ -258,23 +263,35 @@ const MessagingInterface = () => {
                                     <p className="text-sm">Be the first to send a message in this channel!</p>
                                 </div>
                             ) : (
-                                <MessageListView
-                                    messages={messages}
-                                    loading={messagesLoading}
-                                    onOpenThread={handleOpenThread}
-                                    channelId={channelId}
-                                    deleteMessage={deleteMessage}
-                                    undoDeleteMessage={undoDeleteMessage}
-                                    canDeleteMessage={canDeleteMessage}
-                                    isWithinEditWindow={isWithinEditWindow}
-                                    deletingMessages={deletingMessages}
-                                />
+                                <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
+                                    <MessageListView
+                                        messages={messages}
+                                        loading={messagesLoading}
+                                        onOpenThread={handleOpenThread}
+                                        channelId={channelId}
+                                        deleteMessage={deleteMessage}
+                                        undoDeleteMessage={undoDeleteMessage}
+                                        canDeleteMessage={canDeleteMessage}
+                                        isWithinEditWindow={isWithinEditWindow}
+                                        deletingMessages={deletingMessages}
+                                        editMessage={editMessage}
+                                        togglePinMessage={togglePinMessage}
+                                        getPinnedMessages={getPinnedMessages}
+                                        isMessagePinned={isMessagePinned}
+                                    />
+                                </ErrorBoundary>
                             )}
                         </div>
 
                         {/* Message Input */}
                         <div className="flex-shrink-0 border-t border-gray-200 bg-white">
-                            <MessageComposition onSendMessage={handleSendMessage} />
+                            <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
+                                <MessageComposition 
+                                    onSendMessage={handleSendMessage} 
+                                    channelId={channelId}
+                                    placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
+                                />
+                            </ErrorBoundary>
                         </div>
                     </div>
 

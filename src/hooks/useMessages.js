@@ -207,6 +207,149 @@ export const useMessages = (channelId) => {
         }
     };
 
+    // Edit message function
+    const editMessage = async (messageId, newContent) => {
+        if (!messageId || !channelId || !currentUser || !newContent?.trim()) {
+            throw new Error('Missing required parameters for message editing');
+        }
+
+        // Find the message
+        const message = messages.find(msg => msg.id === messageId);
+        if (!message) {
+            throw new Error('Message not found');
+        }
+
+        // Check if user can edit (only author can edit their own messages)
+        if (message.authorId !== currentUser.uid) {
+            throw new Error('You can only edit your own messages');
+        }
+
+        // Check if message is within edit window
+        if (!isWithinEditWindow(message)) {
+            throw new Error('Message can no longer be edited (15 minute window expired)');
+        }
+
+        try {
+            const messageRef = doc(db, 'channels', channelId, 'messages', messageId);
+            await updateDoc(messageRef, {
+                content: newContent.trim(),
+                editedAt: serverTimestamp(),
+                editedBy: currentUser.uid
+            });
+
+            return { success: true, messageId };
+        } catch (error) {
+            console.error('Error editing message:', error);
+            throw error;
+        }
+    };
+
+    // Pin/unpin message function
+    const togglePinMessage = async (messageId) => {
+        if (!messageId || !channelId || !currentUser) {
+            throw new Error('Missing required parameters for message pinning');
+        }
+
+        try {
+            const channelRef = doc(db, 'channels', channelId);
+            const channelDoc = await getDoc(channelRef);
+            
+            if (!channelDoc.exists()) {
+                throw new Error('Channel not found');
+            }
+
+            const channelData = channelDoc.data();
+            const pinnedMessages = channelData.pinnedMessages || [];
+            const isPinned = pinnedMessages.includes(messageId);
+
+            // Check permissions (admins, moderators, or message author)
+            const message = messages.find(msg => msg.id === messageId);
+            const canPin = message?.authorId === currentUser.uid ||
+                          channelData.admins?.includes(currentUser.uid) ||
+                          channelData.moderators?.includes(currentUser.uid) ||
+                          userProfile?.role === 'admin';
+
+            if (!canPin) {
+                throw new Error('You do not have permission to pin messages in this channel');
+            }
+
+            let updatedPinnedMessages;
+            if (isPinned) {
+                // Unpin message
+                updatedPinnedMessages = pinnedMessages.filter(id => id !== messageId);
+            } else {
+                // Pin message (limit to 50 pinned messages)
+                if (pinnedMessages.length >= 50) {
+                    throw new Error('Channel has reached the maximum number of pinned messages (50)');
+                }
+                updatedPinnedMessages = [...pinnedMessages, messageId];
+            }
+
+            await updateDoc(channelRef, {
+                pinnedMessages: updatedPinnedMessages,
+                lastPinnedAt: serverTimestamp(),
+                lastPinnedBy: currentUser.uid
+            });
+
+            return { 
+                success: true, 
+                messageId, 
+                isPinned: !isPinned,
+                pinnedCount: updatedPinnedMessages.length 
+            };
+
+        } catch (error) {
+            console.error('Error toggling pin message:', error);
+            throw error;
+        }
+    };
+
+    // Get pinned messages for channel
+    const getPinnedMessages = async () => {
+        if (!channelId) return [];
+
+        try {
+            const channelRef = doc(db, 'channels', channelId);
+            const channelDoc = await getDoc(channelRef);
+            
+            if (!channelDoc.exists()) {
+                return [];
+            }
+
+            const pinnedMessageIds = channelDoc.data().pinnedMessages || [];
+            
+            // Get the actual message data for pinned messages
+            const pinnedMessages = messages.filter(msg => 
+                pinnedMessageIds.includes(msg.id) && !msg.deleted
+            );
+
+            return pinnedMessages;
+        } catch (error) {
+            console.error('Error getting pinned messages:', error);
+            return [];
+        }
+    };
+
+    // Check if message is pinned
+    const isMessagePinned = async (messageId) => {
+        if (!channelId || !messageId) return false;
+
+        try {
+            const channelRef = doc(db, 'channels', channelId);
+            const channelDoc = await getDoc(channelRef);
+            
+            if (!channelDoc.exists()) {
+                return false;
+            }
+
+            const pinnedMessages = channelDoc.data().pinnedMessages || [];
+            return pinnedMessages.includes(messageId);
+        } catch (error) {
+            console.error('Error checking if message is pinned:', error);
+            return false;
+        }
+    };
+
     // Main delete message function
     const deleteMessage = async (messageId, options = {}) => {
         if (!messageId || !channelId || !currentUser) {
@@ -343,10 +486,14 @@ export const useMessages = (channelId) => {
         loading,
         error,
         sendMessage,
+        editMessage,
         deleteMessage,
         undoDeleteMessage,
         canDeleteMessage,
         isWithinEditWindow,
-        deletingMessages
+        deletingMessages,
+        togglePinMessage,
+        getPinnedMessages,
+        isMessagePinned
     };
 };

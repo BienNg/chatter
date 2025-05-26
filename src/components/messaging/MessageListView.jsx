@@ -1,17 +1,19 @@
 // src/components/MessageListView.jsx (Updated for real-time)
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     MessageSquare,
     Download,
     FileText,
-    Clock
+    Clock,
+    Pin,
+    Edit3
 } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import ThreadPreview from './thread/ThreadPreview';
 import MessageHoverActions from './MessageHoverActions';
 import DeleteMessageModal from './DeleteMessageModal';
 import UndoDeleteToast from './UndoDeleteToast';
-import { addMockThreadData } from '../../utils/mockThreadData';
-
+import MessageEditor from './MessageEditor';
 const MessageListView = ({ 
     messages, 
     loading, 
@@ -21,19 +23,36 @@ const MessageListView = ({
     undoDeleteMessage,
     canDeleteMessage,
     isWithinEditWindow,
-    deletingMessages
+    deletingMessages,
+    editMessage,
+    togglePinMessage,
+    getPinnedMessages,
+    isMessagePinned
 }) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, message: null });
     const [undoToast, setUndoToast] = useState({ isVisible: false, messageId: null, messagePreview: '', deleteType: 'soft' });
+    const [editingMessage, setEditingMessage] = useState(null);
+    const [pinnedMessages, setPinnedMessages] = useState([]);
     const messagesEndRef = useRef(null);
     const previousMessageCountRef = useRef(0);
-    
-    // Memoize mock thread data to prevent regeneration on every render
-    const messagesWithThreadData = useMemo(() => addMockThreadData(messages), [messages]);
 
     // Add debug log for props
-    console.log('MessageListView props:', { messages: messagesWithThreadData, loading, onOpenThread, channelId });
+    console.log('MessageListView props:', { messages, loading, onOpenThread, channelId });
+
+    // Load pinned messages when channel changes
+    useEffect(() => {
+        if (channelId && getPinnedMessages) {
+            getPinnedMessages().then(setPinnedMessages).catch(console.error);
+        }
+    }, [channelId, getPinnedMessages]);
+
+    // Update pinned messages when messages change (in case of real-time updates)
+    useEffect(() => {
+        if (channelId && getPinnedMessages) {
+            getPinnedMessages().then(setPinnedMessages).catch(console.error);
+        }
+    }, [messages, channelId, getPinnedMessages]);
 
     // Auto-scroll to bottom only when new messages are added (not when existing messages are updated)
     useEffect(() => {
@@ -87,8 +106,32 @@ const MessageListView = ({
     };
 
     const handleEditMessage = (messageId) => {
-        console.log('Editing message:', messageId);
-        // TODO: Implement edit functionality
+        const message = messages.find(m => m.id === messageId);
+        if (!message) return;
+
+        // Check if user can edit this message
+        if (!isWithinEditWindow(message)) {
+            console.error('Message can no longer be edited (15 minute window expired)');
+            return;
+        }
+
+        setEditingMessage(message);
+    };
+
+    const handleEditSave = async (newContent) => {
+        if (!editingMessage) return;
+
+        try {
+            await editMessage(editingMessage.id, newContent);
+            setEditingMessage(null);
+        } catch (error) {
+            console.error('Failed to edit message:', error);
+            throw error; // Let the editor component handle the error
+        }
+    };
+
+    const handleEditCancel = () => {
+        setEditingMessage(null);
     };
 
     const handleDeleteMessage = async (messageId) => {
@@ -151,9 +194,23 @@ const MessageListView = ({
         setUndoToast({ isVisible: false, messageId: null, messagePreview: '', deleteType: 'soft' });
     };
 
-    const handlePinMessage = (messageId) => {
-        console.log('Pinning message:', messageId);
-        // TODO: Implement pin functionality
+    const handlePinMessage = async (messageId) => {
+        try {
+            const result = await togglePinMessage(messageId);
+            if (result.success) {
+                // Update local pinned messages state
+                if (result.isPinned) {
+                    const message = messages.find(m => m.id === messageId);
+                    if (message) {
+                        setPinnedMessages(prev => [...prev, message]);
+                    }
+                } else {
+                    setPinnedMessages(prev => prev.filter(m => m.id !== messageId));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to toggle pin message:', error);
+        }
     };
 
     const handleReportMessage = (messageId) => {
@@ -185,7 +242,7 @@ const MessageListView = ({
                         </div>
                     </div>
                 ) : (
-                    messagesWithThreadData.map((message) => {
+                    messages.map((message) => {
                         // Handle deleted messages
                         if (message.deleted) {
                             return (
@@ -216,12 +273,28 @@ const MessageListView = ({
                             );
                         }
 
+                        // Check if this message is being edited
+                        if (editingMessage && editingMessage.id === message.id) {
+                            return (
+                                <div key={message.id} className="message-container p-2 -m-2">
+                                    <MessageEditor
+                                        message={editingMessage}
+                                        onSave={handleEditSave}
+                                        onCancel={handleEditCancel}
+                                        isLoading={false}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        const isPinned = pinnedMessages.some(pm => pm.id === message.id);
+
                         return (
                             <div
                                 key={message.id}
                                 className={`message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-150 ${
                                     deletingMessages?.has(message.id) ? 'opacity-50 pointer-events-none' : ''
-                                }`}
+                                } ${isPinned ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
                                 onMouseEnter={() => setHoveredMessage(message.id)}
                                 onMouseLeave={() => setHoveredMessage(null)}
                             >
@@ -242,10 +315,28 @@ const MessageListView = ({
                                             {!message.createdAt && (
                                                 <Clock className="h-3 w-3 text-gray-400 flex-shrink-0" />
                                             )}
+                                            {isPinned && (
+                                                <Pin className="h-3 w-3 text-yellow-600 flex-shrink-0" title="Pinned message" />
+                                            )}
+                                            {message.editedAt && (
+                                                <span className="text-xs text-gray-400 flex-shrink-0" title={`Edited ${new Date(message.editedAt.toDate()).toLocaleString()}`}>
+                                                    (edited)
+                                                </span>
+                                            )}
                                         </div>
 
                                         <div className="text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
-                                            {message.content}
+                                            {message.content?.includes('<') && message.content?.includes('>') ? (
+                                                <div dangerouslySetInnerHTML={{ 
+                                                    __html: DOMPurify.sanitize(message.content, {
+                                                        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a'],
+                                                        ALLOWED_ATTR: ['href', 'target'],
+                                                        ALLOW_DATA_ATTR: false
+                                                    })
+                                                }} />
+                                            ) : (
+                                                message.content
+                                            )}
                                         </div>
 
                                     {/* File Attachments */}

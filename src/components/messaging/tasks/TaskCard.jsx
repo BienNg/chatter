@@ -2,7 +2,22 @@ import React from 'react';
 import { Clock, MessageCircle } from 'lucide-react';
 
 const TaskCard = ({ task, isSelected, onSelect }) => {
-    const { sourceMessage, replies, status, lastActivity } = task;
+    const { sourceMessageData, status, lastActivity, createdAt } = task;
+
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return '';
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diffInHours = (now - date) / (1000 * 60 * 60);
+        
+        if (diffInHours < 24) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
+                   ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    };
 
     return (
         <div
@@ -14,18 +29,19 @@ const TaskCard = ({ task, isSelected, onSelect }) => {
             }`}
         >
             <div className="flex items-start">
-                <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-medium ${sourceMessage.author.avatarColor}`}>
-                    {sourceMessage.author.avatar}
+                <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
+                    {sourceMessageData.sender?.displayName?.charAt(0) || 
+                     sourceMessageData.sender?.email?.charAt(0) || 'U'}
                 </div>
                 <div className="ml-3 flex-1">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
                             <span className="font-medium text-gray-900">
-                                {sourceMessage.author.displayName}
+                                {sourceMessageData.sender?.displayName || 'Unknown User'}
                             </span>
                             <span className="ml-2 text-xs text-gray-500 flex items-center">
                                 <Clock className="w-3 h-3 mr-1" />
-                                {sourceMessage.timestamp}
+                                {formatTimestamp(createdAt)}
                             </span>
                         </div>
                         {status && (
@@ -39,18 +55,18 @@ const TaskCard = ({ task, isSelected, onSelect }) => {
                         )}
                     </div>
                     <div className="mt-1 text-gray-800 text-left line-clamp-2">
-                        {sourceMessage.content}
+                        {sourceMessageData.content}
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                        {replies.length > 0 && (
+                        {sourceMessageData.replyCount > 0 && (
                             <div className="flex items-center text-xs text-gray-500">
                                 <MessageCircle className="w-3 h-3 mr-1" />
-                                {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+                                {sourceMessageData.replyCount} {sourceMessageData.replyCount === 1 ? 'reply' : 'replies'}
                             </div>
                         )}
                         {lastActivity && (
                             <div className="text-xs text-gray-400">
-                                Last activity: {lastActivity}
+                                Last activity: {formatTimestamp(lastActivity)}
                             </div>
                         )}
                     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Bold, Italic, Strikethrough, Link, List, ListOrdered, Indent, Smile, Paperclip, Mic, Send } from 'lucide-react';
 
-const TaskComposer = ({ onSendMessage, placeholder = "Add a comment..." }) => {
+const TaskComposer = ({ onSendMessage, placeholder = "Add a comment...", isLoading = false }) => {
     const [content, setContent] = useState('');
     const editorRef = useRef(null);
 
@@ -128,15 +128,19 @@ const TaskComposer = ({ onSendMessage, placeholder = "Add a comment..." }) => {
                     </div>
                     <button 
                         onClick={handleSendMessage}
-                        disabled={!content.trim()}
+                        disabled={!content.trim() || isLoading}
                         className={`flex items-center justify-center w-8 h-8 rounded-lg text-white transition-colors ${
-                            content.trim() 
+                            content.trim() && !isLoading
                                 ? 'bg-indigo-600 hover:bg-indigo-700' 
                                 : 'bg-gray-300 cursor-not-allowed'
                         }`}
                         title="Send"
                     >
-                        <Send className="h-4 w-4" />
+                        {isLoading ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
                     </button>
                 </div>
             </div>

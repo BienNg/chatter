@@ -6,7 +6,8 @@ import {
     FileText,
     Clock,
     Pin,
-    Edit3
+    Edit3,
+    CheckSquare
 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import ThreadPreview from './thread/ThreadPreview';
@@ -14,6 +15,7 @@ import MessageHoverActions from './MessageHoverActions';
 import DeleteMessageModal from './DeleteMessageModal';
 import UndoDeleteToast from './UndoDeleteToast';
 import MessageEditor from './MessageEditor';
+import { useTasks } from '../../hooks/useTasks';
 const MessageListView = ({ 
     messages, 
     loading, 
@@ -36,6 +38,9 @@ const MessageListView = ({
     const [pinnedMessages, setPinnedMessages] = useState([]);
     const messagesEndRef = useRef(null);
     const previousMessageCountRef = useRef(0);
+    
+    // Tasks functionality
+    const { createTaskFromMessage } = useTasks(channelId);
 
     // Add debug log for props
     console.log('MessageListView props:', { messages, loading, onOpenThread, channelId });
@@ -218,6 +223,27 @@ const MessageListView = ({
         // TODO: Implement report functionality
     };
 
+    const handlePushToTasks = async (messageId) => {
+        try {
+            const message = messages.find(m => m.id === messageId);
+            if (!message) {
+                console.error('Message not found:', messageId);
+                return;
+            }
+
+            // Check if message is already a task
+            if (message.isTask) {
+                console.log('Message is already a task');
+                return;
+            }
+
+            await createTaskFromMessage(messageId, message);
+            console.log('Task created successfully from message:', messageId);
+        } catch (error) {
+            console.error('Failed to create task from message:', error);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex-1 flex items-center justify-center">
@@ -318,6 +344,9 @@ const MessageListView = ({
                                             {isPinned && (
                                                 <Pin className="h-3 w-3 text-yellow-600 flex-shrink-0" title="Pinned message" />
                                             )}
+                                            {message.isTask && (
+                                                <CheckSquare className="h-3 w-3 text-blue-600 flex-shrink-0" title="Converted to task" />
+                                            )}
                                             {message.editedAt && (
                                                 <span className="text-xs text-gray-400 flex-shrink-0" title={`Edited ${new Date(message.editedAt.toDate()).toLocaleString()}`}>
                                                     (edited)
@@ -393,6 +422,8 @@ const MessageListView = ({
                                     onDeleteMessage={handleDeleteMessage}
                                     onPinMessage={handlePinMessage}
                                     onReportMessage={handleReportMessage}
+                                    onPushToTasks={handlePushToTasks}
+                                    isTask={message.isTask}
                                 />
                             )}
                         </div>

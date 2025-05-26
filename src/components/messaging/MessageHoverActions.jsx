@@ -9,7 +9,8 @@ import {
     Edit3,
     Trash2,
     Pin,
-    AlertTriangle
+    AlertTriangle,
+    CheckSquare
 } from 'lucide-react';
 import './MessageHoverActions.css';
 
@@ -24,6 +25,8 @@ const MessageHoverActions = ({
     onDeleteMessage,
     onPinMessage,
     onReportMessage,
+    onPushToTasks,
+    isTask = false,
     className = ""
 }) => {
     const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -98,6 +101,17 @@ const MessageHoverActions = ({
             >
                 <Share className="h-4 w-4" />
             </button>
+
+            {/* Push to Tasks */}
+            {!isTask && (
+                <button
+                    title="Push to Tasks"
+                    onClick={() => onPushToTasks?.(messageId)}
+                    className="hover:bg-blue-50 hover:text-blue-600"
+                >
+                    <CheckSquare className="h-4 w-4" />
+                </button>
+            )}
 
             {/* More Actions */}
             <div className="relative">

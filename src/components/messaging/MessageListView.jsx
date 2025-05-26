@@ -207,7 +207,7 @@ const MessageListView = ({
                                                     {formatTimestamp(message.createdAt)}
                                                 </span>
                                             </div>
-                                            <div className="text-gray-500 italic text-sm">
+                                            <div className="text-gray-500 italic text-sm text-left">
                                                 [Message deleted]
                                             </div>
                                         </div>

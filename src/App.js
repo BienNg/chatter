@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThreadProvider } from './contexts/ThreadContext';
 import { Login, OnboardingFlow } from './components/auth';
 import { MessagingInterface } from './components/messaging';
 import './App.css';
@@ -81,7 +82,9 @@ function App() {
                             path="/"
                             element={
                                 <ProtectedRoute>
-                                    <MessagingInterface />
+                                    <ThreadProvider>
+                                        <MessagingInterface />
+                                    </ThreadProvider>
                                 </ProtectedRoute>
                             }
                         >

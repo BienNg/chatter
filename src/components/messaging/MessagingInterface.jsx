@@ -21,6 +21,7 @@ import {
 import { useChannels } from '../../hooks/useChannels';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
+import { useThread } from '../../contexts/ThreadContext';
 import { MessageListView } from './';
 import { ThreadView } from './thread';
 import { CreateChannel } from './channel';
@@ -37,6 +38,14 @@ const MessagingInterface = () => {
     const { channels, loading: channelsLoading, getChannelById } = useChannels();
     const { messages, loading: messagesLoading, sendMessage } = useMessages(channelId);
     const { currentUser, userProfile, logout } = useAuth();
+    const { 
+        openThread, 
+        closeThread, 
+        getOpenThread, 
+        isThreadOpen, 
+        switchChannel,
+        activeThread: persistentActiveThread 
+    } = useThread();
 
     // Add debug log for route params
     console.log('Route params:', { channelId, messageId });
@@ -49,7 +58,16 @@ const MessagingInterface = () => {
     }, [channels, channelId, navigate]);
 
     const activeChannel = channels.find((channel) => channel.id === channelId);
-    const activeThread = messageId ? messages.find((msg) => msg.id === messageId) : null;
+    
+    // Get thread from URL or persistent thread context
+    let activeThread = null;
+    if (messageId) {
+        // Thread opened via URL
+        activeThread = messages.find((msg) => msg.id === messageId);
+    } else if (persistentActiveThread && persistentActiveThread.channelId === channelId) {
+        // Thread persisted from context
+        activeThread = messages.find((msg) => msg.id === persistentActiveThread.messageId);
+    }
     
     // Add debug log for active thread and message structure
     console.log('Active thread details:', {
@@ -59,16 +77,21 @@ const MessagingInterface = () => {
     });
 
     const handleChannelSelect = (newChannelId) => {
+        // Switch channel and restore any persistent thread
+        switchChannel(newChannelId);
         navigate(`/channels/${newChannelId}`);
     };
 
     const handleOpenThread = (threadMessageId) => {
         console.log('handleOpenThread called with:', threadMessageId);
+        const messageData = messages.find(msg => msg.id === threadMessageId);
+        openThread(channelId, threadMessageId, messageData);
         navigate(`/channels/${channelId}/messages/${threadMessageId}`);
     };
 
     const handleCloseThread = () => {
         console.log('handleCloseThread called');
+        closeThread(channelId);
         navigate(`/channels/${channelId}`);
     };
 

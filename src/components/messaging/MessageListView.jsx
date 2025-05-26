@@ -1,5 +1,5 @@
 // src/components/MessageListView.jsx (Updated for real-time)
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     MessageSquare,
     Smile,
@@ -12,17 +12,32 @@ import {
     FileText,
     Clock
 } from 'lucide-react';
+import ThreadPreview from './thread/ThreadPreview';
+import { addMockThreadData } from '../../utils/mockThreadData';
 
 const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const messagesEndRef = useRef(null);
+    const previousMessageCountRef = useRef(0);
+    
+    // Memoize mock thread data to prevent regeneration on every render
+    const messagesWithThreadData = useMemo(() => addMockThreadData(messages), [messages]);
 
     // Add debug log for props
-    console.log('MessageListView props:', { messages, loading, onOpenThread, channelId });
+    console.log('MessageListView props:', { messages: messagesWithThreadData, loading, onOpenThread, channelId });
 
-    // Auto-scroll to bottom when new messages arrive
+    // Auto-scroll to bottom only when new messages are added (not when existing messages are updated)
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const currentMessageCount = messages.length;
+        const previousMessageCount = previousMessageCountRef.current;
+        
+        // Only scroll if we have more messages than before (new message added)
+        if (currentMessageCount > previousMessageCount && currentMessageCount > 0) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Update the ref with current count
+        previousMessageCountRef.current = currentMessageCount;
     }, [messages]);
 
     const formatTimestamp = (timestamp) => {
@@ -69,7 +84,7 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                         </div>
                     </div>
                 ) : (
-                    messages.map((message) => (
+                    messagesWithThreadData.map((message) => (
                         <div
                             key={message.id}
                             className="message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-150"
@@ -132,16 +147,11 @@ const MessageListView = ({ messages, loading, onOpenThread, channelId }) => {
                                         </div>
                                     )}
 
-                                    {/* Thread Indicator */}
-                                    {message.replyCount > 0 && (
-                                        <button
-                                            onClick={() => handleThreadClick(message.id)}
-                                            className="mt-2 flex items-center text-sm text-indigo-600 hover:text-indigo-700 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors duration-150"
-                                        >
-                                            <MessageSquare className="h-4 w-4 mr-1 flex-shrink-0" />
-                                            {message.replyCount} {message.replyCount === 1 ? 'reply' : 'replies'}
-                                        </button>
-                                    )}
+                                    {/* Thread Preview */}
+                                    <ThreadPreview 
+                                        message={message}
+                                        onOpenThread={handleThreadClick}
+                                    />
                                 </div>
                             </div>
 

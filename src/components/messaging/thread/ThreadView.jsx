@@ -1,32 +1,33 @@
 // src/components/ThreadView.jsx
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, MessageSquare, X, Send } from 'lucide-react';
+import { useThreadReplies } from '../../../hooks/useThreadReplies';
 
-const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
+const ThreadView = ({ message, isOpen, onClose, channelId }) => {
     // Add debug log for props
-    console.log('ThreadView props:', { message, replies, isOpen, onClose });
+    console.log('ThreadView props:', { message, isOpen, onClose, channelId });
     
     const [replyText, setReplyText] = useState('');
-    const [threadReplies, setThreadReplies] = useState(replies || []);
+    const { 
+        replies: threadReplies, 
+        loading: repliesLoading, 
+        sendReply, 
+        participants: replyParticipants 
+    } = useThreadReplies(channelId, message?.id);
 
     // Add effect to log state changes
     useEffect(() => {
-        console.log('ThreadView state:', { replyText, threadReplies });
-    }, [replyText, threadReplies]);
+        console.log('ThreadView state:', { replyText, threadReplies, repliesLoading });
+    }, [replyText, threadReplies, repliesLoading]);
 
-    const handleSendReply = () => {
+    const handleSendReply = async () => {
         if (replyText.trim()) {
-            const newReply = {
-                id: Date.now(),
-                author: message.author || { displayName: 'Unknown User' },
-                content: replyText,
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                fullTimestamp: `Today at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-            };
-            
-            setThreadReplies((prev) => [...prev, newReply]);
-            onNewReply?.(message.id, replyText);
-            setReplyText('');
+            try {
+                await sendReply(replyText);
+                setReplyText('');
+            } catch (error) {
+                console.error('Failed to send reply:', error);
+            }
         }
     };
 
@@ -37,12 +38,24 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
         }
     };
 
-    const participants = [
-        { name: 'Sarah Johnson', avatar: 'SJ', color: 'bg-blue-500' },
-        { name: 'Alex Chen', avatar: 'AC', color: 'bg-green-500' },
-        { name: 'Mai Tran', avatar: 'MT', color: 'bg-purple-500' },
-        { name: 'Bien Nguyen', avatar: 'BN', color: 'bg-indigo-500' }
-    ];
+    // Extract participants from message and replies
+    const getThreadParticipants = () => {
+        const participantMap = new Map();
+        
+        // Add original message author
+        if (message.author) {
+            participantMap.set(message.author.id || message.author.email, message.author);
+        }
+        
+        // Add reply participants
+        replyParticipants.forEach(participant => {
+            participantMap.set(participant.id || participant.email, participant);
+        });
+        
+        return Array.from(participantMap.values());
+    };
+
+    const participants = getThreadParticipants();
 
     if (!isOpen || !message) return null;
 
@@ -61,14 +74,25 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
         return colors[index];
     };
 
+    // Format timestamp helper
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return 'Unknown time';
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     // Combine original message with replies for unified display
     const allMessages = [
         {
             ...message,
             id: message.id || 'original',
-            timestamp: message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown time'
+            timestamp: formatTimestamp(message.createdAt || message.timestamp)
         },
-        ...threadReplies
+        ...threadReplies.map(reply => ({
+            ...reply,
+            timestamp: formatTimestamp(reply.createdAt)
+        }))
     ];
 
     return (
@@ -101,17 +125,24 @@ const ThreadView = ({ message, replies, isOpen, onClose, onNewReply }) => {
                 <div className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <div className="flex -space-x-1">
-                        {participants.map((participant) => (
+                        {participants.slice(0, 5).map((participant, index) => (
                             <div
-                                key={participant.name}
-                                className={`w-6 h-6 rounded-full ${participant.color} flex items-center justify-center text-white text-xs font-medium ring-2 ring-white`}
-                                title={participant.name}
+                                key={participant.id || participant.email || index}
+                                className={`w-6 h-6 rounded-full ${getAuthorColor(participant)} flex items-center justify-center text-white text-xs font-medium ring-2 ring-white`}
+                                title={participant.displayName || participant.email}
                             >
-                                {participant.avatar}
+                                {getAuthorInitials(participant)}
                             </div>
                         ))}
+                        {participants.length > 5 && (
+                            <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium ring-2 ring-white">
+                                +{participants.length - 5}
+                            </div>
+                        )}
                     </div>
-                    <span className="text-sm text-gray-500">{participants.length} participants</span>
+                    <span className="text-sm text-gray-500">
+                        {participants.length} {participants.length === 1 ? 'participant' : 'participants'}
+                    </span>
                 </div>
             </div>
 

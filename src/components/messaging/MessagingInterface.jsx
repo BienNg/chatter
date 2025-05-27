@@ -94,6 +94,7 @@ const MessagingInterface = () => {
     const [showCreateChannel, setShowCreateChannel] = useState(false);
     const [showChannelSettings, setShowChannelSettings] = useState(false);
     const [showChannelAbout, setShowChannelAbout] = useState(false);
+    const [scrollToMessageId, setScrollToMessageId] = useState(null);
     
     const { currentTab, contentType, contentId, subTab, channelId } = useRouteInfo();
     
@@ -131,6 +132,22 @@ const MessagingInterface = () => {
             navigate(`/channels/${channels[0].id}/messages`);
         }
     }, [channels, channelId, navigate]);
+
+    // Clear scroll target when channel changes
+    useEffect(() => {
+        setScrollToMessageId(null);
+    }, [channelId]);
+
+    // Clear scroll target after it's been used
+    useEffect(() => {
+        if (scrollToMessageId) {
+            const timer = setTimeout(() => {
+                setScrollToMessageId(null);
+            }, 1000); // Clear after 1 second
+            
+            return () => clearTimeout(timer);
+        }
+    }, [scrollToMessageId]);
 
     const activeChannel = channels.find((channel) => channel.id === channelId);
     
@@ -203,8 +220,9 @@ const MessagingInterface = () => {
 
     const handleJumpToMessage = (messageId) => {
         if (!channelId || !messageId) return;
-        // Navigate to messages tab and open the thread for the message
-        navigate(`/channels/${channelId}/messages/thread/${messageId}`);
+        // Navigate to messages tab and scroll to the specific message
+        navigate(`/channels/${channelId}/messages`);
+        setScrollToMessageId(messageId);
     };
 
     const handleChannelCreated = (newChannelId) => {
@@ -378,6 +396,7 @@ const MessagingInterface = () => {
                                                 getPinnedMessages={getPinnedMessages}
                                                 isMessagePinned={isMessagePinned}
                                                 onJumpToTask={handleOpenTask}
+                                                scrollToMessageId={scrollToMessageId}
                                             />
                                         </ErrorBoundary>
                                     )}

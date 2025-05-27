@@ -33,7 +33,8 @@ const MessageListView = ({
     togglePinMessage,
     getPinnedMessages,
     isMessagePinned,
-    onJumpToTask
+    onJumpToTask,
+    scrollToMessageId
 }) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, message: null });
@@ -41,8 +42,10 @@ const MessageListView = ({
     const [editingMessage, setEditingMessage] = useState(null);
     const [pinnedMessages, setPinnedMessages] = useState([]);
     const [reactionModal, setReactionModal] = useState({ isOpen: false, messageId: null, reactions: [] });
+    const [highlightedMessageId, setHighlightedMessageId] = useState(null);
     const messagesEndRef = useRef(null);
     const previousMessageCountRef = useRef(0);
+    const messageRefs = useRef({});
     
     // Tasks functionality
     const { createTaskFromMessage } = useTasks(channelId);
@@ -86,7 +89,29 @@ const MessageListView = ({
         previousMessageCountRef.current = currentMessageCount;
     }, [messages]);
 
-
+    // Scroll to specific message when scrollToMessageId changes
+    useEffect(() => {
+        if (scrollToMessageId && messageRefs.current[scrollToMessageId]) {
+            // Scroll to the message
+            messageRefs.current[scrollToMessageId].scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Highlight the message temporarily
+            setHighlightedMessageId(scrollToMessageId);
+            
+            // Remove highlight after 3 seconds
+            const timer = setTimeout(() => {
+                setHighlightedMessageId(null);
+            }, 3000);
+            
+            return () => clearTimeout(timer);
+        } else if (scrollToMessageId) {
+            // Message not found in current view - could be an older message not loaded
+            console.warn(`Message ${scrollToMessageId} not found in current message list`);
+        }
+    }, [scrollToMessageId, messages]); // Added messages dependency to retry when messages update
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return '';
@@ -350,11 +375,12 @@ const MessageListView = ({
                         return (
                             <div
                                 key={message.id}
-                                className={`message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-150 ${
+                                ref={el => messageRefs.current[message.id] = el}
+                                className={`message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-all duration-300 ${
                                     deletingMessages?.has(message.id) ? 'opacity-50 pointer-events-none' : ''
                                 } ${isPinned ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''} ${
                                     message.isTask ? 'bg-blue-50 border-l-4 border-blue-400' : ''
-                                }`}
+                                } ${highlightedMessageId === message.id ? 'bg-indigo-50 border-2 border-indigo-500 shadow-md ring-2 ring-indigo-200' : ''}`}
                                 onMouseEnter={() => setHoveredMessage(message.id)}
                                 onMouseLeave={() => setHoveredMessage(null)}
                             >
@@ -384,10 +410,10 @@ const MessageListView = ({
                                                         e.stopPropagation();
                                                         handleJumpToTask(message.taskId);
                                                     }}
-                                                    className="h-3 w-3 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                                                    title={`Converted to task - Click to view task`}
+                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
                                                 >
-                                                    <CheckSquare className="h-3 w-3" />
+                                                    <CheckSquare className="w-3 h-3 mr-1" />
+                                                    View Task
                                                 </button>
                                             )}
                                             {message.editedAt && (
@@ -411,21 +437,7 @@ const MessageListView = ({
                                             )}
                                         </div>
 
-                                        {/* Task Link Indicator */}
-                                        {message.isTask && (
-                                            <div className="mt-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleJumpToTask(message.taskId);
-                                                    }}
-                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
-                                                >
-                                                    <CheckSquare className="w-3 h-3 mr-1" />
-                                                    View Task
-                                                </button>
-                                            </div>
-                                        )}
+
 
                                     {/* File Attachments */}
                                     {message.attachments && message.attachments.length > 0 && (

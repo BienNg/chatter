@@ -74,10 +74,10 @@ const BidirectionalLinkingDemo = () => {
                             {mockMessage.isTask && (
                                 <button
                                     onClick={handleJumpToTask}
-                                    className="h-3 w-3 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                                    title="Converted to task - Click to view task"
+                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
                                 >
-                                    <CheckSquare className="h-3 w-3" />
+                                    <CheckSquare className="w-3 h-3 mr-1" />
+                                    View Task
                                 </button>
                             )}
                         </div>
@@ -85,19 +85,7 @@ const BidirectionalLinkingDemo = () => {
                             {mockMessage.content}
                         </div>
 
-                        {/* Task Link Indicator */}
-                        {mockMessage.isTask && (
-                            <div className="mt-3">
-                                <button
-                                    onClick={handleJumpToTask}
-                                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
-                                >
-                                    <CheckSquare className="w-3 h-3 mr-1" />
-                                    View Task
-                                    <ArrowRight className="w-3 h-3 ml-1" />
-                                </button>
-                            </div>
-                        )}
+
                     </div>
                 </div>
             </div>
@@ -106,8 +94,7 @@ const BidirectionalLinkingDemo = () => {
                 <h4 className="font-medium text-gray-900 mb-2">Bidirectional Linking Features:</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Blue border and background indicate task-linked messages</li>
-                    <li>• Clickable CheckSquare icon in message header</li>
-                    <li>• "View Task" button for easy navigation</li>
+                    <li>• "View Task" button in message header for easy navigation</li>
                     <li>• Hover actions show "View Task" instead of "Push to Tasks"</li>
                 </ul>
             </div>

@@ -12,6 +12,7 @@ import {
     AlertTriangle,
     CheckSquare
 } from 'lucide-react';
+import EmojiPicker from './composition/EmojiPicker';
 import './MessageHoverActions.css';
 
 const MessageHoverActions = ({ 
@@ -47,6 +48,10 @@ const MessageHoverActions = ({
 
     const handleAddReaction = (emoji) => {
         onAddReaction?.(messageId, emoji);
+        // EmojiPicker handles closing itself
+    };
+
+    const handleReactionPickerClose = () => {
         setShowReactionPicker(false);
     };
 
@@ -56,8 +61,8 @@ const MessageHoverActions = ({
         setShowMoreActions(false);
     };
 
-    // Common reaction emojis like Slack
-    const commonReactions = ['👍', '❤️', '😂', '😮', '😢', '😡', '👏', '🎉'];
+    // Quick reaction emojis for hover (most common ones)
+    const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
     return (
         <div className={`message-hover-actions ${className}`}>
@@ -70,18 +75,31 @@ const MessageHoverActions = ({
                     <Smile className="h-4 w-4" />
                 </button>
                 
-                {/* Reaction Picker */}
+                {/* Quick Reactions + Full Picker */}
                 {showReactionPicker && (
                     <div className="reaction-picker">
-                        {commonReactions.map((emoji, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => handleAddReaction(emoji)}
-                                title={`React with ${emoji}`}
-                            >
-                                {emoji}
-                            </button>
-                        ))}
+                        {/* Quick reactions for fast access */}
+                        <div className="quick-reactions">
+                            {quickReactions.map((emoji, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleAddReaction(emoji)}
+                                    title={`React with ${emoji}`}
+                                    className="quick-reaction-btn"
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        {/* Full emoji picker */}
+                        <div className="full-picker-container">
+                            <EmojiPicker
+                                onEmojiSelect={handleAddReaction}
+                                onClose={handleReactionPickerClose}
+                                className="reaction-emoji-picker"
+                            />
+                        </div>
                     </div>
                 )}
             </div>

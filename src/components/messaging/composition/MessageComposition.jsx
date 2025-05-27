@@ -15,6 +15,8 @@ import {
     MessageSquare
 } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
+import EmojiPicker from './EmojiPicker';
+import EmojiSuggestions from './EmojiSuggestions';
 import { useDrafts } from '../../../hooks/useDrafts';
 
 const MessageComposition = ({ 
@@ -63,7 +65,7 @@ const MessageComposition = ({
         { id: 4, name: 'John Doe', avatar: 'JD' }
     ];
 
-    const commonEmojis = ['😀', '😊', '👍', '❤️', '😂', '🎉', '👏', '🔥'];
+    // Removed commonEmojis - now using comprehensive EmojiPicker
 
     // Initialize content from props (only on mount or when switching to edit mode)
     useEffect(() => {
@@ -310,6 +312,10 @@ const MessageComposition = ({
         if (richEditorRef.current) {
             richEditorRef.current.insertText(emoji);
         }
+        // EmojiPicker handles closing itself
+    };
+
+    const handleEmojiPickerClose = () => {
         setShowEmojiPicker(false);
     };
 
@@ -574,6 +580,14 @@ const MessageComposition = ({
                     )}
                 </div>
 
+                {/* Emoji Suggestions */}
+                {!error && mode !== 'edit' && (
+                    <EmojiSuggestions
+                        messageContent={message}
+                        onEmojiSelect={insertEmoji}
+                    />
+                )}
+
                 {/* Error Message */}
                 {error && (
                     <div className="px-3 py-2 border-t border-red-200 bg-red-50">
@@ -598,20 +612,13 @@ const MessageComposition = ({
                                     <Smile className="h-4 w-4" />
                                 </button>
 
-                                {/* Emoji Picker */}
+                                {/* Comprehensive Emoji Picker */}
                                 {showEmojiPicker && (
-                                    <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {commonEmojis.map((emoji) => (
-                                                <button
-                                                    key={emoji}
-                                                    className="p-2 hover:bg-gray-100 rounded text-lg"
-                                                    onClick={() => insertEmoji(emoji)}
-                                                >
-                                                    {emoji}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    <div className="absolute bottom-full left-0 mb-2 z-50">
+                                        <EmojiPicker
+                                            onEmojiSelect={insertEmoji}
+                                            onClose={handleEmojiPickerClose}
+                                        />
                                     </div>
                                 )}
                             </div>

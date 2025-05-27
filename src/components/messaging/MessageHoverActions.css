@@ -61,6 +61,19 @@
 
 /* Reaction Picker Styles */
 .reaction-picker {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    z-index: 30;
+    animation: fadeInUp 0.15s ease-out;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Quick reactions bar */
+.quick-reactions {
     background: #ffffff;
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -68,15 +81,9 @@
     padding: 8px;
     display: flex;
     gap: 4px;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 4px;
-    z-index: 30;
-    animation: fadeInUp 0.15s ease-out;
 }
 
-.reaction-picker button {
+.quick-reaction-btn {
     padding: 4px;
     border-radius: 4px;
     font-size: 18px;
@@ -87,9 +94,20 @@
     cursor: pointer;
 }
 
-.reaction-picker button:hover {
+.quick-reaction-btn:hover {
     background-color: #f3f4f6;
     transform: scale(1.1);
+}
+
+/* Full emoji picker container */
+.full-picker-container {
+    position: relative;
+}
+
+.reaction-emoji-picker {
+    /* Override default emoji picker styles for reactions */
+    width: 280px !important;
+    max-height: 320px !important;
 }
 
 /* More Actions Menu Styles */

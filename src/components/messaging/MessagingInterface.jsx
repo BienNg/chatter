@@ -1,6 +1,6 @@
 // src/components/MessagingInterface.jsx (Updated)
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Outlet } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
     Plus, 
     Settings, 
@@ -30,12 +30,69 @@ import { MessageComposition } from './composition';
 import ErrorBoundary from './ErrorBoundary';
 import { TaskTab } from './tasks';
 
+// Helper function to extract tab and content info from URL
+const useRouteInfo = () => {
+    const location = useLocation();
+    const params = useParams();
+    
+    // Extract route segments
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    
+    // Determine current tab from URL
+    let currentTab = 'messages'; // default
+    let contentType = null;
+    let contentId = null;
+    let subTab = null;
+    
+    if (pathSegments.length >= 3) {
+        const tabSegment = pathSegments[2]; // channels/channelId/[tab]
+        
+        switch (tabSegment) {
+            case 'messages':
+                currentTab = 'messages';
+                if (pathSegments[3] === 'thread' && pathSegments[4]) {
+                    contentType = 'thread';
+                    contentId = pathSegments[4];
+                }
+                break;
+            case 'tasks':
+                currentTab = 'tasks';
+                if (pathSegments[3]) {
+                    contentType = 'task';
+                    contentId = pathSegments[3];
+                }
+                break;
+            case 'classes':
+                currentTab = 'classes';
+                if (pathSegments[3]) {
+                    subTab = pathSegments[3]; // overview or info
+                }
+                break;
+            case 'wiki':
+                currentTab = 'wiki';
+                if (pathSegments[3]) {
+                    contentType = 'page';
+                    contentId = pathSegments[3];
+                }
+                break;
+        }
+    }
+    
+    return {
+        currentTab,
+        contentType,
+        contentId,
+        subTab,
+        channelId: params.channelId
+    };
+};
+
 const MessagingInterface = () => {
-    const { channelId, messageId } = useParams();
     const navigate = useNavigate();
     const [showCreateChannel, setShowCreateChannel] = useState(false);
     const [showChannelSettings, setShowChannelSettings] = useState(false);
-    const [activeTab, setActiveTab] = useState('Messages');
+    
+    const { currentTab, contentType, contentId, subTab, channelId } = useRouteInfo();
     
     const { channels, loading: channelsLoading, getChannelById } = useChannels();
     const { 
@@ -63,12 +120,12 @@ const MessagingInterface = () => {
     } = useThread();
 
     // Add debug log for route params
-    console.log('Route params:', { channelId, messageId });
+    console.log('Route params:', { channelId, contentId });
 
     // Set first channel as active if none selected
     useEffect(() => {
         if (channels.length > 0 && !channelId) {
-            navigate(`/channels/${channels[0].id}`);
+            navigate(`/channels/${channels[0].id}/messages`);
         }
     }, [channels, channelId, navigate]);
 
@@ -76,9 +133,9 @@ const MessagingInterface = () => {
     
     // Get thread from URL or persistent thread context
     let activeThread = null;
-    if (messageId) {
+    if (contentType === 'thread' && contentId) {
         // Thread opened via URL
-        activeThread = messages.find((msg) => msg.id === messageId);
+        activeThread = messages.find((msg) => msg.id === contentId);
     } else if (persistentActiveThread && persistentActiveThread.channelId === channelId) {
         // Thread persisted from context
         activeThread = messages.find((msg) => msg.id === persistentActiveThread.messageId);
@@ -86,7 +143,7 @@ const MessagingInterface = () => {
     
     // Add debug log for active thread and message structure
     console.log('Active thread details:', {
-        messageId,
+        contentId,
         activeThread,
         messageStructure: activeThread ? JSON.stringify(activeThread, null, 2) : null
     });
@@ -94,25 +151,56 @@ const MessagingInterface = () => {
     const handleChannelSelect = (newChannelId) => {
         // Switch channel and restore any persistent thread
         switchChannel(newChannelId);
-        navigate(`/channels/${newChannelId}`);
+        navigate(`/channels/${newChannelId}/messages`);
+    };
+
+    const handleTabSelect = (tab) => {
+        if (!channelId) return;
+        
+        // Navigate to the selected tab
+        switch (tab.toLowerCase()) {
+            case 'messages':
+                navigate(`/channels/${channelId}/messages`);
+                break;
+            case 'tasks':
+                navigate(`/channels/${channelId}/tasks`);
+                break;
+            case 'classes':
+                navigate(`/channels/${channelId}/classes`);
+                break;
+            case 'wiki':
+                navigate(`/channels/${channelId}/wiki`);
+                break;
+            default:
+                navigate(`/channels/${channelId}/messages`);
+        }
     };
 
     const handleOpenThread = (threadMessageId) => {
         console.log('handleOpenThread called with:', threadMessageId);
         const messageData = messages.find(msg => msg.id === threadMessageId);
         openThread(channelId, threadMessageId, messageData);
-        navigate(`/channels/${channelId}/messages/${threadMessageId}`);
+        navigate(`/channels/${channelId}/messages/thread/${threadMessageId}`);
     };
 
     const handleCloseThread = () => {
         console.log('handleCloseThread called');
         closeThread(channelId);
-        navigate(`/channels/${channelId}`);
+        navigate(`/channels/${channelId}/messages`);
+    };
+
+    const handleOpenTask = (taskId) => {
+        if (!channelId) return;
+        if (taskId) {
+            navigate(`/channels/${channelId}/tasks/${taskId}`);
+        } else {
+            navigate(`/channels/${channelId}/tasks`);
+        }
     };
 
     const handleChannelCreated = (newChannelId) => {
         setShowCreateChannel(false);
-        navigate(`/channels/${newChannelId}`);
+        navigate(`/channels/${newChannelId}/messages`);
     };
 
     const handleSendMessage = async (messageData) => {
@@ -123,7 +211,23 @@ const MessagingInterface = () => {
         }
     };
 
-    const tabs = ['Messages', 'Classes', 'Tasks', 'Wiki'];
+    const tabs = [
+        { id: 'messages', label: 'Messages' },
+        { id: 'classes', label: 'Classes' },
+        { id: 'tasks', label: 'Tasks' },
+        { id: 'wiki', label: 'Wiki' }
+    ];
+
+    // Sub-tabs for Classes
+    const classesSubTabs = [
+        { id: 'overview', label: 'Classes' },
+        { id: 'info', label: 'Info' }
+    ];
+
+    const handleClassesSubTabSelect = (subTabId) => {
+        if (!channelId) return;
+        navigate(`/channels/${channelId}/classes/${subTabId}`);
+    };
 
     if (channelsLoading) {
         return (
@@ -135,6 +239,128 @@ const MessagingInterface = () => {
             </div>
         );
     }
+
+    // Render tab content based on current route
+    const renderTabContent = () => {
+        switch (currentTab) {
+            case 'messages':
+                return (
+                    <div className="flex-1 flex min-h-0 overflow-hidden">
+                        <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
+                            {/* Message List */}
+                            <div className="flex-1 min-h-0 overflow-hidden">
+                                {messages.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                        <MessageSquare className="w-12 h-12 mb-4" />
+                                        <p className="text-lg font-medium">No messages yet</p>
+                                        <p className="text-sm">Be the first to send a message in this channel!</p>
+                                    </div>
+                                ) : (
+                                    <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
+                                        <MessageListView
+                                            messages={messages}
+                                            loading={messagesLoading}
+                                            onOpenThread={handleOpenThread}
+                                            channelId={channelId}
+                                            deleteMessage={deleteMessage}
+                                            undoDeleteMessage={undoDeleteMessage}
+                                            canDeleteMessage={canDeleteMessage}
+                                            isWithinEditWindow={isWithinEditWindow}
+                                            deletingMessages={deletingMessages}
+                                            editMessage={editMessage}
+                                            togglePinMessage={togglePinMessage}
+                                            getPinnedMessages={getPinnedMessages}
+                                            isMessagePinned={isMessagePinned}
+                                        />
+                                    </ErrorBoundary>
+                                )}
+                            </div>
+
+                            {/* Message Input */}
+                            <div className="flex-shrink-0 bg-white">
+                                <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
+                                    <MessageComposition 
+                                        onSendMessage={handleSendMessage} 
+                                        channelId={channelId}
+                                        placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
+                                    />
+                                </ErrorBoundary>
+                            </div>
+                        </div>
+
+                        {/* Thread View */}
+                        {activeThread && (
+                            <ThreadView
+                                message={activeThread}
+                                onClose={handleCloseThread}
+                                channelId={channelId}
+                                isOpen={true}
+                            />
+                        )}
+                    </div>
+                );
+
+            case 'tasks':
+                return (
+                    <TaskTab 
+                        channelId={channelId} 
+                        selectedTaskId={contentType === 'task' ? contentId : null}
+                        onTaskSelect={handleOpenTask}
+                    />
+                );
+
+            case 'classes':
+                return (
+                    <div className="flex-1 flex flex-col">
+                        {/* Classes Sub-tabs */}
+                        <div className="flex items-center px-6 border-b bg-gray-50">
+                            {classesSubTabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => handleClassesSubTabSelect(tab.id)}
+                                    className={`px-4 py-2 text-sm font-medium ${
+                                        (subTab || 'overview') === tab.id
+                                            ? 'text-indigo-600 border-b-2 border-indigo-600'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Classes Content */}
+                        <div className="flex-1 flex items-center justify-center text-gray-500">
+                            <div className="text-center">
+                                <p className="text-lg font-medium">Classes - {subTab || 'overview'}</p>
+                                <p className="text-sm">Coming soon...</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 'wiki':
+                return (
+                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                        <div className="text-center">
+                            <p className="text-lg font-medium">Wiki</p>
+                            {contentType === 'page' && <p className="text-sm">Page: {contentId}</p>}
+                            <p className="text-sm">Coming soon...</p>
+                        </div>
+                    </div>
+                );
+
+            default:
+                return (
+                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                        <div className="text-center">
+                            <p className="text-lg font-medium">Unknown tab</p>
+                            <p className="text-sm">Please select a valid tab</p>
+                        </div>
+                    </div>
+                );
+        }
+    };
 
     return (
         <div className="flex h-screen">
@@ -237,15 +463,15 @@ const MessagingInterface = () => {
                         <div className="flex items-center px-6 border-b">
                             {tabs.map((tab) => (
                                 <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
+                                    key={tab.id}
+                                    onClick={() => handleTabSelect(tab.label)}
                                     className={`px-4 py-2 text-sm font-medium ${
-                                        activeTab === tab
+                                        currentTab === tab.id
                                             ? 'text-indigo-600 border-b-2 border-indigo-600'
                                             : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
-                                    {tab}
+                                    {tab.label}
                                 </button>
                             ))}
                         </div>
@@ -253,70 +479,7 @@ const MessagingInterface = () => {
                 )}
 
                 {/* Tab Content Area */}
-                {activeTab === 'Messages' ? (
-                    <div className="flex-1 flex min-h-0 overflow-hidden">
-                        <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
-                            {/* Message List */}
-                            <div className="flex-1 min-h-0 overflow-hidden">
-                                {messages.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                                        <MessageSquare className="w-12 h-12 mb-4" />
-                                        <p className="text-lg font-medium">No messages yet</p>
-                                        <p className="text-sm">Be the first to send a message in this channel!</p>
-                                    </div>
-                                ) : (
-                                    <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
-                                        <MessageListView
-                                            messages={messages}
-                                            loading={messagesLoading}
-                                            onOpenThread={handleOpenThread}
-                                            channelId={channelId}
-                                            deleteMessage={deleteMessage}
-                                            undoDeleteMessage={undoDeleteMessage}
-                                            canDeleteMessage={canDeleteMessage}
-                                            isWithinEditWindow={isWithinEditWindow}
-                                            deletingMessages={deletingMessages}
-                                            editMessage={editMessage}
-                                            togglePinMessage={togglePinMessage}
-                                            getPinnedMessages={getPinnedMessages}
-                                            isMessagePinned={isMessagePinned}
-                                        />
-                                    </ErrorBoundary>
-                                )}
-                            </div>
-
-                            {/* Message Input */}
-                            <div className="flex-shrink-0 bg-white">
-                                <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
-                                    <MessageComposition 
-                                        onSendMessage={handleSendMessage} 
-                                        channelId={channelId}
-                                        placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
-                                    />
-                                </ErrorBoundary>
-                            </div>
-                        </div>
-
-                        {/* Thread View */}
-                        {activeThread && (
-                            <ThreadView
-                                message={activeThread}
-                                onClose={handleCloseThread}
-                                channelId={channelId}
-                                isOpen={true}
-                            />
-                        )}
-                    </div>
-                ) : activeTab === 'Tasks' ? (
-                    <TaskTab channelId={channelId} />
-                ) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-500">
-                        <div className="text-center">
-                            <p className="text-lg font-medium">{activeTab} tab</p>
-                            <p className="text-sm">Coming soon...</p>
-                        </div>
-                    </div>
-                )}
+                {renderTabContent()}
             </div>
 
             {/* Modals */}

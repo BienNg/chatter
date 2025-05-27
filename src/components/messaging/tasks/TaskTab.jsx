@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Clock, CheckCheck, AlertCircle } from 'lucide-react';
 import TaskList from './TaskList';
 import TaskDetails from './TaskDetails';
 import { useTasks } from '../../../hooks/useTasks';
 
-const TaskTab = ({ channelId }) => {
+const TaskTab = ({ channelId, selectedTaskId, onTaskSelect }) => {
     const [selectedTask, setSelectedTask] = useState(null);
     
     // Use real useTasks hook
@@ -16,8 +16,22 @@ const TaskTab = ({ channelId }) => {
         deleteTask 
     } = useTasks(channelId);
 
+    // Update selected task when selectedTaskId prop changes
+    useEffect(() => {
+        if (selectedTaskId && tasks.length > 0) {
+            const task = tasks.find(t => t.id === selectedTaskId);
+            setSelectedTask(task || null);
+        } else {
+            setSelectedTask(null);
+        }
+    }, [selectedTaskId, tasks]);
+
     const handleTaskSelect = (task) => {
         setSelectedTask(task);
+        // Notify parent component to update URL
+        if (onTaskSelect && task) {
+            onTaskSelect(task.id);
+        }
     };
 
     const handleTaskComplete = async (taskId) => {
@@ -26,6 +40,10 @@ const TaskTab = ({ channelId }) => {
             // If the completed task was selected, clear selection
             if (selectedTask?.id === taskId) {
                 setSelectedTask(null);
+                // Navigate back to tasks list
+                if (onTaskSelect) {
+                    onTaskSelect(null);
+                }
             }
         } catch (error) {
             console.error('Failed to complete task:', error);
@@ -38,6 +56,10 @@ const TaskTab = ({ channelId }) => {
             // If the deleted task was selected, clear selection
             if (selectedTask?.id === taskId) {
                 setSelectedTask(null);
+                // Navigate back to tasks list
+                if (onTaskSelect) {
+                    onTaskSelect(null);
+                }
             }
         } catch (error) {
             console.error('Failed to delete task:', error);

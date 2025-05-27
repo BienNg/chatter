@@ -12,10 +12,13 @@ import {
 import DOMPurify from 'dompurify';
 import ThreadPreview from './thread/ThreadPreview';
 import MessageHoverActions from './MessageHoverActions';
+import MessageReactions from './MessageReactions';
+import ReactionDetailsModal from './ReactionDetailsModal';
 import DeleteMessageModal from './DeleteMessageModal';
 import UndoDeleteToast from './UndoDeleteToast';
 import MessageComposition from './composition/MessageComposition';
 import { useTasks } from '../../hooks/useTasks';
+import { useMessageReactions } from '../../hooks/useMessageReactions';
 const MessageListView = ({ 
     messages, 
     loading, 
@@ -29,18 +32,28 @@ const MessageListView = ({
     editMessage,
     togglePinMessage,
     getPinnedMessages,
-    isMessagePinned
+    isMessagePinned,
+    onJumpToTask
 }) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, message: null });
     const [undoToast, setUndoToast] = useState({ isVisible: false, messageId: null, messagePreview: '', deleteType: 'soft' });
     const [editingMessage, setEditingMessage] = useState(null);
     const [pinnedMessages, setPinnedMessages] = useState([]);
+    const [reactionModal, setReactionModal] = useState({ isOpen: false, messageId: null, reactions: [] });
     const messagesEndRef = useRef(null);
     const previousMessageCountRef = useRef(0);
     
     // Tasks functionality
     const { createTaskFromMessage } = useTasks(channelId);
+    
+    // Message reactions functionality
+    const { 
+        getMessageReactions, 
+        addReaction, 
+        removeReaction, 
+        currentUser 
+    } = useMessageReactions();
 
     // Add debug log for props
     console.log('MessageListView props:', { messages, loading, onOpenThread, channelId });
@@ -95,9 +108,17 @@ const MessageListView = ({
         onOpenThread?.(messageId);
     };
 
-    const handleAddReaction = (messageId, emoji) => {
-        console.log('Adding reaction:', emoji, 'to message:', messageId);
-        // TODO: Implement reaction functionality
+    const handleViewReactionDetails = (messageId, emoji, users) => {
+        const reactions = getMessageReactions(messageId);
+        setReactionModal({
+            isOpen: true,
+            messageId,
+            reactions
+        });
+    };
+
+    const closeReactionModal = () => {
+        setReactionModal({ isOpen: false, messageId: null, reactions: [] });
     };
 
     const handleShareMessage = (messageId) => {
@@ -244,6 +265,12 @@ const MessageListView = ({
         }
     };
 
+    const handleJumpToTask = (taskId) => {
+        if (onJumpToTask && taskId) {
+            onJumpToTask(taskId);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex-1 flex items-center justify-center">
@@ -325,7 +352,9 @@ const MessageListView = ({
                                 key={message.id}
                                 className={`message-container relative group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-150 ${
                                     deletingMessages?.has(message.id) ? 'opacity-50 pointer-events-none' : ''
-                                } ${isPinned ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
+                                } ${isPinned ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''} ${
+                                    message.isTask ? 'bg-blue-50 border-l-4 border-blue-400' : ''
+                                }`}
                                 onMouseEnter={() => setHoveredMessage(message.id)}
                                 onMouseLeave={() => setHoveredMessage(null)}
                             >
@@ -350,7 +379,16 @@ const MessageListView = ({
                                                 <Pin className="h-3 w-3 text-yellow-600 flex-shrink-0" title="Pinned message" />
                                             )}
                                             {message.isTask && (
-                                                <CheckSquare className="h-3 w-3 text-blue-600 flex-shrink-0" title="Converted to task" />
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleJumpToTask(message.taskId);
+                                                    }}
+                                                    className="h-3 w-3 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                                                    title={`Converted to task - Click to view task`}
+                                                >
+                                                    <CheckSquare className="h-3 w-3" />
+                                                </button>
                                             )}
                                             {message.editedAt && (
                                                 <span className="text-xs text-gray-400 flex-shrink-0" title={`Edited ${new Date(message.editedAt.toDate()).toLocaleString()}`}>
@@ -373,6 +411,22 @@ const MessageListView = ({
                                             )}
                                         </div>
 
+                                        {/* Task Link Indicator */}
+                                        {message.isTask && (
+                                            <div className="mt-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleJumpToTask(message.taskId);
+                                                    }}
+                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
+                                                >
+                                                    <CheckSquare className="w-3 h-3 mr-1" />
+                                                    View Task
+                                                </button>
+                                            </div>
+                                        )}
+
                                     {/* File Attachments */}
                                     {message.attachments && message.attachments.length > 0 && (
                                         <div className="mt-2 space-y-2">
@@ -391,20 +445,15 @@ const MessageListView = ({
                                         </div>
                                     )}
 
-                                    {/* Reactions */}
-                                    {message.reactions && message.reactions.length > 0 && (
-                                        <div className="mt-2 flex items-center flex-wrap gap-1">
-                                            {message.reactions.map((reaction, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    className="inline-flex items-center px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors duration-150"
-                                                >
-                                                    <span className="mr-1">{reaction.emoji}</span>
-                                                    <span className="text-gray-700 font-medium">{reaction.count}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {/* Message Reactions */}
+                                    <MessageReactions
+                                        messageId={message.id}
+                                        reactions={getMessageReactions(message.id)}
+                                        currentUserId={currentUser.id}
+                                        onAddReaction={addReaction}
+                                        onRemoveReaction={removeReaction}
+                                        onViewReactionDetails={handleViewReactionDetails}
+                                    />
 
                                                                         {/* Thread Preview */}
                                     <ThreadPreview 
@@ -420,7 +469,6 @@ const MessageListView = ({
                                     messageId={message.id}
                                     messageContent={message.content}
                                     onReplyInThread={handleThreadClick}
-                                    onAddReaction={handleAddReaction}
                                     onShareMessage={handleShareMessage}
                                     onBookmarkMessage={handleBookmarkMessage}
                                     onEditMessage={handleEditMessage}
@@ -428,7 +476,9 @@ const MessageListView = ({
                                     onPinMessage={handlePinMessage}
                                     onReportMessage={handleReportMessage}
                                     onPushToTasks={handlePushToTasks}
+                                    onViewTask={handleJumpToTask}
                                     isTask={message.isTask}
+                                    taskId={message.taskId}
                                 />
                             )}
                         </div>
@@ -457,6 +507,14 @@ const MessageListView = ({
                 onDismiss={handleUndoDismiss}
                 messagePreview={undoToast.messagePreview}
                 deleteType={undoToast.deleteType}
+            />
+
+            {/* Reaction Details Modal */}
+            <ReactionDetailsModal
+                isOpen={reactionModal.isOpen}
+                onClose={closeReactionModal}
+                messageId={reactionModal.messageId}
+                reactions={reactionModal.reactions}
             />
         </div>
     );

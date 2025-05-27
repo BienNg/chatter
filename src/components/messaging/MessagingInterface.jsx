@@ -198,6 +198,12 @@ const MessagingInterface = () => {
         }
     };
 
+    const handleJumpToMessage = (messageId) => {
+        if (!channelId || !messageId) return;
+        // Navigate to messages tab and open the thread for the message
+        navigate(`/channels/${channelId}/messages/thread/${messageId}`);
+    };
+
     const handleChannelCreated = (newChannelId) => {
         setShowCreateChannel(false);
         navigate(`/channels/${newChannelId}/messages`);
@@ -256,23 +262,24 @@ const MessagingInterface = () => {
                                         <p className="text-sm">Be the first to send a message in this channel!</p>
                                     </div>
                                 ) : (
-                                    <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
-                                        <MessageListView
-                                            messages={messages}
-                                            loading={messagesLoading}
-                                            onOpenThread={handleOpenThread}
-                                            channelId={channelId}
-                                            deleteMessage={deleteMessage}
-                                            undoDeleteMessage={undoDeleteMessage}
-                                            canDeleteMessage={canDeleteMessage}
-                                            isWithinEditWindow={isWithinEditWindow}
-                                            deletingMessages={deletingMessages}
-                                            editMessage={editMessage}
-                                            togglePinMessage={togglePinMessage}
-                                            getPinnedMessages={getPinnedMessages}
-                                            isMessagePinned={isMessagePinned}
-                                        />
-                                    </ErrorBoundary>
+                                                                    <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
+                                    <MessageListView 
+                                        messages={messages} 
+                                        loading={messagesLoading} 
+                                        onOpenThread={handleOpenThread}
+                                        channelId={channelId}
+                                        deleteMessage={deleteMessage}
+                                        undoDeleteMessage={undoDeleteMessage}
+                                        canDeleteMessage={canDeleteMessage}
+                                        isWithinEditWindow={isWithinEditWindow}
+                                        deletingMessages={deletingMessages}
+                                        editMessage={editMessage}
+                                        togglePinMessage={togglePinMessage}
+                                        getPinnedMessages={getPinnedMessages}
+                                        isMessagePinned={isMessagePinned}
+                                        onJumpToTask={handleOpenTask}
+                                    />
+                                </ErrorBoundary>
                                 )}
                             </div>
 
@@ -306,6 +313,7 @@ const MessagingInterface = () => {
                         channelId={channelId} 
                         selectedTaskId={contentType === 'task' ? contentId : null}
                         onTaskSelect={handleOpenTask}
+                        onJumpToMessage={handleJumpToMessage}
                     />
                 );
 

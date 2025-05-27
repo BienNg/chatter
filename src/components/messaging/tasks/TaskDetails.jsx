@@ -5,7 +5,7 @@ import TaskDetailsEmpty from './TaskDetailsEmpty';
 import { useTasks } from '../../../hooks/useTasks';
 import { useThreadReplies } from '../../../hooks/useThreadReplies';
 
-const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
+const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete, onJumpToMessage }) => {
     // Use real useTasks hook for task operations
     const { deleteTask } = useTasks(channelId);
     
@@ -29,9 +29,9 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
     };
 
     const handleJumpToMessage = () => {
-        // TODO: Implement navigation to source message in Messages tab
-        console.log('Jumping to message:', task.sourceMessageId);
-        // This would switch to Messages tab and scroll to the source message
+        if (onJumpToMessage && task?.sourceMessageId) {
+            onJumpToMessage(task.sourceMessageId);
+        }
     };
 
     const handleDeleteTask = async () => {

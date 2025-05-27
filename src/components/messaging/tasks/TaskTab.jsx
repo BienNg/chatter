@@ -4,7 +4,7 @@ import TaskList from './TaskList';
 import TaskDetails from './TaskDetails';
 import { useTasks } from '../../../hooks/useTasks';
 
-const TaskTab = ({ channelId, selectedTaskId, onTaskSelect }) => {
+const TaskTab = ({ channelId, selectedTaskId, onTaskSelect, onJumpToMessage }) => {
     const [selectedTask, setSelectedTask] = useState(null);
     
     // Use real useTasks hook
@@ -128,6 +128,7 @@ const TaskTab = ({ channelId, selectedTaskId, onTaskSelect }) => {
                             task={selectedTask}
                             channelId={channelId}
                             onTaskUpdate={handleTaskSelect}
+                            onJumpToMessage={onJumpToMessage}
                         />
                     </div>
                 </div>

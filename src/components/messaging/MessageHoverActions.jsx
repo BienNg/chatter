@@ -13,13 +13,13 @@ import {
     CheckSquare
 } from 'lucide-react';
 import EmojiPicker from './composition/EmojiPicker';
+import { useMessageReactions } from '../../hooks/useMessageReactions';
 import './MessageHoverActions.css';
 
 const MessageHoverActions = ({ 
     messageId, 
     messageContent,
     onReplyInThread,
-    onAddReaction,
     onShareMessage,
     onBookmarkMessage,
     onEditMessage,
@@ -27,11 +27,14 @@ const MessageHoverActions = ({
     onPinMessage,
     onReportMessage,
     onPushToTasks,
+    onViewTask,
     isTask = false,
+    taskId = null,
     className = ""
 }) => {
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const [showMoreActions, setShowMoreActions] = useState(false);
+    const { addReaction, hasUserReacted } = useMessageReactions();
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -47,8 +50,12 @@ const MessageHoverActions = ({
     }, []);
 
     const handleAddReaction = (emoji) => {
-        onAddReaction?.(messageId, emoji);
-        // EmojiPicker handles closing itself
+        addReaction(messageId, emoji);
+        setShowReactionPicker(false);
+    };
+
+    const handleQuickReaction = (emoji) => {
+        addReaction(messageId, emoji);
     };
 
     const handleReactionPickerClose = () => {
@@ -83,9 +90,11 @@ const MessageHoverActions = ({
                             {quickReactions.map((emoji, idx) => (
                                 <button
                                     key={idx}
-                                    onClick={() => handleAddReaction(emoji)}
+                                    onClick={() => handleQuickReaction(emoji)}
                                     title={`React with ${emoji}`}
-                                    className="quick-reaction-btn"
+                                    className={`quick-reaction-btn ${
+                                        hasUserReacted(messageId, emoji) ? 'active' : ''
+                                    }`}
                                 >
                                     {emoji}
                                 </button>
@@ -120,11 +129,19 @@ const MessageHoverActions = ({
                 <Share className="h-4 w-4" />
             </button>
 
-            {/* Push to Tasks */}
-            {!isTask && (
+            {/* Push to Tasks / View Task */}
+            {!isTask ? (
                 <button
                     title="Push to Tasks"
                     onClick={() => onPushToTasks?.(messageId)}
+                    className="hover:bg-blue-50 hover:text-blue-600"
+                >
+                    <CheckSquare className="h-4 w-4" />
+                </button>
+            ) : (
+                <button
+                    title="View Task"
+                    onClick={() => onViewTask?.(taskId)}
                     className="hover:bg-blue-50 hover:text-blue-600"
                 >
                     <CheckSquare className="h-4 w-4" />

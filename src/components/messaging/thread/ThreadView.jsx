@@ -1,10 +1,15 @@
 // src/components/ThreadView.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Users, MessageSquare, X } from 'lucide-react';
 import { useThreadReplies } from '../../../hooks/useThreadReplies';
 import MessageComposition from '../composition/MessageComposition';
+import MessageReactions from '../MessageReactions';
+import ReactionDetailsModal from '../ReactionDetailsModal';
+import { useMessageReactions } from '../../../hooks/useMessageReactions';
 
 const ThreadView = ({ message, isOpen, onClose, channelId }) => {
+    const [reactionModal, setReactionModal] = useState({ isOpen: false, messageId: null, reactions: [] });
+    
     // Add debug log for props
     console.log('ThreadView props:', { message, isOpen, onClose, channelId });
     
@@ -14,6 +19,14 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
         sendReply, 
         participants: replyParticipants 
     } = useThreadReplies(channelId, message?.id);
+
+    // Message reactions functionality
+    const { 
+        getMessageReactions, 
+        addReaction, 
+        removeReaction, 
+        currentUser 
+    } = useMessageReactions();
 
     // Add effect to log state changes
     useEffect(() => {
@@ -30,6 +43,19 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                 console.error('Failed to send reply:', error);
             }
         }
+    };
+
+    const handleViewReactionDetails = (messageId, emoji, users) => {
+        const reactions = getMessageReactions(messageId);
+        setReactionModal({
+            isOpen: true,
+            messageId,
+            reactions
+        });
+    };
+
+    const closeReactionModal = () => {
+        setReactionModal({ isOpen: false, messageId: null, reactions: [] });
     };
 
 
@@ -161,6 +187,16 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                             <div className="text-sm text-gray-700 leading-relaxed text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
                                 {msg.content}
                             </div>
+
+                            {/* Message Reactions */}
+                            <MessageReactions
+                                messageId={msg.id}
+                                reactions={getMessageReactions(msg.id)}
+                                currentUserId={currentUser.id}
+                                onAddReaction={addReaction}
+                                onRemoveReaction={removeReaction}
+                                onViewReactionDetails={handleViewReactionDetails}
+                            />
                         </div>
                     </div>
                 ))}
@@ -180,6 +216,14 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                     showMentions={true}
                 />
             </div>
+
+            {/* Reaction Details Modal */}
+            <ReactionDetailsModal
+                isOpen={reactionModal.isOpen}
+                onClose={closeReactionModal}
+                messageId={reactionModal.messageId}
+                reactions={reactionModal.reactions}
+            />
         </div>
     );
 };

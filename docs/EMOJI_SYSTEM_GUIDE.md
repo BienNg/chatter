@@ -48,6 +48,15 @@ The Chatter emoji system provides a rich, user-friendly way to add emojis to mes
 - **Multiple Entry Points**: Emoji picker accessible from multiple locations
 - **Context Awareness**: Different behavior for messages vs. reactions
 
+### Message Reactions System
+- **Persistent Reactions**: Reactions saved to localStorage with full user data
+- **Interactive Reactions**: Click to toggle, double-click to view details
+- **User Avatars**: Show user avatars for reactions (up to 3 users)
+- **Reaction Counts**: Display reaction counts with proper grouping
+- **Quick Reactions**: Fast access to common reactions (👍❤️😂😮😢😡)
+- **Reaction Details Modal**: View all users who reacted with timestamps
+- **Real-time Updates**: Immediate UI updates when adding/removing reactions
+
 #### Performance Optimizations
 - **Lazy Loading**: Categories loaded on demand
 - **Efficient Search**: Optimized search algorithm with result limiting
@@ -99,6 +108,8 @@ The Chatter emoji system provides a rich, user-friendly way to add emojis to mes
 EmojiPicker/
 ├── EmojiPicker.jsx          # Main picker component
 ├── EmojiSuggestions.jsx     # Contextual suggestions
+├── MessageReactions.jsx     # Message reaction display
+├── ReactionDetailsModal.jsx # Reaction details modal
 └── MessageHoverActions.jsx  # Reaction integration
 ```
 
@@ -111,6 +122,19 @@ useEmojis() {
   searchEmojis,           // Enhanced search function
   getFrequentEmojis,      // Get most frequent emojis
   getEmojiSuggestions     // Get contextual suggestions
+}
+
+useMessageReactions() {
+  reactions,              // Object with all message reactions
+  loading,                // Loading state
+  currentUser,            // Current user data
+  addReaction,            // Add reaction to message
+  removeReaction,         // Remove reaction from message
+  toggleReaction,         // Toggle reaction on/off
+  getMessageReactions,    // Get reactions for specific message
+  getReactionSummary,     // Get grouped reaction summary
+  hasUserReacted,         // Check if user reacted with emoji
+  getReactionCount        // Get total reaction count
 }
 ```
 
@@ -151,6 +175,19 @@ localStorage['chatter_emoji_usage'] = {
     '❤️': 12,
     '🔥': 8
   }
+}
+
+localStorage['chatter_message_reactions'] = {
+  'message-1': [                           // Reactions by message ID
+    {
+      id: 'reaction-1',
+      messageId: 'message-1',
+      emoji: '❤️',
+      userId: 'user-1',
+      user: { id: 'user-1', name: 'Sarah Johnson', avatar: 'SJ', color: '#EF4444' },
+      timestamp: '2024-01-15T10:30:00.000Z'
+    }
+  ]
 }
 ```
 
@@ -321,6 +358,32 @@ const {
 <EmojiSuggestions
   messageContent="text content"    // Required: Text to analyze
   onEmojiSelect={(emoji) => void}  // Required: Emoji selection callback
+  className="custom-class"         // Optional: Additional CSS classes
+/>
+```
+
+### MessageReactions Component
+
+```javascript
+<MessageReactions
+  messageId="message-1"                    // Required: Message ID
+  reactions={[]}                           // Required: Array of reaction objects
+  currentUserId="user-id"                  // Required: Current user ID
+  onAddReaction={(messageId, emoji) => void}     // Required: Add reaction callback
+  onRemoveReaction={(messageId, emoji) => void}  // Required: Remove reaction callback
+  onViewReactionDetails={(messageId, emoji, users) => void} // Optional: View details callback
+  className="custom-class"                 // Optional: Additional CSS classes
+/>
+```
+
+### ReactionDetailsModal Component
+
+```javascript
+<ReactionDetailsModal
+  isOpen={true}                    // Required: Modal open state
+  onClose={() => void}             // Required: Close modal callback
+  messageId="message-1"            // Required: Message ID
+  reactions={[]}                   // Required: Array of reaction objects
   className="custom-class"         // Optional: Additional CSS classes
 />
 ```

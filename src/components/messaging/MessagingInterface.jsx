@@ -31,6 +31,7 @@ import ErrorBoundary from './ErrorBoundary';
 import { TaskTab } from './tasks';
 import ChannelAboutModal from './channel/ChannelAboutModal';
 import ChannelToolbar from './ChannelToolbar';
+import { createTestUsers } from '../../utils/testUsers';
 
 // Helper function to extract tab and content info from URL
 const useRouteInfo = () => {
@@ -590,7 +591,30 @@ const MessagingInterface = () => {
                                 >
                                     #{activeChannel.name}
                                 </button>
-                                <span className="ml-2 text-sm text-gray-500">5 members</span>
+                                <span className="ml-2 text-sm text-gray-500">{activeChannel.members?.length || 0} members</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                {/* Development: Create Test Users Button */}
+                                <button
+                                    onClick={async () => {
+                                        console.log('Creating test users...');
+                                        await createTestUsers();
+                                    }}
+                                    className="px-3 py-1 text-xs bg-green-100 text-green-700 hover:bg-green-200 rounded transition-colors"
+                                    title="Create Test Users (Dev)"
+                                >
+                                    Create Test Users
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        console.log('Opening Channel Settings for channel:', activeChannel);
+                                        setShowChannelSettings(true);
+                                    }}
+                                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                    title="Channel Settings"
+                                >
+                                    <Settings className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
                         <div className="flex items-center px-6 border-b">
@@ -629,6 +653,7 @@ const MessagingInterface = () => {
                     isOpen={showChannelSettings}
                     onClose={() => setShowChannelSettings(false)}
                     channel={activeChannel}
+                    onUpdate={handleChannelUpdate}
                 />
             )}
 

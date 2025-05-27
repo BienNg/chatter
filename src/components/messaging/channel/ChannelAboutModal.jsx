@@ -30,12 +30,18 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
 
     const loadUsers = async () => {
         try {
+            console.log('ChannelAboutModal: Loading users...');
             const users = await getAllUsers();
+            console.log('ChannelAboutModal: Loaded users:', users);
+            console.log('ChannelAboutModal: Channel members array:', channel.members);
             setAllUsers(users);
             
             // Filter users who are already members
             const members = users.filter(user => channel.members?.includes(user.id));
             const available = users.filter(user => !channel.members?.includes(user.id));
+            
+            console.log('ChannelAboutModal: Filtered members:', members);
+            console.log('ChannelAboutModal: Available users:', available);
             
             setChannelMembers(members);
             setAvailableUsers(available);

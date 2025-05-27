@@ -108,15 +108,19 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
                             type="text"
                             value={channelData.name}
                             onChange={(e) => {
-                                const value = e.target.value.replace(/[^a-z0-9-]/g, '');
+                                // Convert to lowercase, replace whitespace with dashes, and allow only letters, numbers, and hyphens
+                                const value = e.target.value
+                                    .toLowerCase()
+                                    .replace(/\s+/g, '-')
+                                    .replace(/[^a-z0-9-]/g, '');
                                 setChannelData((prev) => ({ ...prev, name: value }));
                             }}
-                            placeholder="e.g., project-alpha, marketing-team"
+                            placeholder="e.g., Project Alpha, Marketing Team"
                             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             required
                             autoFocus
                         />
-                        <p className="text-xs text-gray-500 mt-1">Only lowercase letters, numbers, and hyphens allowed</p>
+                        <p className="text-xs text-gray-500 mt-1">Spaces and uppercase letters will be automatically converted to lowercase with dashes</p>
                     </div>
 
                     {/* Channel Type */}

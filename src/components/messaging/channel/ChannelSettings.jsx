@@ -11,6 +11,8 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [bulkMode, setBulkMode] = useState(false);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    const [error, setError] = useState('');
     
     const { userProfile } = useAuth();
     const {
@@ -24,25 +26,63 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
 
     const canManage = canManageChannelMembers(userProfile?.roles, channel, userProfile?.id);
     const isManager = hasManagementRole(userProfile?.roles);
+    
+    console.log('ChannelSettings permissions:', {
+        userProfile,
+        channel,
+        canManage,
+        isManager,
+        isCreator: channel.createdBy === userProfile?.id,
+        isChannelAdmin: channel.admins?.includes(userProfile?.id)
+    });
 
     useEffect(() => {
         if (isOpen) {
+            console.log('ChannelSettings opened with channel:', channel);
+            console.log('Channel members:', channel.members);
+            
+
+            
             loadAllUsers();
         }
-    }, [isOpen]);
+    }, [isOpen, channel]);
 
     const loadAllUsers = async () => {
-        const users = await getAllUsers();
-        setAllUsers(users);
+        try {
+            setLoadingUsers(true);
+            setError('');
+            const users = await getAllUsers();
+            setAllUsers(users);
+            if (users.length === 0) {
+                setError('No users found. Make sure users are properly registered in the system.');
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+            setError('Failed to load users. Please try again.');
+        } finally {
+            setLoadingUsers(false);
+        }
     };
 
-    const filteredUsers = allUsers.filter((user) =>
-        user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Ensure channel.members is an array
+    const channelMembersArray = channel.members || [];
+    
+    // Simplified filtering - first just show all users without search filter
+    const filteredUsers = searchTerm.trim() === '' ? allUsers : allUsers.filter((user) => {
+        const displayName = user.displayName || '';
+        const email = user.email || '';
+        const searchLower = searchTerm.toLowerCase();
+        return displayName.toLowerCase().includes(searchLower) || email.toLowerCase().includes(searchLower);
+    });
+    
+    // Ensure we have valid user IDs and channel member IDs
+    const validFilteredUsers = filteredUsers.filter(user => user && user.id);
+    const validChannelMembersArray = channelMembersArray.filter(id => id && typeof id === 'string');
+    
+    const availableUsers = validFilteredUsers.filter((user) => !validChannelMembersArray.includes(user.id));
+    const channelMembers = validFilteredUsers.filter((user) => validChannelMembersArray.includes(user.id));
 
-    const availableUsers = filteredUsers.filter((user) => !channel.members.includes(user.id));
-    const channelMembers = filteredUsers.filter((user) => channel.members.includes(user.id));
+
 
     const handleAddMember = async (userId) => {
         try {
@@ -102,13 +142,22 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
 
     if (!isOpen) return null;
 
+    console.log('ChannelSettings rendering with:', {
+        channel,
+        allUsers,
+        channelMembers,
+        availableUsers,
+        loadingUsers,
+        error
+    });
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Channel Settings</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Channel Settings (Admin)</h2>
                         <p className="text-sm text-gray-500">#{channel.name}</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -127,7 +176,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                         }`}
                     >
                         <Users className="h-4 w-4 inline mr-2" />
-                        Members ({channel.members.length})
+                        Members ({channelMembersArray.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
@@ -146,7 +195,35 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                 <div className="p-6 overflow-y-auto max-h-96">
                     {activeTab === 'members' && (
                         <div className="space-y-6">
+                            {/* Error Display */}
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <p className="text-red-700 text-sm">{error}</p>
+                                    <button 
+                                        onClick={loadAllUsers}
+                                        className="mt-2 text-red-600 hover:text-red-700 text-sm underline"
+                                    >
+                                        Try again
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Loading State */}
+                            {loadingUsers && (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                    <span className="ml-2 text-gray-600">Loading users...</span>
+                                </div>
+                            )}
                             {/* Member Management Controls */}
+                            {!canManage && (
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <p className="text-yellow-700 text-sm">
+                                        You don't have permission to manage members in this channel. 
+                                        Only channel creators, admins, or users with management roles can add/remove members.
+                                    </p>
+                                </div>
+                            )}
                             {canManage && (
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-4">
@@ -190,13 +267,21 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                 </div>
                             )}
 
+
+
                             {/* Current Members */}
                             <div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                                     Current Members ({channelMembers.length})
                                 </h3>
                                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                                    {channelMembers.map((user) => (
+                                    {channelMembers.length === 0 ? (
+                                        <div className="text-center py-4 text-gray-500">
+                                            <p>No members found</p>
+                                            <p className="text-sm">This might indicate an issue with user data or permissions.</p>
+                                        </div>
+                                    ) : (
+                                        channelMembers.map((user) => (
                                         <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                             <div className="flex items-center space-x-3">
                                                 {bulkMode && (
@@ -239,16 +324,23 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                                 </span>
                                             )}
                                         </div>
-                                    ))}
+                                        ))
+                                    )}
                                 </div>
                             </div>
 
                             {/* Available Users to Add */}
-                            {canManage && availableUsers.length > 0 && (
+                            {canManage && (
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-900 mb-4">
                                         Add Members ({availableUsers.length} available)
                                     </h3>
+                                    {availableUsers.length === 0 ? (
+                                        <div className="text-center py-4 text-gray-500">
+                                            <p>No available users to add</p>
+                                            <p className="text-sm">All users are already members or filtered out</p>
+                                        </div>
+                                    ) : (
                                     <div className="space-y-2 max-h-40 overflow-y-auto">
                                         {availableUsers.map((user) => (
                                             <div key={user.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
@@ -290,6 +382,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                             </div>
                                         ))}
                                     </div>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -113,10 +113,11 @@ export const useChannelManagement = () => {
         try {
             const usersRef = collection(db, 'users');
             const snapshot = await getDocs(usersRef);
-            return snapshot.docs.map((doc) => ({
+            const users = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data()
             }));
+            return users;
         } catch (error) {
             console.error('Error fetching users:', error);
             return [];

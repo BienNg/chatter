@@ -7,20 +7,10 @@ import {
     onSnapshot, 
     orderBy,
     doc,
-    getDoc,
-    enableIndexedDbPersistence
+    getDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-
-// Enable offline persistence
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-        console.warn('The current browser does not support persistence.');
-    }
-});
 
 export const useChannels = () => {
     const [channels, setChannels] = useState([]);
@@ -53,7 +43,11 @@ export const useChannels = () => {
                         id: doc.id,
                         ...doc.data()
                     }));
-                    setChannels(channelData);
+                    // Sort channels alphabetically by name
+                    const sortedChannels = channelData.sort((a, b) => 
+                        a.name.localeCompare(b.name)
+                    );
+                    setChannels(sortedChannels);
                     setLoading(false);
                     setError(null);
                 },

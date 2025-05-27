@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThreadProvider } from './contexts/ThreadContext';
 import { Login, OnboardingFlow } from './components/auth';
 import { MessagingInterface } from './components/messaging';
+import './utils/testUsers'; // Import test users utility for development
 
 // Protected Route wrapper component
 const ProtectedRoute = ({ children }) => {

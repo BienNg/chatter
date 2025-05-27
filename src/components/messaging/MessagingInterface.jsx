@@ -29,6 +29,7 @@ import { ChannelSettings } from './channel';
 import { MessageComposition } from './composition';
 import ErrorBoundary from './ErrorBoundary';
 import { TaskTab } from './tasks';
+import ChannelAboutModal from './channel/ChannelAboutModal';
 
 // Helper function to extract tab and content info from URL
 const useRouteInfo = () => {
@@ -91,6 +92,7 @@ const MessagingInterface = () => {
     const navigate = useNavigate();
     const [showCreateChannel, setShowCreateChannel] = useState(false);
     const [showChannelSettings, setShowChannelSettings] = useState(false);
+    const [showChannelAbout, setShowChannelAbout] = useState(false);
     
     const { currentTab, contentType, contentId, subTab, channelId } = useRouteInfo();
     
@@ -464,7 +466,12 @@ const MessagingInterface = () => {
                     <>
                         <div className="flex items-center justify-between px-6 py-4 border-b">
                             <div className="flex items-center">
-                                <h2 className="text-xl font-semibold text-gray-900">#{activeChannel.name}</h2>
+                                <button 
+                                    onClick={() => setShowChannelAbout(true)}
+                                    className="text-xl font-semibold text-gray-900 hover:text-indigo-600 transition-colors"
+                                >
+                                    #{activeChannel.name}
+                                </button>
                                 <span className="ml-2 text-sm text-gray-500">5 members</span>
                             </div>
                         </div>
@@ -503,6 +510,14 @@ const MessagingInterface = () => {
                 <ChannelSettings
                     isOpen={showChannelSettings}
                     onClose={() => setShowChannelSettings(false)}
+                    channel={activeChannel}
+                />
+            )}
+
+            {showChannelAbout && activeChannel && (
+                <ChannelAboutModal
+                    isOpen={showChannelAbout}
+                    onClose={() => setShowChannelAbout(false)}
                     channel={activeChannel}
                 />
             )}

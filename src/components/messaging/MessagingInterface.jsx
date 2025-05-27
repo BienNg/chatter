@@ -67,7 +67,7 @@ const useRouteInfo = () => {
             case 'classes':
                 currentTab = 'classes';
                 if (pathSegments[3]) {
-                    subTab = pathSegments[3]; // overview or info
+                    subTab = pathSegments[3]; // courses or info
                 }
                 break;
             case 'wiki':
@@ -171,7 +171,18 @@ const MessagingInterface = () => {
     const handleChannelSelect = (newChannelId) => {
         // Switch channel and restore any persistent thread
         switchChannel(newChannelId);
-        navigate(`/channels/${newChannelId}/messages`);
+        
+        // Check if current tab is valid for the new channel
+        const newChannel = channels.find(ch => ch.id === newChannelId);
+        const availableTabs = getTabsForChannel(newChannel);
+        const isCurrentTabAvailable = availableTabs.some(tab => tab.id === currentTab);
+        
+        // If current tab is not available for new channel, redirect to messages
+        if (!isCurrentTabAvailable) {
+            navigate(`/channels/${newChannelId}/messages`);
+        } else {
+            navigate(`/channels/${newChannelId}/${currentTab}`);
+        }
     };
 
     const handleTabSelect = (tab) => {
@@ -238,16 +249,27 @@ const MessagingInterface = () => {
         }
     };
 
-    const tabs = [
-        { id: 'messages', label: 'Messages' },
-        { id: 'classes', label: 'Classes' },
-        { id: 'tasks', label: 'Tasks' },
-        { id: 'wiki', label: 'Wiki' }
-    ];
+    // Dynamic tabs based on channel type
+    const getTabsForChannel = (channel) => {
+        const baseTabs = [
+            { id: 'messages', label: 'Messages' },
+            { id: 'tasks', label: 'Tasks' },
+            { id: 'wiki', label: 'Wiki' }
+        ];
+
+        // Only show Classes tab for channels with type "class"
+        if (channel?.type === 'class') {
+            baseTabs.splice(1, 0, { id: 'classes', label: 'Classes' });
+        }
+
+        return baseTabs;
+    };
+
+    const tabs = activeChannel ? getTabsForChannel(activeChannel) : [];
 
     // Sub-tabs for Classes
     const classesSubTabs = [
-        { id: 'overview', label: 'Classes' },
+        { id: 'courses', label: 'Courses' },
         { id: 'info', label: 'Info' }
     ];
 
@@ -257,12 +279,8 @@ const MessagingInterface = () => {
     };
 
     const handleChannelUpdate = () => {
-        // Refresh channel data when members are updated
-        // This will trigger a re-fetch of channels which includes updated member counts
-        if (activeChannel) {
-            // Force a refresh of the channels list
-            window.location.reload(); // Simple approach - you could implement a more sophisticated refresh
-        }
+        // No need to reload; Firestore onSnapshot will update channels list automatically
+        setShowChannelAbout(false);
     };
 
     if (channelsLoading) {
@@ -447,7 +465,7 @@ const MessagingInterface = () => {
                                     key={tab.id}
                                     onClick={() => handleClassesSubTabSelect(tab.id)}
                                     className={`px-4 py-2 text-sm font-medium ${
-                                        (subTab || 'overview') === tab.id
+                                        (subTab || 'courses') === tab.id
                                             ? 'text-indigo-600 border-b-2 border-indigo-600'
                                             : 'text-gray-500 hover:text-gray-700'
                                     }`}
@@ -460,7 +478,7 @@ const MessagingInterface = () => {
                         {/* Classes Content */}
                         <div className="flex-1 flex items-center justify-center text-gray-500">
                             <div className="text-center">
-                                <p className="text-lg font-medium">Classes - {subTab || 'overview'}</p>
+                                <p className="text-lg font-medium">Classes - {subTab || 'courses'}</p>
                                 <p className="text-sm">Coming soon...</p>
                             </div>
                         </div>
@@ -545,20 +563,79 @@ const MessagingInterface = () => {
 
                 {/* Channel List */}
                 <div className="flex-1 overflow-y-auto px-2">
-                    {channels.map((channel) => (
-                        <button
-                            key={channel.id}
-                            onClick={() => handleChannelSelect(channel.id)}
-                            className={`flex items-center w-full px-3 py-2 rounded-lg mb-1 ${
-                                channel.id === channelId
-                                    ? 'bg-indigo-700 text-white'
-                                    : 'text-indigo-200 hover:bg-indigo-700/50'
-                            }`}
-                        >
-                            <Hash className="w-4 h-4 mr-2 flex-shrink-0" />
-                            <span className="truncate">{channel.name}</span>
-                        </button>
-                    ))}
+                    {(() => {
+                        // Group channels by type
+                        const groupedChannels = channels.reduce((groups, channel) => {
+                            const type = channel.type || 'general';
+                            if (!groups[type]) {
+                                groups[type] = [];
+                            }
+                            groups[type].push(channel);
+                            return groups;
+                        }, {});
+
+                        // Define type metadata with icons and labels
+                        const typeMetadata = {
+                            'general': { label: 'General', icon: Hash, color: 'text-indigo-300' },
+                            'class': { label: 'Classes', icon: Users, color: 'text-cyan-300' },
+                            'management': { label: 'Management', icon: Settings, color: 'text-purple-300' },
+                            'social-media': { label: 'Social Media', icon: MessageSquare, color: 'text-pink-300' },
+                            'customer-support': { label: 'Support', icon: User, color: 'text-green-300' },
+                            'bookkeeping': { label: 'Finance', icon: DollarSign, color: 'text-yellow-300' },
+                            'import': { label: 'Import', icon: Plus, color: 'text-orange-300' }
+                        };
+
+                        // Sort groups by priority
+                        const groupOrder = ['general', 'class', 'management', 'social-media', 'customer-support', 'bookkeeping', 'import'];
+                        const sortedGroups = groupOrder.filter(type => groupedChannels[type]);
+
+                        return sortedGroups.map((type, groupIndex) => {
+                            const channels = groupedChannels[type];
+                            const metadata = typeMetadata[type] || typeMetadata['general'];
+                            const IconComponent = metadata.icon;
+
+                            return (
+                                <div key={type} className={groupIndex > 0 ? 'mt-4' : ''}>
+                                    {/* Group Header - only show if more than one group exists */}
+                                    {sortedGroups.length > 1 && (
+                                        <div className="flex items-center px-2 py-1 mb-1">
+                                            <IconComponent className={`w-3 h-3 mr-2 ${metadata.color}`} />
+                                            <span className="text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                                                {metadata.label}
+                                            </span>
+                                            <div className="flex-1 h-px bg-indigo-700/30 ml-2"></div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Channels in this group */}
+                                    {channels.map((channel) => (
+                                        <button
+                                            key={channel.id}
+                                            onClick={() => handleChannelSelect(channel.id)}
+                                            className={`flex items-center w-full px-3 py-2 rounded-lg mb-1 ${
+                                                channel.id === channelId
+                                                    ? 'bg-indigo-700 text-white'
+                                                    : 'text-indigo-200 hover:bg-indigo-700/50'
+                                            }`}
+                                        >
+                                            <Hash className="w-4 h-4 mr-2 flex-shrink-0" />
+                                            <span className="truncate">{channel.name}</span>
+                                            {/* Subtle type indicator dot */}
+                                            {sortedGroups.length > 1 && (
+                                                <div 
+                                                    className={`w-1.5 h-1.5 rounded-full ml-auto flex-shrink-0 ${
+                                                        channel.id === channelId 
+                                                            ? 'bg-white/60' 
+                                                            : metadata.color.replace('text-', 'bg-').replace('-300', '-400')
+                                                    }`}
+                                                />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            );
+                        });
+                    })()}
                 </div>
 
                 {/* Direct Messages Section */}
@@ -582,7 +659,7 @@ const MessagingInterface = () => {
                 {/* Channel Header & Tabs */}
                 {activeChannel && (
                     <>
-                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <div className="flex items-center justify-between px-6 py-4">
                             <div className="flex items-center">
                                 <button 
                                     onClick={() => setShowChannelAbout(true)}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Star, Bell, Search, UserPlus, MoreHorizontal, Loader2 } from 'lucide-react';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../../firebase';
 import { useChannelManagement } from '../../../hooks/useChannelManagement';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -11,6 +13,10 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
     const [availableUsers, setAvailableUsers] = useState([]);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [selectedUsersToAdd, setSelectedUsersToAdd] = useState([]);
+    const [editingType, setEditingType] = useState(false);
+    const [selectedType, setSelectedType] = useState(channel?.type || 'general');
+    const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+    const [updating, setUpdating] = useState(false);
 
     const { userProfile } = useAuth();
     const {
@@ -20,9 +26,21 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
         getAllUsers
     } = useChannelManagement();
 
+    // Channel types - same as CreateChannel for consistency
+    const channelTypes = [
+        { id: 'general', name: 'General' },
+        { id: 'class', name: 'Class' },
+        { id: 'import', name: 'Import' },
+        { id: 'social-media', name: 'Social Media' },
+        { id: 'management', name: 'Management' },
+        { id: 'customer-support', name: 'Customer Support' },
+        { id: 'bookkeeping', name: 'Bookkeeping' }
+    ];
+
     useEffect(() => {
         if (isOpen) {
             loadUsers();
+            setSelectedType(channel?.type || 'general');
         }
     }, [isOpen, channel]);
 
@@ -53,6 +71,37 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
     const handleCopyChannelId = () => {
         navigator.clipboard.writeText(channel.id);
         // TODO: Show a toast notification
+    };
+
+    const handleUpdateChannelType = async () => {
+        if (selectedType === channel.type) {
+            setEditingType(false);
+            return;
+        }
+
+        try {
+            setUpdating(true);
+            const channelRef = doc(db, 'channels', channel.id);
+            await updateDoc(channelRef, {
+                type: selectedType,
+                updatedAt: serverTimestamp()
+            });
+            
+            setEditingType(false);
+            onUpdate?.(); // Notify parent component to refresh
+        } catch (error) {
+            console.error('Failed to update channel type:', error);
+            // Reset to original value on error
+            setSelectedType(channel?.type || 'general');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleCancelTypeEdit = () => {
+        setSelectedType(channel?.type || 'general');
+        setEditingType(false);
+        setShowTypeDropdown(false);
     };
 
     const handleAddMember = async (userId) => {
@@ -379,6 +428,76 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
                                     <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
                                         <p className="text-sm text-gray-900">#{channel.name}</p>
                                     </div>
+                                </div>
+
+                                {/* Channel Type */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-medium text-gray-900">Channel Type</h3>
+                                        {!editingType ? (
+                                            <button 
+                                                onClick={() => setEditingType(true)}
+                                                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                                            >
+                                                Edit
+                                            </button>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={handleCancelTypeEdit}
+                                                    disabled={updating}
+                                                    className="text-sm text-gray-600 hover:text-gray-700 transition-colors disabled:opacity-50"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleUpdateChannelType}
+                                                    disabled={updating}
+                                                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+                                                >
+                                                    {updating ? 'Saving...' : 'Save'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!editingType ? (
+                                        <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                                            <p className="text-sm text-gray-900">
+                                                {channelTypes.find(t => t.id === (channel.type || 'general'))?.name || 'General'}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                                                disabled={updating}
+                                                className="w-full px-4 py-2 text-left border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:opacity-50"
+                                            >
+                                                <span className="text-sm text-gray-900">
+                                                    {channelTypes.find(t => t.id === selectedType)?.name || 'Select type'}
+                                                </span>
+                                            </button>
+                                            
+                                            {showTypeDropdown && (
+                                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                                                    {channelTypes.map((type) => (
+                                                        <button
+                                                            key={type.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedType(type.id);
+                                                                setShowTypeDropdown(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                                                        >
+                                                            <span className="text-sm text-gray-900">{type.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Topic */}

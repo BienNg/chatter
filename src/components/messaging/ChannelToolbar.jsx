@@ -269,15 +269,6 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
                         </div>
                     )}
                 </div>
-
-                <div className="flex items-center space-x-2">
-                    {/* Status indicator */}
-                    {isExpanded && (
-                        <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-full">
-                            Click tab again to collapse
-                        </span>
-                    )}
-                </div>
             </div>
 
             {/* Content Area */}

@@ -111,8 +111,8 @@ function App() {
                                     
                                     {/* Classes tab with optional sub-tabs */}
                                     <Route path="classes" element={<MessagingInterface />}>
-                                        <Route index element={<Navigate to="overview" replace />} />
-                                        <Route path="overview" element={<MessagingInterface />} />
+                                        <Route index element={<Navigate to="courses" replace />} />
+                                        <Route path="courses" element={<MessagingInterface />} />
                                         <Route path="info" element={<MessagingInterface />} />
                                     </Route>
                                     

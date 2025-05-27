@@ -292,7 +292,7 @@
 ### Nested Sub-Tab Support
 
 - **Classes Tab Sub-navigation**:
-    - Classes sub-tab - Class overview, calendar, and student lists
+    - Courses sub-tab - Course overview, calendar, and student lists
     - Info sub-tab - Class details, teacher management, and enrollment data
 - **Independent sub-tab state management** - sub-tab switching within parent tab context
 - **Sub-tab content containers** - dedicated content areas with proper show/hide logic

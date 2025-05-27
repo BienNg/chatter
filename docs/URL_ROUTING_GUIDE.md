@@ -28,8 +28,8 @@ All channel-related routes follow this pattern:
 - `/channels/{channelId}/tasks/{taskId}` - Specific task details
 
 #### Classes Tab
-- `/channels/{channelId}/classes` - Classes tab (redirects to overview)
-- `/channels/{channelId}/classes/overview` - Classes overview
+- `/channels/{channelId}/classes` - Classes tab (redirects to courses)
+- `/channels/{channelId}/classes/courses` - Classes courses overview
 - `/channels/{channelId}/classes/info` - Classes info sub-tab
 
 #### Wiki Tab
@@ -52,7 +52,7 @@ Only the main content area changes based on the URL. The navigation structure is
 - `/` → `/channels`
 - `/channels` → `/channels/{firstChannelId}/messages`
 - `/channels/{channelId}` → `/channels/{channelId}/messages`
-- `/channels/{channelId}/classes` → `/channels/{channelId}/classes/overview`
+- `/channels/{channelId}/classes` → `/channels/{channelId}/classes/courses`
 
 ## Implementation Details
 
@@ -81,7 +81,7 @@ const { currentTab, contentType, contentId, subTab, channelId } = useRouteInfo()
 3. Lands on first channel → `/channels/general/messages`
 4. Clicks Tasks tab → `/channels/general/tasks`
 5. Selects a task → `/channels/general/tasks/task123`
-6. Switches to Classes → `/channels/general/classes/overview`
+6. Switches to Classes → `/channels/general/classes/courses`
 7. Opens thread in Messages → `/channels/general/messages/thread/msg456`
 
 ### Deep Linking

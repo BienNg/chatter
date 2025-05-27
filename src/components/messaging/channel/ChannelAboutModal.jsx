@@ -1,27 +1,145 @@
-import React, { useState } from 'react';
-import { X, Star, Bell, Search, UserPlus, MoreHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Star, Bell, Search, UserPlus, MoreHorizontal, Loader2 } from 'lucide-react';
+import { useChannelManagement } from '../../../hooks/useChannelManagement';
+import { useAuth } from '../../../contexts/AuthContext';
 
-const MOCK_MEMBERS = [
-    { id: 1, name: 'Bien Ng', role: 'Admin', avatar: 'B', color: 'bg-indigo-500', status: 'online', lastSeen: 'Active now' },
-    { id: 2, name: 'Sarah Johnson', role: 'Member', avatar: 'S', color: 'bg-pink-500', status: 'offline', lastSeen: '2h ago' },
-    { id: 3, name: 'Alex Chen', role: 'Member', avatar: 'A', color: 'bg-green-500', status: 'online', lastSeen: 'Active now' },
-    { id: 4, name: 'Michael Park', role: 'Member', avatar: 'M', color: 'bg-purple-500', status: 'idle', lastSeen: '5m ago' }
-];
-
-const ChannelAboutModal = ({ isOpen, onClose, channel }) => {
+const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
     const [activeTab, setActiveTab] = useState('about');
     const [searchQuery, setSearchQuery] = useState('');
+    const [allUsers, setAllUsers] = useState([]);
+    const [channelMembers, setChannelMembers] = useState([]);
+    const [availableUsers, setAvailableUsers] = useState([]);
+    const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+    const [selectedUsersToAdd, setSelectedUsersToAdd] = useState([]);
+
+    const { userProfile } = useAuth();
+    const {
+        loading,
+        addMemberToChannel,
+        removeMemberFromChannel,
+        getAllUsers
+    } = useChannelManagement();
+
+    useEffect(() => {
+        if (isOpen) {
+            loadUsers();
+        }
+    }, [isOpen, channel]);
 
     if (!isOpen) return null;
+
+    const loadUsers = async () => {
+        try {
+            const users = await getAllUsers();
+            setAllUsers(users);
+            
+            // Filter users who are already members
+            const members = users.filter(user => channel.members?.includes(user.id));
+            const available = users.filter(user => !channel.members?.includes(user.id));
+            
+            setChannelMembers(members);
+            setAvailableUsers(available);
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    };
 
     const handleCopyChannelId = () => {
         navigator.clipboard.writeText(channel.id);
         // TODO: Show a toast notification
     };
 
-    const filteredMembers = MOCK_MEMBERS.filter(member => 
-        member.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const handleAddMember = async (userId) => {
+        try {
+            await addMemberToChannel(channel.id, userId, channel.name);
+            await loadUsers(); // Refresh the user lists
+            onUpdate?.(); // Notify parent component to refresh
+        } catch (error) {
+            console.error('Failed to add member:', error);
+            // TODO: Show error toast
+        }
+    };
+
+    const handleRemoveMember = async (userId) => {
+        try {
+            await removeMemberFromChannel(channel.id, userId, channel.name);
+            await loadUsers(); // Refresh the user lists
+            onUpdate?.(); // Notify parent component to refresh
+        } catch (error) {
+            console.error('Failed to remove member:', error);
+            // TODO: Show error toast
+        }
+    };
+
+    const handleBulkAddMembers = async () => {
+        if (selectedUsersToAdd.length === 0) return;
+        
+        try {
+            // Add members one by one to ensure proper notifications
+            for (const userId of selectedUsersToAdd) {
+                await addMemberToChannel(channel.id, userId, channel.name);
+            }
+            
+            setSelectedUsersToAdd([]);
+            setShowAddMemberModal(false);
+            await loadUsers();
+            onUpdate?.();
+        } catch (error) {
+            console.error('Failed to add members:', error);
+            // TODO: Show error toast
+        }
+    };
+
+    const toggleUserSelection = (userId) => {
+        setSelectedUsersToAdd(prev => 
+            prev.includes(userId) 
+                ? prev.filter(id => id !== userId)
+                : [...prev, userId]
+        );
+    };
+
+    const filteredMembers = channelMembers.filter(member => 
+        member.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        member.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const filteredAvailableUsers = availableUsers.filter(user =>
+        user.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const getStatusColor = (userId) => {
+        // Simple status simulation - in real app, you'd track this in Firebase
+        const colors = ['bg-green-500', 'bg-yellow-500', 'bg-gray-400'];
+        return colors[userId.length % 3];
+    };
+
+    const getLastSeen = (userId) => {
+        // Simple last seen simulation - in real app, you'd track this in Firebase
+        const options = ['Active now', '5m ago', '1h ago', '2h ago'];
+        return options[userId.length % 4];
+    };
+
+    const getUserInitials = (user) => {
+        if (user.displayName) {
+            return user.displayName.charAt(0).toUpperCase();
+        }
+        return user.email?.charAt(0).toUpperCase() || '?';
+    };
+
+    const getUserColor = (userId) => {
+        const colors = ['bg-indigo-500', 'bg-pink-500', 'bg-green-500', 'bg-purple-500', 'bg-blue-500', 'bg-red-500'];
+        return colors[userId.length % colors.length];
+    };
+
+    const isChannelCreator = (userId) => {
+        return channel.createdBy === userId;
+    };
+
+    const canManageMembers = () => {
+        // Allow everyone to add members - no restrictions
+        return true;
+    };
 
     const renderMembersTab = () => (
         <div className="space-y-4">
@@ -37,10 +155,20 @@ const ChannelAboutModal = ({ isOpen, onClose, channel }) => {
                         className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                 </div>
-                <button className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                    <UserPlus className="h-4 w-4" />
-                    <span className="text-sm font-medium">Add</span>
-                </button>
+                {canManageMembers() && (
+                    <button 
+                        onClick={() => setShowAddMemberModal(true)}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                    >
+                        {loading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <UserPlus className="h-4 w-4" />
+                        )}
+                        <span className="text-sm font-medium">Add</span>
+                    </button>
+                )}
             </div>
 
             {/* Members List */}
@@ -48,31 +176,108 @@ const ChannelAboutModal = ({ isOpen, onClose, channel }) => {
                 {filteredMembers.map((member) => (
                     <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                         <div className="flex items-center gap-3">
-                            <div className={`relative w-10 h-10 ${member.color} rounded-full flex items-center justify-center text-white font-medium`}>
-                                {member.avatar}
-                                <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                                    member.status === 'online' ? 'bg-green-500' :
-                                    member.status === 'idle' ? 'bg-yellow-500' : 'bg-gray-400'
-                                }`} />
+                            <div className={`relative w-10 h-10 ${getUserColor(member.id)} rounded-full flex items-center justify-center text-white font-medium`}>
+                                {getUserInitials(member)}
+                                <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.id)}`} />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-medium text-gray-900">{member.name}</h3>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                        member.role === 'Admin' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                        {member.role}
-                                    </span>
+                                    <h3 className="text-sm font-medium text-gray-900">
+                                        {member.displayName || member.email}
+                                    </h3>
+                                    {isChannelCreator(member.id) && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                                            Creator
+                                        </span>
+                                    )}
+                                    {member.roles?.some(role => role.name === 'admin') && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                                            Admin
+                                        </span>
+                                    )}
                                 </div>
-                                <p className="text-xs text-gray-500">{member.lastSeen}</p>
+                                <p className="text-xs text-gray-500">{getLastSeen(member.id)}</p>
                             </div>
                         </div>
-                        <button className="text-gray-400 hover:text-gray-600">
-                            <MoreHorizontal className="h-5 w-5" />
-                        </button>
+                        {canManageMembers() && !isChannelCreator(member.id) && (
+                            <button 
+                                onClick={() => handleRemoveMember(member.id)}
+                                disabled={loading}
+                                className="text-gray-400 hover:text-red-600 disabled:opacity-50"
+                            >
+                                <MoreHorizontal className="h-5 w-5" />
+                            </button>
+                        )}
                     </div>
                 ))}
             </div>
+
+            {/* Add Members Modal */}
+            {showAddMemberModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg w-full max-w-md max-h-[500px] flex flex-col">
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <h3 className="text-lg font-semibold">Add Members</h3>
+                            <button 
+                                onClick={() => {
+                                    setShowAddMemberModal(false);
+                                    setSelectedUsersToAdd([]);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <div className="space-y-2">
+                                {filteredAvailableUsers.map((user) => (
+                                    <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedUsersToAdd.includes(user.id)}
+                                            onChange={() => toggleUserSelection(user.id)}
+                                            className="h-4 w-4 text-indigo-600 rounded"
+                                        />
+                                        <div className={`w-8 h-8 ${getUserColor(user.id)} rounded-full flex items-center justify-center text-white text-sm font-medium`}>
+                                            {getUserInitials(user)}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {user.displayName || user.email}
+                                            </p>
+                                            <p className="text-xs text-gray-500">{user.email}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-end gap-2 p-4 border-t">
+                            <button
+                                onClick={() => {
+                                    setShowAddMemberModal(false);
+                                    setSelectedUsersToAdd([]);
+                                }}
+                                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleBulkAddMembers}
+                                disabled={selectedUsersToAdd.length === 0 || loading}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm"
+                            >
+                                {loading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    `Add ${selectedUsersToAdd.length} member${selectedUsersToAdd.length !== 1 ? 's' : ''}`
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -140,7 +345,7 @@ const ChannelAboutModal = ({ isOpen, onClose, channel }) => {
                                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
                         }`}
                     >
-                        Members 4
+                        Members {channelMembers.length}
                     </button>
                     <button
                         onClick={() => setActiveTab('tabs')}

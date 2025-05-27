@@ -237,6 +237,15 @@ const MessagingInterface = () => {
         navigate(`/channels/${channelId}/classes/${subTabId}`);
     };
 
+    const handleChannelUpdate = () => {
+        // Refresh channel data when members are updated
+        // This will trigger a re-fetch of channels which includes updated member counts
+        if (activeChannel) {
+            // Force a refresh of the channels list
+            window.location.reload(); // Simple approach - you could implement a more sophisticated refresh
+        }
+    };
+
     if (channelsLoading) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
@@ -519,6 +528,7 @@ const MessagingInterface = () => {
                     isOpen={showChannelAbout}
                     onClose={() => setShowChannelAbout(false)}
                     channel={activeChannel}
+                    onUpdate={handleChannelUpdate}
                 />
             )}
         </div>

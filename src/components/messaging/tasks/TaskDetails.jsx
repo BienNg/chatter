@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import TaskThread from './TaskThread';
 import TaskComposer from './TaskComposer';
 import TaskDetailsEmpty from './TaskDetailsEmpty';
@@ -6,8 +6,6 @@ import { useTasks } from '../../../hooks/useTasks';
 import { useThreadReplies } from '../../../hooks/useThreadReplies';
 
 const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    
     // Use real useTasks hook for task operations
     const { deleteTask } = useTasks(channelId);
     
@@ -19,17 +17,14 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
     }
 
     const handleSendMessage = async (messageData) => {
-        if (!messageData.content.trim() || isLoading) return;
+        if (!messageData.content.trim()) return;
         
         try {
-            setIsLoading(true);
             // Use the same reply system as message threads
             await sendReply(messageData.content);
             console.log('Reply added to unified thread:', task.sourceMessageId);
         } catch (error) {
             console.error('Failed to add reply to thread:', error);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -69,7 +64,6 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
                 <TaskComposer 
                     onSendMessage={handleSendMessage}
                     placeholder="Add a comment..."
-                    isLoading={isLoading}
                     channelId={channelId}
                     threadId={task?.sourceMessageId}
                 />

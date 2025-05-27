@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Clock, CheckCheck, AlertCircle } from 'lucide-react';
 import TaskList from './TaskList';
 import TaskDetails from './TaskDetails';
 import { useTasks } from '../../../hooks/useTasks';

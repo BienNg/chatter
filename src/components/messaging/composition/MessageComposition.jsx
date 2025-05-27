@@ -49,6 +49,7 @@ const MessageComposition = ({
     const [hasChanges, setHasChanges] = useState(false);
     const [isFollowing, setIsFollowing] = useState(true);
     const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const fileInputRef = useRef(null);
     const richEditorRef = useRef(null);
     const autoSaveTimeoutRef = useRef(null);
@@ -149,6 +150,12 @@ const MessageComposition = ({
     }, []); // Only run on mount
 
     const handleSend = async () => {
+        // Prevent multiple simultaneous sends
+        if (isSending) {
+            console.log('Already sending, ignoring duplicate send request');
+            return;
+        }
+
         if (!message.trim() && attachedFiles.length === 0) {
             setError('Message cannot be empty');
             return;
@@ -170,13 +177,36 @@ const MessageComposition = ({
             return;
         }
 
+        // Store the current message and files before clearing (for potential restoration)
+        const currentMessage = message;
+        const currentFiles = attachedFiles;
+
+        console.log('Sending message:', { content: currentMessage, attachments: currentFiles });
+
         try {
             setError('');
+            setIsSending(true);
             
             const messageData = {
                 content: message.trim() || '[File attachment]',
                 attachments: attachedFiles
             };
+
+            // Clear form immediately after validation (except in edit mode)
+            if (mode !== 'edit') {
+                // Clear the rich text editor immediately
+                if (richEditorRef.current) {
+                    richEditorRef.current.clear();
+                }
+                
+                setMessage('');
+                setAttachedFiles([]);
+                
+                // Clear draft since we're sending
+                if (channelId) {
+                    clearDraft(channelId, threadId);
+                }
+            }
 
             // Handle both async and sync onSendMessage functions
             const result = onSendMessage?.(messageData);
@@ -184,23 +214,23 @@ const MessageComposition = ({
                 await result;
             }
             
-            // Clear draft after sending (except in edit mode)
-            if (mode !== 'edit' && channelId) {
-                clearDraft(channelId, threadId);
-            }
+            console.log('Message sent successfully');
             
-            // Reset form (except in edit mode)
-            if (mode !== 'edit') {
-                // Clear the rich text editor immediately (before state update)
-                if (richEditorRef.current) {
-                    richEditorRef.current.clear();
-                }
-                
-                setMessage('');
-                setAttachedFiles([]);
-            }
         } catch (err) {
+            console.error('Send message error:', err);
             setError(err?.message || 'Failed to send message');
+            
+            // Restore the message and files if send failed (except in edit mode)
+            if (mode !== 'edit') {
+                // Restore state first
+                setMessage(currentMessage);
+                setAttachedFiles(currentFiles);
+                
+                // The RichTextEditor will automatically update via the value prop
+                // No need to manually manipulate the DOM
+            }
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -330,7 +360,7 @@ const MessageComposition = ({
     const isDraftSaved = mode !== 'edit' && channelId && hasDraft(channelId, threadId);
     const characterCount = getCharacterCount();
     const isOverLimit = maxLength && characterCount > maxLength;
-    const canSend = (message.trim() || attachedFiles.length > 0) && !isLoading && !isOverLimit;
+    const canSend = (message.trim() || attachedFiles.length > 0) && !isLoading && !isOverLimit && !isSending;
 
     // Determine container styling based on mode and compact setting
     const getContainerClass = () => {

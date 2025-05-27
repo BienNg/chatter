@@ -4,7 +4,7 @@ This document explains the comprehensive emoji system implemented in the Chatter
 
 ## Overview
 
-The Chatter emoji system provides a rich, user-friendly way to add emojis to messages with advanced features like categorization, search, usage tracking, and contextual suggestions.
+The Chatter emoji system provides a rich, user-friendly way to add emojis to messages with advanced features like categorization, search, and usage tracking.
 
 ## Features
 
@@ -28,11 +28,7 @@ The Chatter emoji system provides a rich, user-friendly way to add emojis to mes
 - **Persistent Storage**: Usage data saved to localStorage
 - **Smart Defaults**: Show popular emojis when no recent usage exists
 
-#### Contextual Suggestions
-- **Content Analysis**: Analyze message text to suggest relevant emojis
-- **Smart Matching**: Match words to emoji keywords for suggestions
-- **Non-Intrusive Display**: Show suggestions only when relevant
-- **Quick Access**: One-click insertion from suggestions
+
 
 ### 🚀 Advanced Features
 
@@ -49,13 +45,14 @@ The Chatter emoji system provides a rich, user-friendly way to add emojis to mes
 - **Context Awareness**: Different behavior for messages vs. reactions
 
 ### Message Reactions System
-- **Persistent Reactions**: Reactions saved to localStorage with full user data
+- **Persistent Reactions**: Reactions saved to Firebase Firestore with full user data
 - **Interactive Reactions**: Click to toggle, double-click to view details
 - **User Avatars**: Show user avatars for reactions (up to 3 users)
 - **Reaction Counts**: Display reaction counts with proper grouping
 - **Quick Reactions**: Fast access to common reactions (👍❤️😂😮😢😡)
 - **Reaction Details Modal**: View all users who reacted with timestamps
-- **Real-time Updates**: Immediate UI updates when adding/removing reactions
+- **Real-time Updates**: Live synchronization across all users via Firebase listeners
+- **Cross-User Visibility**: All users can see reactions from other users in real-time
 
 #### Performance Optimizations
 - **Lazy Loading**: Categories loaded on demand
@@ -84,10 +81,7 @@ The Chatter emoji system provides a rich, user-friendly way to add emojis to mes
 
 ### Advanced Usage
 
-#### Using Contextual Suggestions
-1. **Type Message**: Start typing your message content
-2. **View Suggestions**: Relevant emoji suggestions appear below the text area
-3. **Quick Insert**: Click any suggested emoji to add it to your message
+
 
 #### Managing Recent Emojis
 - **Automatic Tracking**: Recently used emojis automatically appear in the Recent tab
@@ -107,7 +101,6 @@ The Chatter emoji system provides a rich, user-friendly way to add emojis to mes
 ```
 EmojiPicker/
 ├── EmojiPicker.jsx          # Main picker component
-├── EmojiSuggestions.jsx     # Contextual suggestions
 ├── MessageReactions.jsx     # Message reaction display
 ├── ReactionDetailsModal.jsx # Reaction details modal
 └── MessageHoverActions.jsx  # Reaction integration
@@ -120,8 +113,7 @@ useEmojis() {
   frequentEmojis,         // Object with usage frequency
   saveEmojiUsage,         // Function to track usage
   searchEmojis,           // Enhanced search function
-  getFrequentEmojis,      // Get most frequent emojis
-  getEmojiSuggestions     // Get contextual suggestions
+  getFrequentEmojis       // Get most frequent emojis
 }
 
 useMessageReactions() {
@@ -168,6 +160,7 @@ EMOJI_KEYWORDS = {
 
 #### Storage Format
 ```javascript
+// Emoji usage (localStorage)
 localStorage['chatter_emoji_usage'] = {
   recent: ['😀', '❤️', '🔥', ...],        // Last 32 used emojis
   frequent: {                              // Usage frequency
@@ -177,17 +170,20 @@ localStorage['chatter_emoji_usage'] = {
   }
 }
 
-localStorage['chatter_message_reactions'] = {
-  'message-1': [                           // Reactions by message ID
-    {
-      id: 'reaction-1',
-      messageId: 'message-1',
-      emoji: '❤️',
-      userId: 'user-1',
-      user: { id: 'user-1', name: 'Sarah Johnson', avatar: 'SJ', color: '#EF4444' },
-      timestamp: '2024-01-15T10:30:00.000Z'
-    }
-  ]
+// Message reactions (Firebase Firestore)
+// Collection: /channels/{channelId}/reactions
+{
+  id: 'auto-generated-id',
+  messageId: 'message-1',
+  emoji: '❤️',
+  userId: 'user-uid',
+  user: { 
+    id: 'user-uid', 
+    displayName: 'Sarah Johnson', 
+    email: 'sarah@example.com',
+    avatar: 'https://...' 
+  },
+  createdAt: serverTimestamp()
 }
 ```
 
@@ -222,7 +218,6 @@ localStorage['chatter_message_reactions'] = {
 ### Message Composition
 - **Toolbar Integration**: Emoji button in rich text editor toolbar
 - **Text Insertion**: Seamless emoji insertion at cursor position
-- **Suggestion Display**: Contextual suggestions below text area
 
 ### Message Reactions
 - **Hover Actions**: Quick reaction buttons on message hover
@@ -299,7 +294,7 @@ localStorage['chatter_message_reactions'] = {
 
 ### Integration Enhancements
 - **Slack-Style Shortcuts**: :emoji_name: text replacement
-- **Emoji Autocomplete**: Inline emoji suggestions while typing
+
 - **Reaction Threads**: Threaded conversations from emoji reactions
 - **Emoji Status**: User status with emoji indicators
 
@@ -338,8 +333,25 @@ const {
   saveEmojiUsage,         // (emoji: string) => void
   searchEmojis,           // (query: string) => string[]
   getFrequentEmojis,      // (limit?: number) => string[]
-  getEmojiSuggestions     // (text: string) => string[]
 } = useEmojis();
+```
+
+### useMessageReactions Hook
+
+```javascript
+const {
+  reactions,              // object - Reactions grouped by message ID
+  loading,                // boolean - Loading state
+  currentUser,            // object - Current user data
+  addReaction,            // (messageId: string, emoji: string) => Promise<void>
+  removeReaction,         // (messageId: string, emoji: string) => Promise<void>
+  toggleReaction,         // (messageId: string, emoji: string) => Promise<void>
+  getMessageReactions,    // (messageId: string) => array
+  getReactionSummary,     // (messageId: string) => array
+  hasUserReacted,         // (messageId: string, emoji: string) => boolean
+  getReactionCount,       // (messageId: string) => number
+  cleanupReactionsForMessage // (messageId: string) => Promise<void>
+} = useMessageReactions(channelId);
 ```
 
 ### EmojiPicker Component
@@ -352,15 +364,7 @@ const {
 />
 ```
 
-### EmojiSuggestions Component
 
-```javascript
-<EmojiSuggestions
-  messageContent="text content"    // Required: Text to analyze
-  onEmojiSelect={(emoji) => void}  // Required: Emoji selection callback
-  className="custom-class"         // Optional: Additional CSS classes
-/>
-```
 
 ### MessageReactions Component
 

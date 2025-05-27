@@ -1,124 +1,163 @@
 import { useState, useEffect, useCallback } from 'react';
+import { 
+  collection, 
+  doc, 
+  addDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  onSnapshot, 
+  serverTimestamp,
+  getDocs
+} from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
-const STORAGE_KEY = 'chatter_message_reactions';
-
-// Mock user data - in a real app, this would come from your auth system
-const getCurrentUser = () => ({
-  id: 'current-user-id',
-  name: 'Current User',
-  avatar: 'CU',
-  color: '#3B82F6'
-});
-
-const getMockUsers = () => ({
-  'user-1': { id: 'user-1', name: 'Sarah Johnson', avatar: 'SJ', color: '#EF4444' },
-  'user-2': { id: 'user-2', name: 'Alex Chen', avatar: 'AC', color: '#10B981' },
-  'user-3': { id: 'user-3', name: 'Mai Tran', avatar: 'MT', color: '#F59E0B' },
-  'user-4': { id: 'user-4', name: 'John Doe', avatar: 'JD', color: '#8B5CF6' },
-  'current-user-id': getCurrentUser()
-});
-
-export const useMessageReactions = () => {
+export const useMessageReactions = (channelId) => {
   const [reactions, setReactions] = useState({});
   const [loading, setLoading] = useState(true);
-  const currentUser = getCurrentUser();
-  const users = getMockUsers();
+  const { currentUser, userProfile } = useAuth();
 
-  // Load reactions from localStorage on mount
+  // Get current user data with proper fallbacks
+  const getCurrentUserData = useCallback(() => {
+    if (!currentUser) return null;
+    
+    return {
+      id: currentUser.uid,
+      displayName: userProfile?.displayName || userProfile?.fullName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Unknown User',
+      email: currentUser.email,
+      avatar: userProfile?.photo || null
+    };
+  }, [currentUser, userProfile]);
+
+  // Real-time listener for reactions in the channel
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsedReactions = JSON.parse(stored);
-        setReactions(parsedReactions);
-      }
-    } catch (error) {
-      console.warn('Failed to load message reactions:', error);
-    } finally {
+    if (!channelId || !currentUser) {
+      setReactions({});
       setLoading(false);
+      return;
     }
-  }, []);
 
-  // Save reactions to localStorage whenever reactions change
-  const saveReactions = useCallback((newReactions) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newReactions));
-    } catch (error) {
-      console.warn('Failed to save message reactions:', error);
-    }
-  }, []);
+    setLoading(true);
+    
+    // Listen to all reactions in this channel
+    const reactionsRef = collection(db, 'channels', channelId, 'reactions');
+    
+    const unsubscribe = onSnapshot(
+      reactionsRef,
+      (snapshot) => {
+        const reactionsByMessage = {};
+        
+        snapshot.docs.forEach((doc) => {
+          const reaction = { id: doc.id, ...doc.data() };
+          const messageId = reaction.messageId;
+          
+          if (!reactionsByMessage[messageId]) {
+            reactionsByMessage[messageId] = [];
+          }
+          reactionsByMessage[messageId].push(reaction);
+        });
+        
+        setReactions(reactionsByMessage);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error listening to reactions:', error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [channelId, currentUser]);
 
   // Add a reaction to a message
-  const addReaction = useCallback((messageId, emoji) => {
-    setReactions(prevReactions => {
-      const messageReactions = prevReactions[messageId] || [];
-      
+  const addReaction = useCallback(async (messageId, emoji) => {
+    if (!channelId || !currentUser || !messageId || !emoji) {
+      console.warn('Missing required parameters for addReaction');
+      return;
+    }
+
+    const userData = getCurrentUserData();
+    if (!userData) {
+      console.warn('No user data available');
+      return;
+    }
+
+    try {
       // Check if user already reacted with this emoji
+      const messageReactions = reactions[messageId] || [];
       const existingReaction = messageReactions.find(
-        r => r.userId === currentUser.id && r.emoji === emoji
+        r => r.userId === currentUser.uid && r.emoji === emoji
       );
       
       if (existingReaction) {
-        // User already reacted with this emoji, don't add duplicate
-        return prevReactions;
+        console.log('User already reacted with this emoji');
+        return;
       }
 
-      const newReaction = {
-        id: `${messageId}-${emoji}-${currentUser.id}-${Date.now()}`,
+      // Add reaction to Firestore
+      const reactionsRef = collection(db, 'channels', channelId, 'reactions');
+      await addDoc(reactionsRef, {
         messageId,
         emoji,
-        userId: currentUser.id,
-        user: currentUser,
-        timestamp: new Date().toISOString()
-      };
+        userId: currentUser.uid,
+        user: userData,
+        createdAt: serverTimestamp()
+      });
 
-      const updatedReactions = {
-        ...prevReactions,
-        [messageId]: [...messageReactions, newReaction]
-      };
-
-      saveReactions(updatedReactions);
-      return updatedReactions;
-    });
-  }, [currentUser, saveReactions]);
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      throw error;
+    }
+  }, [channelId, currentUser, reactions, getCurrentUserData]);
 
   // Remove a reaction from a message
-  const removeReaction = useCallback((messageId, emoji) => {
-    setReactions(prevReactions => {
-      const messageReactions = prevReactions[messageId] || [];
-      
-      const updatedMessageReactions = messageReactions.filter(
-        r => !(r.userId === currentUser.id && r.emoji === emoji)
+  const removeReaction = useCallback(async (messageId, emoji) => {
+    if (!channelId || !currentUser || !messageId || !emoji) {
+      console.warn('Missing required parameters for removeReaction');
+      return;
+    }
+
+    try {
+      // Find the user's reaction with this emoji
+      const messageReactions = reactions[messageId] || [];
+      const reactionToRemove = messageReactions.find(
+        r => r.userId === currentUser.uid && r.emoji === emoji
       );
-
-      const updatedReactions = {
-        ...prevReactions,
-        [messageId]: updatedMessageReactions
-      };
-
-      // Remove the message key if no reactions left
-      if (updatedMessageReactions.length === 0) {
-        delete updatedReactions[messageId];
+      
+      if (!reactionToRemove) {
+        console.log('No reaction found to remove');
+        return;
       }
 
-      saveReactions(updatedReactions);
-      return updatedReactions;
-    });
-  }, [currentUser, saveReactions]);
+      // Remove reaction from Firestore
+      const reactionRef = doc(db, 'channels', channelId, 'reactions', reactionToRemove.id);
+      await deleteDoc(reactionRef);
+
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      throw error;
+    }
+  }, [channelId, currentUser, reactions]);
 
   // Toggle a reaction (add if not present, remove if present)
-  const toggleReaction = useCallback((messageId, emoji) => {
+  const toggleReaction = useCallback(async (messageId, emoji) => {
+    if (!channelId || !currentUser || !messageId || !emoji) {
+      console.warn('Missing required parameters for toggleReaction');
+      return;
+    }
+
     const messageReactions = reactions[messageId] || [];
     const hasReaction = messageReactions.some(
-      r => r.userId === currentUser.id && r.emoji === emoji
+      r => r.userId === currentUser.uid && r.emoji === emoji
     );
 
     if (hasReaction) {
-      removeReaction(messageId, emoji);
+      await removeReaction(messageId, emoji);
     } else {
-      addReaction(messageId, emoji);
+      await addReaction(messageId, emoji);
     }
-  }, [reactions, currentUser.id, addReaction, removeReaction]);
+  }, [reactions, currentUser, channelId, addReaction, removeReaction]);
 
   // Get reactions for a specific message
   const getMessageReactions = useCallback((messageId) => {
@@ -147,7 +186,7 @@ export const useMessageReactions = () => {
         acc[emoji].users.push(user);
         acc[emoji].userIds.add(userId);
         
-        if (userId === currentUser.id) {
+        if (userId === currentUser?.uid) {
           acc[emoji].hasCurrentUser = true;
         }
       }
@@ -157,15 +196,17 @@ export const useMessageReactions = () => {
 
     // Convert to array and remove userIds set (not needed in UI)
     return Object.values(summary).map(({ userIds, ...rest }) => rest);
-  }, [reactions, currentUser.id]);
+  }, [reactions, currentUser?.uid]);
 
   // Check if current user has reacted to a message with a specific emoji
   const hasUserReacted = useCallback((messageId, emoji) => {
+    if (!currentUser) return false;
+    
     const messageReactions = reactions[messageId] || [];
     return messageReactions.some(
-      r => r.userId === currentUser.id && r.emoji === emoji
+      r => r.userId === currentUser.uid && r.emoji === emoji
     );
-  }, [reactions, currentUser.id]);
+  }, [reactions, currentUser?.uid]);
 
   // Get total reaction count for a message
   const getReactionCount = useCallback((messageId) => {
@@ -173,64 +214,34 @@ export const useMessageReactions = () => {
     return messageReactions.length;
   }, [reactions]);
 
-  // Add some mock reactions for demonstration (only on first load)
-  useEffect(() => {
-    if (!loading && Object.keys(reactions).length === 0) {
-      // Add some sample reactions for demo purposes
-      const sampleReactions = {
-        'message-1': [
-          {
-            id: 'reaction-1',
-            messageId: 'message-1',
-            emoji: '❤️',
-            userId: 'user-1',
-            user: users['user-1'],
-            timestamp: new Date().toISOString()
-          },
-          {
-            id: 'reaction-2',
-            messageId: 'message-1',
-            emoji: '👍',
-            userId: 'user-2',
-            user: users['user-2'],
-            timestamp: new Date().toISOString()
-          },
-          {
-            id: 'reaction-3',
-            messageId: 'message-1',
-            emoji: '👍',
-            userId: 'user-3',
-            user: users['user-3'],
-            timestamp: new Date().toISOString()
-          }
-        ],
-        'message-2': [
-          {
-            id: 'reaction-4',
-            messageId: 'message-2',
-            emoji: '🔥',
-            userId: 'user-1',
-            user: users['user-1'],
-            timestamp: new Date().toISOString()
-          }
-        ]
-      };
+  // Clean up reactions for deleted messages (utility function)
+  const cleanupReactionsForMessage = useCallback(async (messageId) => {
+    if (!channelId || !messageId) return;
+
+    try {
+      const reactionsRef = collection(db, 'channels', channelId, 'reactions');
+      const q = query(reactionsRef, where('messageId', '==', messageId));
+      const snapshot = await getDocs(q);
       
-      setReactions(sampleReactions);
-      saveReactions(sampleReactions);
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+    } catch (error) {
+      console.error('Error cleaning up reactions:', error);
     }
-  }, [loading, reactions, users, saveReactions]);
+  }, [channelId]);
 
   return {
     reactions,
     loading,
-    currentUser,
+    currentUser: getCurrentUserData(),
     addReaction,
     removeReaction,
     toggleReaction,
     getMessageReactions,
     getReactionSummary,
     hasUserReacted,
-    getReactionCount
+    getReactionCount,
+    cleanupReactionsForMessage
   };
 }; 

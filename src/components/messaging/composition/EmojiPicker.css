@@ -2,9 +2,8 @@
 .emoji-picker {
   width: 380px;
   height: 400px;
-  z-index: 1000;
   position: relative;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: white;
@@ -87,8 +86,6 @@
   background-color: #f3f4f6;
 }
 
-
-
 /* Header and category sections should not shrink */
 .emoji-picker > .border-b {
   flex-shrink: 0;
@@ -151,14 +148,4 @@
   animation: emojiPickerFadeIn 0.15s ease-out;
 }
 
-/* Ensure proper z-index stacking */
-.emoji-picker-wrapper {
-  z-index: 1000;
-  position: absolute;
-}
-
-/* Fix for potential overflow issues */
-.emoji-picker-container {
-  position: relative;
-  overflow: visible;
-} 
+/* Remove old z-index and positioning styles that are now handled by the wrapper */ 

@@ -619,32 +619,13 @@ export const useEmojis = () => {
     };
   }, [frequentEmojis]);
 
-  // Get emoji suggestions based on text context
-  const getEmojiSuggestions = useMemo(() => {
-    return (text) => {
-      if (!text) return [];
-      
-      const words = text.toLowerCase().split(/\s+/);
-      const suggestions = new Set();
-      
-      words.forEach(word => {
-        Object.entries(EMOJI_KEYWORDS).forEach(([emoji, keywords]) => {
-          if (keywords.some(keyword => keyword.includes(word) || word.includes(keyword))) {
-            suggestions.add(emoji);
-          }
-        });
-      });
-      
-      return Array.from(suggestions).slice(0, 8);
-    };
-  }, []);
+
 
   return {
     recentEmojis,
     frequentEmojis,
     saveEmojiUsage,
     searchEmojis,
-    getFrequentEmojis,
-    getEmojiSuggestions
+    getFrequentEmojis
   };
 }; 

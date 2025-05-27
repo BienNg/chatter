@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Plus } from 'lucide-react';
-import EmojiPicker from './composition/EmojiPicker';
+import EmojiPickerWrapper from './composition/EmojiPickerWrapper';
 
 const MessageReactions = ({ 
   messageId, 
@@ -12,6 +12,7 @@ const MessageReactions = ({
   className = '' 
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const addReactionButtonRef = useRef(null);
 
   // Get a consistent color based on user email or name (same as message style)
   const getAuthorColor = (user) => {
@@ -49,20 +50,29 @@ const MessageReactions = ({
 
   const reactionGroups = Object.values(groupedReactions);
 
-  const handleReactionClick = (emoji) => {
+  const handleReactionClick = async (emoji) => {
     const reactionGroup = groupedReactions[emoji];
-    if (reactionGroup.hasCurrentUser) {
-      // Remove reaction if user already reacted with this emoji
-      onRemoveReaction?.(messageId, emoji);
-    } else {
-      // Add reaction if user hasn't reacted with this emoji
-      onAddReaction?.(messageId, emoji);
+    try {
+      if (reactionGroup.hasCurrentUser) {
+        // Remove reaction if user already reacted with this emoji
+        await onRemoveReaction?.(messageId, emoji);
+      } else {
+        // Add reaction if user hasn't reacted with this emoji
+        await onAddReaction?.(messageId, emoji);
+      }
+    } catch (error) {
+      console.error('Error handling reaction:', error);
     }
   };
 
-  const handleAddNewReaction = (emoji) => {
-    onAddReaction?.(messageId, emoji);
-    setShowEmojiPicker(false);
+  const handleAddNewReaction = async (emoji) => {
+    try {
+      await onAddReaction?.(messageId, emoji);
+      setShowEmojiPicker(false);
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      setShowEmojiPicker(false);
+    }
   };
 
   const handleReactionDetails = (emoji, users) => {
@@ -121,6 +131,7 @@ const MessageReactions = ({
       {/* Add Reaction Button */}
       <div className="relative">
         <button
+          ref={addReactionButtonRef}
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           className="add-reaction-button flex items-center justify-center w-6 h-6 rounded-full border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all duration-200"
           title="Add reaction"
@@ -130,13 +141,12 @@ const MessageReactions = ({
 
         {/* Emoji Picker for Adding Reactions */}
         {showEmojiPicker && (
-          <div className="absolute bottom-full left-0 mb-2 z-[1000]">
-            <EmojiPicker
-              onEmojiSelect={handleAddNewReaction}
-              onClose={() => setShowEmojiPicker(false)}
-              className="reaction-emoji-picker"
-            />
-          </div>
+          <EmojiPickerWrapper
+            onEmojiSelect={handleAddNewReaction}
+            onClose={() => setShowEmojiPicker(false)}
+            triggerRef={addReactionButtonRef}
+            className="reaction-emoji-picker"
+          />
         )}
       </div>
 

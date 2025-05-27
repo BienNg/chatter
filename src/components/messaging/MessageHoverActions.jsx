@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Smile,
     MoreHorizontal,
@@ -12,13 +12,14 @@ import {
     AlertTriangle,
     CheckSquare
 } from 'lucide-react';
-import EmojiPicker from './composition/EmojiPicker';
+import EmojiPickerWrapper from './composition/EmojiPickerWrapper';
 import { useMessageReactions } from '../../hooks/useMessageReactions';
 import './MessageHoverActions.css';
 
 const MessageHoverActions = ({ 
     messageId, 
     messageContent,
+    channelId,
     onReplyInThread,
     onShareMessage,
     onBookmarkMessage,
@@ -34,7 +35,8 @@ const MessageHoverActions = ({
 }) => {
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const [showMoreActions, setShowMoreActions] = useState(false);
-    const { addReaction, hasUserReacted } = useMessageReactions();
+    const { addReaction, hasUserReacted } = useMessageReactions(channelId);
+    const reactionButtonRef = useRef(null);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -49,13 +51,22 @@ const MessageHoverActions = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleAddReaction = (emoji) => {
-        addReaction(messageId, emoji);
-        setShowReactionPicker(false);
+    const handleAddReaction = async (emoji) => {
+        try {
+            await addReaction(messageId, emoji);
+            setShowReactionPicker(false);
+        } catch (error) {
+            console.error('Error adding reaction:', error);
+            setShowReactionPicker(false);
+        }
     };
 
-    const handleQuickReaction = (emoji) => {
-        addReaction(messageId, emoji);
+    const handleQuickReaction = async (emoji) => {
+        try {
+            await addReaction(messageId, emoji);
+        } catch (error) {
+            console.error('Error adding quick reaction:', error);
+        }
     };
 
     const handleReactionPickerClose = () => {
@@ -76,6 +87,7 @@ const MessageHoverActions = ({
             {/* Add Reaction */}
             <div className="relative">
                 <button
+                    ref={reactionButtonRef}
                     title="Add reaction"
                     onClick={() => setShowReactionPicker(!showReactionPicker)}
                 >
@@ -84,32 +96,33 @@ const MessageHoverActions = ({
                 
                 {/* Quick Reactions + Full Picker */}
                 {showReactionPicker && (
-                    <div className="reaction-picker">
+                    <>
                         {/* Quick reactions for fast access */}
-                        <div className="quick-reactions">
-                            {quickReactions.map((emoji, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleQuickReaction(emoji)}
-                                    title={`React with ${emoji}`}
-                                    className={`quick-reaction-btn ${
-                                        hasUserReacted(messageId, emoji) ? 'active' : ''
-                                    }`}
-                                >
-                                    {emoji}
-                                </button>
-                            ))}
+                        <div className="reaction-picker">
+                            <div className="quick-reactions">
+                                {quickReactions.map((emoji, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleQuickReaction(emoji)}
+                                        title={`React with ${emoji}`}
+                                        className={`quick-reaction-btn ${
+                                            hasUserReacted(messageId, emoji) ? 'active' : ''
+                                        }`}
+                                    >
+                                        {emoji}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         
-                        {/* Full emoji picker */}
-                        <div className="full-picker-container">
-                            <EmojiPicker
-                                onEmojiSelect={handleAddReaction}
-                                onClose={handleReactionPickerClose}
-                                className="reaction-emoji-picker"
-                            />
-                        </div>
-                    </div>
+                        {/* Full emoji picker as portal */}
+                        <EmojiPickerWrapper
+                            onEmojiSelect={handleAddReaction}
+                            onClose={handleReactionPickerClose}
+                            triggerRef={reactionButtonRef}
+                            className="reaction-emoji-picker"
+                        />
+                    </>
                 )}
             </div>
 

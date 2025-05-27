@@ -26,7 +26,7 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
         addReaction, 
         removeReaction, 
         currentUser 
-    } = useMessageReactions();
+    } = useMessageReactions(channelId);
 
     // Add effect to log state changes
     useEffect(() => {
@@ -192,7 +192,7 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                             <MessageReactions
                                 messageId={msg.id}
                                 reactions={getMessageReactions(msg.id)}
-                                currentUserId={currentUser.id}
+                                currentUserId={currentUser?.id}
                                 onAddReaction={addReaction}
                                 onRemoveReaction={removeReaction}
                                 onViewReactionDetails={handleViewReactionDetails}

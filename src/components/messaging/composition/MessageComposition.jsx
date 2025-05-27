@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import EmojiPickerWrapper from './EmojiPickerWrapper';
-import EmojiSuggestions from './EmojiSuggestions';
+
 import { useDrafts } from '../../../hooks/useDrafts';
 
 const MessageComposition = ({ 
@@ -581,13 +581,7 @@ const MessageComposition = ({
                     )}
                 </div>
 
-                {/* Emoji Suggestions */}
-                {!error && mode !== 'edit' && (
-                    <EmojiSuggestions
-                        messageContent={message}
-                        onEmojiSelect={insertEmoji}
-                    />
-                )}
+
 
                 {/* Error Message */}
                 {error && (

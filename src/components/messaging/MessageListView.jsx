@@ -53,7 +53,7 @@ const MessageListView = ({
         addReaction, 
         removeReaction, 
         currentUser 
-    } = useMessageReactions();
+    } = useMessageReactions(channelId);
 
     // Add debug log for props
     console.log('MessageListView props:', { messages, loading, onOpenThread, channelId });
@@ -449,7 +449,7 @@ const MessageListView = ({
                                     <MessageReactions
                                         messageId={message.id}
                                         reactions={getMessageReactions(message.id)}
-                                        currentUserId={currentUser.id}
+                                        currentUserId={currentUser?.id}
                                         onAddReaction={addReaction}
                                         onRemoveReaction={removeReaction}
                                         onViewReactionDetails={handleViewReactionDetails}
@@ -468,6 +468,7 @@ const MessageListView = ({
                                 <MessageHoverActions
                                     messageId={message.id}
                                     messageContent={message.content}
+                                    channelId={channelId}
                                     onReplyInThread={handleThreadClick}
                                     onShareMessage={handleShareMessage}
                                     onBookmarkMessage={handleBookmarkMessage}

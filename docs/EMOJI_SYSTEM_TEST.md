@@ -159,51 +159,11 @@ Search Term    | Expected Results
 - ✅ Oldest emojis are removed
 - ✅ No performance issues with large usage
 
-### 4. Contextual Suggestions
 
-#### Test 4.1: Basic Suggestions
-**Test Cases:**
-```
-Message Content           | Expected Suggestions
---------------------------|---------------------
-"I'm so happy today"      | 😀😃😄😁😊🙂😆🥰
-"Love this idea"          | ❤️💛💚💙💜🖤🤍💕
-"That's fire"             | 🔥
-"Good job team"           | 👍👏🎉💪🏆
-"Let's party tonight"     | 🎉🎊🥳🍻🎈
-"Coffee time"             | ☕
-"Pizza for lunch"         | 🍕🍔🍟
-```
 
-**Steps:**
-1. Type each message content
-2. Check if suggestions appear below text area
-3. Verify suggested emojis are relevant
+### 4. Reaction System
 
-#### Test 4.2: Suggestion Interaction
-**Steps:**
-1. Type "I'm happy"
-2. Click on a suggested emoji
-3. Verify emoji is inserted
-
-**Expected Results:**
-- ✅ Emoji is added to message at cursor position
-- ✅ Suggestions update based on new content
-- ✅ Usage is tracked for the selected emoji
-
-#### Test 4.3: Minimum Content Length
-**Steps:**
-1. Type "hi" (2 characters)
-2. Type "hey" (3 characters)
-3. Check suggestion visibility
-
-**Expected Results:**
-- ✅ No suggestions for "hi" (too short)
-- ✅ Suggestions may appear for "hey" if relevant
-
-### 5. Reaction System
-
-#### Test 5.1: Quick Reactions
+#### Test 4.1: Quick Reactions
 **Steps:**
 1. Send a test message
 2. Hover over the message
@@ -421,7 +381,7 @@ Core Features:
 □ Emoji Selection
 □ Search Functionality
 □ Usage Tracking
-□ Contextual Suggestions
+
 □ Reaction System
 
 Performance:

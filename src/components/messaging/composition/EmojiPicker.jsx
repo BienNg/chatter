@@ -203,18 +203,6 @@ const EmojiPicker = ({ onEmojiSelect, onClose, className = '' }) => {
     }
   }, []);
 
-  // Handle clicks outside picker
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
-        onClose?.();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
   // saveEmojiUsage is now provided by the useEmojis hook
 
   // Handle emoji selection
@@ -249,7 +237,6 @@ const EmojiPicker = ({ onEmojiSelect, onClose, className = '' }) => {
       ref={pickerRef}
       className={`emoji-picker bg-white border border-gray-200 rounded-lg shadow-xl ${className}`}
       onKeyDown={handleKeyDown}
-      style={{ zIndex: 1000 }}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200">

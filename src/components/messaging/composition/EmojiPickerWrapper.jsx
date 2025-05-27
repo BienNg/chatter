@@ -1,21 +1,20 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import EmojiPicker from './EmojiPicker';
 
 const EmojiPickerWrapper = ({ onEmojiSelect, onClose, className = '', triggerRef }) => {
   const wrapperRef = useRef(null);
-  const [position, setPosition] = useState({ top: false, bottom: true, left: true, right: false });
+  const [position, setPosition] = useState({ top: 0, left: 0, placement: 'bottom-left' });
 
   useEffect(() => {
-    if (!wrapperRef.current || !triggerRef?.current) return;
+    if (!triggerRef?.current) return;
 
     const updatePosition = () => {
-      const wrapper = wrapperRef.current;
       const trigger = triggerRef.current;
       
-      if (!wrapper || !trigger) return;
+      if (!trigger) return;
 
       const triggerRect = trigger.getBoundingClientRect();
-      const wrapperRect = wrapper.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
 
@@ -33,12 +32,32 @@ const EmojiPickerWrapper = ({ onEmojiSelect, onClose, className = '', triggerRef
       const pickerWidth = 380; // width of emoji picker
       const shouldShowRight = spaceLeft < pickerWidth && spaceRight > spaceLeft;
 
-      setPosition({
-        top: shouldShowAbove,
-        bottom: !shouldShowAbove,
-        left: !shouldShowRight,
-        right: shouldShowRight
-      });
+      // Calculate absolute position
+      let top, left;
+      let placement = '';
+
+      if (shouldShowAbove) {
+        top = triggerRect.top - pickerHeight - 8; // 8px gap
+        placement = 'top';
+      } else {
+        top = triggerRect.bottom + 8; // 8px gap
+        placement = 'bottom';
+      }
+
+      if (shouldShowRight) {
+        left = triggerRect.right - pickerWidth;
+        placement += '-right';
+      } else {
+        left = triggerRect.left;
+        placement += '-left';
+      }
+
+      // Ensure picker stays within viewport bounds
+      const padding = 16;
+      top = Math.max(padding, Math.min(top, viewportHeight - pickerHeight - padding));
+      left = Math.max(padding, Math.min(left, viewportWidth - pickerWidth - padding));
+
+      setPosition({ top, left, placement });
     };
 
     // Update position on mount and scroll/resize
@@ -57,35 +76,48 @@ const EmojiPickerWrapper = ({ onEmojiSelect, onClose, className = '', triggerRef
     };
   }, [triggerRef]);
 
-  const getPositionClasses = () => {
-    let classes = 'absolute z-[1000] ';
-    
-    if (position.top) {
-      classes += 'bottom-full mb-2 ';
-    } else {
-      classes += 'top-full mt-2 ';
-    }
-    
-    if (position.left) {
-      classes += 'left-0 ';
-    } else {
-      classes += 'right-0 ';
-    }
-    
-    return classes;
-  };
+  // Handle clicks outside to close picker
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target) && 
+          triggerRef?.current && !triggerRef.current.contains(event.target)) {
+        onClose?.();
+      }
+    };
 
-  return (
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose, triggerRef]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        onClose?.();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  // Render picker as portal to avoid z-index issues
+  return createPortal(
     <div 
       ref={wrapperRef}
-      className={getPositionClasses()}
+      className="fixed z-[9999]"
+      style={{
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+      }}
     >
       <EmojiPicker
         onEmojiSelect={onEmojiSelect}
         onClose={onClose}
         className={className}
       />
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -4,8 +4,6 @@ import {
     Bookmark, 
     File, 
     Search, 
-    Eye,
-    EyeOff,
     ExternalLink,
     MessageSquare,
     X
@@ -47,12 +45,15 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
     };
 
     const handleTabChange = (tab) => {
-        setActiveTab(tab);
+        if (activeTab === tab && isExpanded) {
+            // If clicking the same tab and it's expanded, collapse it
+            setIsExpanded(false);
+        } else {
+            // If clicking a different tab or it's collapsed, expand and switch
+            setActiveTab(tab);
+            setIsExpanded(true);
+        }
         setSearchQuery('');
-    };
-
-    const handleToggleExpanded = () => {
-        setIsExpanded(!isExpanded);
     };
 
     const handleUnpinMessage = async (messageId) => {
@@ -214,10 +215,11 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
                         <button
                             onClick={() => handleTabChange('pinned')}
                             className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                activeTab === 'pinned'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                activeTab === 'pinned' && isExpanded
+                                    ? 'bg-indigo-600 text-white shadow-sm'
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                             }`}
+                            title={activeTab === 'pinned' && isExpanded ? 'Click to collapse' : 'Click to expand'}
                         >
                             <Pin className="w-4 h-4" />
                             <span>Pinned</span>
@@ -230,10 +232,11 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
                         <button
                             onClick={() => handleTabChange('bookmarks')}
                             className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                activeTab === 'bookmarks'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                activeTab === 'bookmarks' && isExpanded
+                                    ? 'bg-indigo-600 text-white shadow-sm'
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                             }`}
+                            title={activeTab === 'bookmarks' && isExpanded ? 'Click to collapse' : 'Click to expand'}
                         >
                             <Bookmark className="w-4 h-4" />
                             <span>Bookmarks</span>
@@ -241,39 +244,39 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
                         <button
                             onClick={() => handleTabChange('files')}
                             className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                activeTab === 'files'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                activeTab === 'files' && isExpanded
+                                    ? 'bg-indigo-600 text-white shadow-sm'
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                             }`}
+                            title={activeTab === 'files' && isExpanded ? 'Click to collapse' : 'Click to expand'}
                         >
                             <File className="w-4 h-4" />
                             <span>Files</span>
                         </button>
                     </div>
 
-                    {/* Search */}
-                    <div className="flex items-center bg-white rounded-lg px-3 py-1.5 border border-gray-200">
-                        <Search className="w-4 h-4 text-gray-400 mr-2" />
-                        <input
-                            type="text"
-                            placeholder={`Search ${activeTab}...`}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="text-sm border-none outline-none bg-transparent w-48"
-                        />
-                    </div>
+                    {/* Search - only visible when expanded */}
+                    {isExpanded && (
+                        <div className="flex items-center bg-white rounded-lg px-3 py-1.5 border border-gray-200">
+                            <Search className="w-4 h-4 text-gray-400 mr-2" />
+                            <input
+                                type="text"
+                                placeholder={`Search ${activeTab}...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="text-sm border-none outline-none bg-transparent w-48"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    {/* Expand/Collapse */}
-                    <button
-                        onClick={handleToggleExpanded}
-                        className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white transition-colors"
-                        title={isExpanded ? 'Collapse' : 'Expand'}
-                    >
-                        {isExpanded ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
-                    </button>
+                    {/* Status indicator */}
+                    {isExpanded && (
+                        <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-full">
+                            Click tab again to collapse
+                        </span>
+                    )}
                 </div>
             </div>
 

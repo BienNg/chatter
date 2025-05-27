@@ -13,6 +13,21 @@ const MessageReactions = ({
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // Get a consistent color based on user email or name (same as message style)
+  const getAuthorColor = (user) => {
+    if (!user) return '#6B7280';
+    const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#6366F1', '#EC4899'];
+    const str = user.name || user.email || '';
+    const index = str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
+  };
+
+  // Get author initials for avatar (same as message style)
+  const getAuthorInitials = (user) => {
+    if (!user) return '?';
+    return user.name?.charAt(0) || user.email?.charAt(0) || '?';
+  };
+
   // Group reactions by emoji and count them
   const groupedReactions = reactions.reduce((acc, reaction) => {
     const { emoji, userId, user } = reaction;
@@ -71,21 +86,35 @@ const MessageReactions = ({
           <span className="text-sm">{emoji}</span>
           <span className="font-medium">{count}</span>
           
-          {/* Show user avatars for small counts */}
-          {count <= 3 && (
-            <div className="flex -space-x-1 ml-1">
-              {users.slice(0, 3).map((user, index) => (
-                <div
-                  key={`${user.id}-${index}`}
-                  className="w-4 h-4 rounded-full bg-gray-300 border border-white flex items-center justify-center text-xs font-medium text-white"
-                  style={{ backgroundColor: user.color || '#6B7280' }}
-                  title={user.name}
-                >
-                  {user.avatar || user.name?.charAt(0)?.toUpperCase() || '?'}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Show user avatars for all reactions */}
+          <div className="flex -space-x-1 ml-1">
+            {users.slice(0, 3).map((user, index) => (
+              <div
+                key={`${user.id}-${index}`}
+                className="w-4 h-4 rounded-full border border-white flex items-center justify-center text-[10px] font-medium text-white overflow-hidden"
+                style={{ backgroundColor: user.avatar ? undefined : getAuthorColor(user) }}
+                title={user.name}
+              >
+                {user.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  getAuthorInitials(user)
+                )}
+              </div>
+            ))}
+            {count > 3 && (
+              <div
+                className="w-4 h-4 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[10px] font-medium text-gray-600"
+                title={`${count - 3} more`}
+              >
+                +{count - 3}
+              </div>
+            )}
+          </div>
         </button>
       ))}
 

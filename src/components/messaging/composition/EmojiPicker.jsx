@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Clock, Smile, Heart, Zap, Coffee, Car, Flag, X } from 'lucide-react';
+import { Search, Clock, Smile, Heart, Leaf, Coffee, Car, Flag, X, Users, Gamepad2, Hash } from 'lucide-react';
 import { useEmojis } from '../../../hooks/useEmojis';
+import './EmojiPicker.css';
 
 // Comprehensive emoji data organized by categories
 const EMOJI_DATA = {
@@ -167,12 +168,12 @@ const EMOJI_DATA = {
 const CATEGORIES = [
   { id: 'recent', name: 'Recently Used', icon: Clock },
   { id: 'smileys', name: 'Smileys & Emotion', icon: Smile },
-  { id: 'people', name: 'People & Body', icon: Heart },
-  { id: 'nature', name: 'Animals & Nature', icon: Zap },
+  { id: 'people', name: 'People & Body', icon: Users },
+  { id: 'nature', name: 'Animals & Nature', icon: Leaf },
   { id: 'food', name: 'Food & Drink', icon: Coffee },
-  { id: 'activity', name: 'Activities', icon: Zap },
+  { id: 'activity', name: 'Activities', icon: Gamepad2 },
   { id: 'travel', name: 'Travel & Places', icon: Car },
-  { id: 'objects', name: 'Objects', icon: Coffee },
+  { id: 'objects', name: 'Objects', icon: Hash },
   { id: 'symbols', name: 'Symbols', icon: Heart },
   { id: 'flags', name: 'Flags', icon: Flag }
 ];
@@ -246,8 +247,9 @@ const EmojiPicker = ({ onEmojiSelect, onClose, className = '' }) => {
   return (
     <div 
       ref={pickerRef}
-      className={`emoji-picker bg-white border border-gray-200 rounded-lg shadow-lg ${className}`}
+      className={`emoji-picker bg-white border border-gray-200 rounded-lg shadow-xl ${className}`}
       onKeyDown={handleKeyDown}
+      style={{ zIndex: 1000 }}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200">
@@ -271,24 +273,24 @@ const EmojiPicker = ({ onEmojiSelect, onClose, className = '' }) => {
             placeholder="Search emojis..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="search-input w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none"
           />
         </div>
       </div>
 
       {/* Categories */}
       {!searchQuery && (
-        <div className="flex items-center px-3 py-2 border-b border-gray-200 overflow-x-auto">
+        <div className="flex items-center justify-center px-3 py-2 border-b border-gray-200">
           {CATEGORIES.map((category) => {
             const Icon = category.icon;
             return (
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`flex-shrink-0 p-2 mx-1 rounded-md transition-colors ${
+                className={`category-button flex-shrink-0 p-2 mx-1 rounded-md ${
                   activeCategory === category.id
-                    ? 'bg-indigo-100 text-indigo-600'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    ? 'active'
+                    : 'text-gray-500'
                 }`}
                 title={category.name}
               >
@@ -299,15 +301,15 @@ const EmojiPicker = ({ onEmojiSelect, onClose, className = '' }) => {
         </div>
       )}
 
-      {/* Emoji Grid */}
-      <div className="p-3">
+      {/* Main Content Area with Emoji Grid */}
+      <div className="emoji-picker-content">
         {filteredEmojis.length > 0 ? (
-          <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
+          <div className="emoji-grid">
             {filteredEmojis.map((emoji, index) => (
               <button
                 key={`${emoji}-${index}`}
                 onClick={() => handleEmojiClick(emoji)}
-                className="p-2 text-lg hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="p-2 text-lg hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 aspect-square flex items-center justify-center"
                 title={emoji}
               >
                 {emoji}
@@ -327,50 +329,9 @@ const EmojiPicker = ({ onEmojiSelect, onClose, className = '' }) => {
         )}
       </div>
 
-      {/* Footer with frequently used */}
-      {!searchQuery && getFrequentEmojis().length > 0 && (
-        <div className="border-t border-gray-200 p-3">
-          <div className="text-xs font-medium text-gray-500 mb-2">Frequently Used</div>
-          <div className="flex flex-wrap gap-1">
-            {getFrequentEmojis(16).map((emoji) => (
-              <button
-                key={emoji}
-                onClick={() => handleEmojiClick(emoji)}
-                className="p-1 text-sm hover:bg-gray-100 rounded transition-colors"
-                title={emoji}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
-      <style jsx>{`
-        .emoji-picker {
-          width: 320px;
-          max-height: 400px;
-          z-index: 1000;
-        }
-        
-        .emoji-picker::-webkit-scrollbar {
-          width: 6px;
-        }
-        
-        .emoji-picker::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 3px;
-        }
-        
-        .emoji-picker::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
-          border-radius: 3px;
-        }
-        
-        .emoji-picker::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
-        }
-      `}</style>
+
+
     </div>
   );
 };

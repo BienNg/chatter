@@ -101,7 +101,7 @@ const MessageReactions = ({
 
         {/* Emoji Picker for Adding Reactions */}
         {showEmojiPicker && (
-          <div className="absolute bottom-full left-0 mb-2 z-50">
+          <div className="absolute bottom-full left-0 mb-2 z-[1000]">
             <EmojiPicker
               onEmojiSelect={handleAddNewReaction}
               onClose={() => setShowEmojiPicker(false)}
@@ -121,7 +121,7 @@ const MessageReactions = ({
         }
         
         .reaction-emoji-picker {
-          width: 280px !important;
+          width: 380px !important;
           max-height: 320px !important;
         }
       `}</style>

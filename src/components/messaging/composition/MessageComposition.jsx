@@ -15,7 +15,7 @@ import {
     MessageSquare
 } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
-import EmojiPicker from './EmojiPicker';
+import EmojiPickerWrapper from './EmojiPickerWrapper';
 import EmojiSuggestions from './EmojiSuggestions';
 import { useDrafts } from '../../../hooks/useDrafts';
 
@@ -55,6 +55,7 @@ const MessageComposition = ({
     const fileInputRef = useRef(null);
     const richEditorRef = useRef(null);
     const autoSaveTimeoutRef = useRef(null);
+    const emojiButtonRef = useRef(null);
 
     const { getDraft, saveDraft, clearDraft, hasDraft } = useDrafts();
 
@@ -604,6 +605,7 @@ const MessageComposition = ({
                         {showEmoji && (
                             <div className="relative">
                                 <button
+                                    ref={emojiButtonRef}
                                     className="toolbar-button p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200"
                                     title="Emoji"
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -614,12 +616,11 @@ const MessageComposition = ({
 
                                 {/* Comprehensive Emoji Picker */}
                                 {showEmojiPicker && (
-                                    <div className="absolute bottom-full left-0 mb-2 z-50">
-                                        <EmojiPicker
-                                            onEmojiSelect={insertEmoji}
-                                            onClose={handleEmojiPickerClose}
-                                        />
-                                    </div>
+                                    <EmojiPickerWrapper
+                                        onEmojiSelect={insertEmoji}
+                                        onClose={handleEmojiPickerClose}
+                                        triggerRef={emojiButtonRef}
+                                    />
                                 )}
                             </div>
                         )}

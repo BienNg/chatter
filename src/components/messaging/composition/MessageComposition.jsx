@@ -307,26 +307,10 @@ const MessageComposition = ({
     };
 
     const insertEmoji = (emoji) => {
-        const currentEditor = richEditorRef.current;
-        if (currentEditor) {
-            const selection = window.getSelection();
-            if (selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                range.deleteContents();
-                range.insertNode(document.createTextNode(emoji));
-                range.collapse(false);
-                selection.removeAllRanges();
-                selection.addRange(range);
-                
-                const newContent = currentEditor.innerHTML;
-                setMessage(newContent);
-            } else {
-                // If no selection, append to end
-                setMessage(prev => prev + emoji);
-            }
-            setShowEmojiPicker(false);
-            currentEditor.focus();
+        if (richEditorRef.current) {
+            richEditorRef.current.insertText(emoji);
         }
+        setShowEmojiPicker(false);
     };
 
     const getCharacterCount = () => {
@@ -565,6 +549,7 @@ const MessageComposition = ({
                         className="border-0"
                         isDraftSaved={isDraftSaved}
                         disabled={disabled}
+                        showAdvancedToolbar={mode !== 'comment'} // Show advanced toolbar for main messages, not comments
                         maxLength={null} // Disable internal character count to avoid duplication
                     />
 

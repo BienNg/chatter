@@ -359,12 +359,12 @@ const MessageListView = ({
                                             )}
                                         </div>
 
-                                        <div className="text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
+                                        <div className="message-content text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full">
                                             {message.content?.includes('<') && message.content?.includes('>') ? (
                                                 <div dangerouslySetInnerHTML={{ 
                                                     __html: DOMPurify.sanitize(message.content, {
                                                         ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a'],
-                                                        ALLOWED_ATTR: ['href', 'target'],
+                                                        ALLOWED_ATTR: ['href', 'target', 'rel'],
                                                         ALLOW_DATA_ATTR: false
                                                     })
                                                 }} />

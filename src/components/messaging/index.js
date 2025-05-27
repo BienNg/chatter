@@ -6,6 +6,7 @@ export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as DeleteMessageModal } from './DeleteMessageModal';
 export { default as UndoDeleteToast } from './UndoDeleteToast';
 export { default as BidirectionalLinkingDemo } from './BidirectionalLinkingDemo';
+export { default as ChannelToolbar } from './ChannelToolbar';
 
 // Task components (re-exported from tasks directory)
 export { TaskTab } from './tasks'; 

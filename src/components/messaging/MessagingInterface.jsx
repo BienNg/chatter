@@ -30,6 +30,7 @@ import { MessageComposition } from './composition';
 import ErrorBoundary from './ErrorBoundary';
 import { TaskTab } from './tasks';
 import ChannelAboutModal from './channel/ChannelAboutModal';
+import ChannelToolbar from './ChannelToolbar';
 
 // Helper function to extract tab and content info from URL
 const useRouteInfo = () => {
@@ -257,64 +258,153 @@ const MessagingInterface = () => {
         );
     }
 
+    // Show empty state if user has no channels
+    if (!channelsLoading && channels.length === 0) {
+        return (
+            <div className="flex h-screen">
+                {/* Left Navigation Bar */}
+                <div className="w-16 bg-indigo-900 flex flex-col items-center py-4">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-6">
+                        <MessageSquare className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div className="flex flex-col items-center space-y-4">
+                        <button className="w-10 h-10 rounded-lg bg-indigo-800 flex items-center justify-center text-white">
+                            <MessageSquare className="w-5 h-5" />
+                        </button>
+                        <button className="w-10 h-10 rounded-lg hover:bg-indigo-800 flex items-center justify-center text-indigo-300">
+                            <Users className="w-5 h-5" />
+                        </button>
+                        <button className="w-10 h-10 rounded-lg hover:bg-indigo-800 flex items-center justify-center text-indigo-300">
+                            <DollarSign className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <div className="mt-auto flex flex-col items-center space-y-4">
+                        <button className="w-10 h-10 rounded-lg hover:bg-indigo-800 flex items-center justify-center text-indigo-300">
+                            <Settings className="w-5 h-5" />
+                        </button>
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm">
+                            {userProfile?.fullName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Channels Sidebar */}
+                <div className="w-64 bg-indigo-800 text-white flex flex-col">
+                    {/* Channels Header */}
+                    <div className="p-4 flex items-center justify-between">
+                        <h1 className="text-lg font-semibold">Channels</h1>
+                        <button 
+                            onClick={() => setShowCreateChannel(true)}
+                            className="w-8 h-8 rounded-lg hover:bg-indigo-700 flex items-center justify-center"
+                        >
+                            <Plus className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Empty State */}
+                    <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
+                        <MessageSquare className="w-12 h-12 text-indigo-300 mb-4" />
+                        <h3 className="text-lg font-medium text-white mb-2">Welcome to Chatter!</h3>
+                        <p className="text-indigo-200 text-sm mb-6">
+                            Get started by creating your first channel to communicate with your team.
+                        </p>
+                        <button
+                            onClick={() => setShowCreateChannel(true)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                            Create Your First Channel
+                        </button>
+                    </div>
+                </div>
+
+                {/* Main Content Area */}
+                <div className="flex-1 flex items-center justify-center bg-gray-50">
+                    <div className="text-center">
+                        <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <h2 className="text-xl font-semibold text-gray-600 mb-2">No Channel Selected</h2>
+                        <p className="text-gray-500">Create a channel to start messaging with your team.</p>
+                    </div>
+                </div>
+
+                {/* Create Channel Modal */}
+                {showCreateChannel && (
+                    <CreateChannel
+                        isOpen={showCreateChannel}
+                        onClose={() => setShowCreateChannel(false)}
+                        onChannelCreated={handleChannelCreated}
+                    />
+                )}
+            </div>
+        );
+    }
+
     // Render tab content based on current route
     const renderTabContent = () => {
         switch (currentTab) {
-            case 'messages':
+                        case 'messages':
                 return (
-                    <div className="flex-1 flex min-h-0 overflow-hidden">
-                        <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
-                            {/* Message List */}
-                            <div className="flex-1 min-h-0 overflow-hidden">
-                                {messages.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                                        <MessageSquare className="w-12 h-12 mb-4" />
-                                        <p className="text-lg font-medium">No messages yet</p>
-                                        <p className="text-sm">Be the first to send a message in this channel!</p>
-                                    </div>
-                                ) : (
-                                                                    <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
-                                    <MessageListView 
-                                        messages={messages} 
-                                        loading={messagesLoading} 
-                                        onOpenThread={handleOpenThread}
-                                        channelId={channelId}
-                                        deleteMessage={deleteMessage}
-                                        undoDeleteMessage={undoDeleteMessage}
-                                        canDeleteMessage={canDeleteMessage}
-                                        isWithinEditWindow={isWithinEditWindow}
-                                        deletingMessages={deletingMessages}
-                                        editMessage={editMessage}
-                                        togglePinMessage={togglePinMessage}
-                                        getPinnedMessages={getPinnedMessages}
-                                        isMessagePinned={isMessagePinned}
-                                        onJumpToTask={handleOpenTask}
-                                    />
-                                </ErrorBoundary>
-                                )}
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                        {/* Channel Toolbar */}
+                        <ChannelToolbar 
+                            channelId={channelId}
+                            onJumpToMessage={handleJumpToMessage}
+                            onOpenThread={handleOpenThread}
+                        />
+                        
+                        <div className="flex-1 flex min-h-0 overflow-hidden">
+                            <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
+                                {/* Message List */}
+                                <div className="flex-1 min-h-0 overflow-hidden">
+                                    {messages.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                            <MessageSquare className="w-12 h-12 mb-4" />
+                                            <p className="text-lg font-medium">No messages yet</p>
+                                            <p className="text-sm">Be the first to send a message in this channel!</p>
+                                        </div>
+                                    ) : (
+                                        <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
+                                            <MessageListView 
+                                                messages={messages} 
+                                                loading={messagesLoading} 
+                                                onOpenThread={handleOpenThread}
+                                                channelId={channelId}
+                                                deleteMessage={deleteMessage}
+                                                undoDeleteMessage={undoDeleteMessage}
+                                                canDeleteMessage={canDeleteMessage}
+                                                isWithinEditWindow={isWithinEditWindow}
+                                                deletingMessages={deletingMessages}
+                                                editMessage={editMessage}
+                                                togglePinMessage={togglePinMessage}
+                                                getPinnedMessages={getPinnedMessages}
+                                                isMessagePinned={isMessagePinned}
+                                                onJumpToTask={handleOpenTask}
+                                            />
+                                        </ErrorBoundary>
+                                    )}
+                                </div>
+
+                                {/* Message Input */}
+                                <div className="flex-shrink-0 bg-white">
+                                    <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
+                                        <MessageComposition 
+                                            onSendMessage={handleSendMessage} 
+                                            channelId={channelId}
+                                            placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
+                                        />
+                                    </ErrorBoundary>
+                                </div>
                             </div>
 
-                            {/* Message Input */}
-                            <div className="flex-shrink-0 bg-white">
-                                <ErrorBoundary fallbackMessage="Error in message composition. Please refresh the page.">
-                                    <MessageComposition 
-                                        onSendMessage={handleSendMessage} 
-                                        channelId={channelId}
-                                        placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
-                                    />
-                                </ErrorBoundary>
-                            </div>
+                            {/* Thread View */}
+                            {activeThread && (
+                                <ThreadView
+                                    message={activeThread}
+                                    onClose={handleCloseThread}
+                                    channelId={channelId}
+                                    isOpen={true}
+                                />
+                            )}
                         </div>
-
-                        {/* Thread View */}
-                        {activeThread && (
-                            <ThreadView
-                                message={activeThread}
-                                onClose={handleCloseThread}
-                                channelId={channelId}
-                                isOpen={true}
-                            />
-                        )}
                     </div>
                 );
 

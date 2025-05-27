@@ -67,25 +67,27 @@ const TaskTab = ({ channelId }) => {
     }
 
     return (
-        <div className="flex-1 flex flex-col">
-            <div className="flex h-full">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex h-full min-h-0">
                 {/* Left Panel - Messages with Tasks */}
-                <div className="w-1/2 border-r border-gray-200 overflow-y-auto">
-                    <div className="p-4 border-b border-gray-200">
+                <div className="w-1/2 border-r border-gray-200 flex flex-col min-h-0 max-w-[50vw]">
+                    <div className="p-4 border-b border-gray-200 flex-shrink-0">
                         <h3 className="text-lg font-semibold text-gray-900">Messages with Tasks</h3>
                         <p className="text-sm text-gray-500 mt-1">{tasks.length} active tasks</p>
                     </div>
-                    <TaskList 
-                        tasks={tasks}
-                        selectedTask={selectedTask}
-                        onTaskSelect={handleTaskSelect}
-                        channelId={channelId}
-                    />
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                        <TaskList 
+                            tasks={tasks}
+                            selectedTask={selectedTask}
+                            onTaskSelect={handleTaskSelect}
+                            channelId={channelId}
+                        />
+                    </div>
                 </div>
 
                 {/* Right Panel - Task Details */}
-                <div className="w-1/2 flex flex-col h-full">
-                    <div className="p-4 border-b border-gray-200">
+                <div className="w-1/2 flex flex-col min-h-0 max-w-[50vw]">
+                    <div className="p-4 border-b border-gray-200 flex-shrink-0">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold text-gray-900">Task Details</h3>
                             {selectedTask && selectedTask.status === 'active' && (
@@ -99,7 +101,7 @@ const TaskTab = ({ channelId }) => {
                             )}
                         </div>
                     </div>
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 overflow-hidden">
                         <TaskDetails 
                             task={selectedTask}
                             channelId={channelId}

@@ -44,7 +44,7 @@ const TaskSourceMessage = ({ sourceMessage, onJumpToMessage, onDeleteTask }) => 
                                 {formatTimestamp(sourceMessage.timestamp)}
                             </span>
                         </div>
-                        <div className="mt-1 text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
+                        <div className="mt-1 text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere line-clamp-3 overflow-hidden">
                             {sourceMessage.content}
                         </div>
                     </div>

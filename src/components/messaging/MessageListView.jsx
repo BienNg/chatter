@@ -256,9 +256,9 @@ const MessageListView = ({
     }
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="flex flex-col bg-white h-full">
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 min-h-0">
                 {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="text-center py-12">

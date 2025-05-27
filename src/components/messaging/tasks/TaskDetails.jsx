@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import TaskSourceMessage from './TaskSourceMessage';
 import TaskThread from './TaskThread';
 import TaskComposer from './TaskComposer';
 import TaskDetailsEmpty from './TaskDetailsEmpty';
@@ -52,22 +51,18 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete }) => {
     };
 
     return (
-        <div className="h-full flex flex-col">
-            {/* Source Message Section - Fixed height */}
-            <div className="flex-shrink-0">
-                <TaskSourceMessage 
+        <div className="h-full flex flex-col min-h-0 overflow-hidden">
+            {/* Thread Conversation - Scrollable content area with source message */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+                <TaskThread 
+                    taskId={task.id}
+                    sourceMessageId={task.sourceMessageId}
+                    channelId={channelId}
                     sourceMessage={task.sourceMessageData}
                     onJumpToMessage={handleJumpToMessage}
                     onDeleteTask={handleDeleteTask}
                 />
             </div>
-
-            {/* Thread Conversation - Scrollable content area */}
-            <TaskThread 
-                taskId={task.id}
-                sourceMessageId={task.sourceMessageId}
-                channelId={channelId}
-            />
 
             {/* Message Composer - Fixed height */}
             <div className="flex-shrink-0">

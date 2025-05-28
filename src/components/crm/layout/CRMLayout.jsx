@@ -1,10 +1,9 @@
 import React from 'react';
 import { Sidebar } from '../../messaging/layout/Sidebar';
-import { MainContent } from '../../messaging/layout/MainContent';
 
 /**
  * CRMLayout - Main CRM layout component
- * Provides the basic layout structure for the CRM system
+ * Provides the basic layout structure for the CRM system with full-width content
  */
 export const CRMLayout = ({ 
   children,
@@ -13,7 +12,7 @@ export const CRMLayout = ({
   onLogout
 }) => {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-50">
       {/* Left Navigation Bar */}
       <Sidebar 
         userProfile={userProfile}
@@ -22,10 +21,10 @@ export const CRMLayout = ({
         activeSection="crm"
       />
 
-      {/* Main Content Area */}
-      <MainContent>
+      {/* Main Content Area - Full width for CRM */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {children}
-      </MainContent>
+      </div>
     </div>
   );
 }; 

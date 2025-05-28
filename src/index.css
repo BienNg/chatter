@@ -138,3 +138,30 @@ code {
   outline: 2px solid rgb(99 102 241);
   outline-offset: 2px;
 }
+
+/* Resizable sidebar styles */
+.resizing {
+  user-select: none;
+  pointer-events: none;
+}
+
+.resizing * {
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Prevent text selection during resize */
+body.resizing {
+  user-select: none;
+  cursor: col-resize !important;
+}
+
+/* Smooth width transitions when not actively resizing */
+.sidebar-transition {
+  transition: width 0.2s ease-out;
+}
+
+/* Ensure resize handle is always on top */
+.resize-handle {
+  z-index: 10;
+}

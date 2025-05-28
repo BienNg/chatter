@@ -2,10 +2,11 @@ import React from 'react';
 import { Sidebar } from './Sidebar';
 import { ChannelSidebar } from './ChannelSidebar';
 import { MainContent } from './MainContent';
+import { useResizableSidebar } from '../../../hooks/useResizableSidebar';
 
 /**
  * AppLayout - Main application layout component
- * Handles the three-column layout structure
+ * Handles the three-column layout structure with resizable channel sidebar
  */
 export const AppLayout = ({ 
   children,
@@ -17,6 +18,13 @@ export const AppLayout = ({
   currentUser,
   onLogout
 }) => {
+  // Resizable sidebar functionality
+  const {
+    sidebarWidth,
+    isResizing,
+    handleMouseDown
+  } = useResizableSidebar(256, 200, 400);
+
   return (
     <div className="flex h-screen">
       {/* Left Navigation Bar */}
@@ -32,6 +40,9 @@ export const AppLayout = ({
         activeChannelId={activeChannelId}
         onChannelSelect={onChannelSelect}
         onCreateChannel={onCreateChannel}
+        width={sidebarWidth}
+        onResizeStart={handleMouseDown}
+        isResizing={isResizing}
       />
 
       {/* Main Content Area */}

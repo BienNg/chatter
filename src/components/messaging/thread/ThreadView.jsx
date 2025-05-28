@@ -1,14 +1,23 @@
 // src/components/ThreadView.jsx
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Users, MessageSquare, X } from 'lucide-react';
+import { ArrowLeft, Users, X } from 'lucide-react';
 import { useThreadReplies } from '../../../hooks/useThreadReplies';
 import MessageComposition from '../composition/MessageComposition';
 import MessageReactions from '../MessageReactions';
 import ReactionDetailsModal from '../ReactionDetailsModal';
 import { useMessageReactions } from '../../../hooks/useMessageReactions';
+import { ThreadResizeHandle } from '../layout/ThreadResizeHandle';
 import DOMPurify from 'dompurify';
 
-const ThreadView = ({ message, isOpen, onClose, channelId }) => {
+const ThreadView = ({ 
+    message, 
+    isOpen, 
+    onClose, 
+    channelId,
+    width = 384,
+    onResizeStart,
+    isResizing = false
+}) => {
     const [reactionModal, setReactionModal] = useState({ isOpen: false, messageId: null, reactions: [] });
     
     // Add debug log for props
@@ -120,10 +129,17 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
 
     return (
         <div 
-            className={`fixed right-0 top-0 w-96 bg-white border-l border-gray-200 flex flex-col h-screen z-40 min-h-0
+            className={`fixed right-0 top-0 bg-white border-l border-gray-200 flex flex-col h-screen z-40 min-h-0 relative
                 transform transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+            style={{ width: `${width}px` }}
         >
+            {/* Resize Handle */}
+            <ThreadResizeHandle 
+                onMouseDown={onResizeStart}
+                isResizing={isResizing}
+            />
+
             {/* Thread Header */}
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between mb-2">
@@ -134,20 +150,20 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                         >
                             <ArrowLeft className="h-4 w-4 text-gray-600" />
                         </button>
-                        <h3 className="font-semibold text-gray-900">Thread</h3>
+                        <h3 className="font-semibold text-gray-900 truncate">Thread</h3>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-gray-200 rounded-md transition"
+                        className="p-1 hover:bg-gray-200 rounded-md transition flex-shrink-0"
                     >
                         <X className="h-4 w-4 text-gray-600" />
                     </button>
                 </div>
 
                 {/* Thread Participants */}
-                <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-gray-500" />
-                    <div className="flex -space-x-1">
+                <div className="flex items-center space-x-2 min-w-0">
+                    <Users className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <div className="flex -space-x-1 flex-shrink-0">
                         {participants.slice(0, 5).map((participant, index) => (
                             <div
                                 key={participant.id || participant.email || index}
@@ -163,7 +179,7 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                             </div>
                         )}
                     </div>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 truncate">
                         {participants.length} {participants.length === 1 ? 'participant' : 'participants'}
                     </span>
                 </div>
@@ -178,10 +194,10 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-medium text-gray-900">
+                                <span className="font-medium text-gray-900 truncate">
                                     {msg.author?.displayName || msg.author?.email || 'Unknown User'}
                                 </span>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 flex-shrink-0">
                                     {msg.timestamp}
                                 </span>
                             </div>

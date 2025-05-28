@@ -92,13 +92,13 @@ const CreateCourseModal = ({
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-2">
               {!isEditing && (
-                <button
-                  type="button"
+              <button
+                type="button"
                   onClick={courseForm.handleClearForm}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                >
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              >
                   Clear Form
-                </button>
+              </button>
               )}
               <button
                 type="submit"

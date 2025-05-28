@@ -16,7 +16,9 @@ const DateCalendar = ({
 }) => {
   // Calendar calculations
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const firstDayOfMonthJS = new Date(year, month, 1).getDay(); // JavaScript day (0=Sunday)
+  // Convert to Monday-first (0=Monday, 1=Tuesday, ..., 6=Sunday)
+  const firstDayOfMonth = firstDayOfMonthJS === 0 ? 6 : firstDayOfMonthJS - 1;
   const prevMonth = month === 0 ? 11 : month - 1;
   const prevYear = month === 0 ? year - 1 : year;
   const daysInPrevMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
@@ -80,6 +82,43 @@ const DateCalendar = ({
     );
   };
 
+  // Check if a date is a course day (matches selected weekdays)
+  const isCourseDay = (day) => {
+    if (type === 'start' || !form.days.length) return false;
+    
+    const dateString = formatDateString(year, month, day);
+    const currentDate = new Date(dateString);
+    const dayOfWeek = currentDate.getDay(); // 0=Sunday, 1=Monday, etc.
+    
+    // Map JavaScript day numbers to our weekday keys
+    const dayMap = {
+      0: 'Sun', // Sunday
+      1: 'Mon', // Monday
+      2: 'Tue', // Tuesday
+      3: 'Wed', // Wednesday
+      4: 'Thu', // Thursday
+      5: 'Fri', // Friday
+      6: 'Sat'  // Saturday
+    };
+    
+    const dayKey = dayMap[dayOfWeek];
+    return form.days.includes(dayKey);
+  };
+
+  // Check if a date is the start date (from the other calendar)
+  const isStartDate = (day) => {
+    if (type === 'start') return false;
+    const dateString = formatDateString(year, month, day);
+    return form.beginDate === dateString;
+  };
+
+  // Check if a date is the end date
+  const isEndDate = (day) => {
+    if (type === 'start') return false;
+    const dateString = formatDateString(year, month, day);
+    return form.endDate === dateString;
+  };
+
   return (
     <div className="group">
       <label className="block text-sm font-semibold text-gray-700 mb-4 flex items-center justify-between">
@@ -88,7 +127,7 @@ const DateCalendar = ({
           {label}
         </div>
         {showAutoGenerate && AutoGenerateComponent && (
-          <AutoGenerateComponent form={form} />
+          <AutoGenerateComponent form={form} setForm={setForm} />
         )}
       </label>
       
@@ -151,6 +190,45 @@ const DateCalendar = ({
             const isTodayDate = isToday(day);
             const isDisabled = isDayDisabled(day);
             const isInRange = isDayInRange(day);
+            const isCourseDayDate = isCourseDay(day);
+            const isStartDateDate = isStartDate(day);
+            const isEndDateDate = isEndDate(day);
+            
+            // Determine styling based on date type
+            let buttonClasses = 'h-8 flex items-center justify-center text-sm font-medium rounded-md transition-colors ';
+            
+            if (isDisabled) {
+              buttonClasses += 'text-gray-300 cursor-not-allowed';
+            } else if (isStartDateDate) {
+              // Start date - sophisticated blue with refined border
+              buttonClasses += 'bg-blue-50 text-blue-900 border border-blue-200 font-semibold shadow-sm';
+            } else if (isEndDateDate) {
+              // End date - elegant purple with refined border
+              buttonClasses += 'bg-purple-50 text-purple-900 border border-purple-200 font-semibold shadow-sm';
+            } else if (isSelected) {
+              // Currently selected date
+              buttonClasses += 'bg-indigo-600 text-white';
+            } else if (isCourseDayDate && form.beginDate && form.endDate) {
+              // Course day between start and end dates
+              const currentDate = new Date(dateString);
+              const startDate = new Date(form.beginDate);
+              const endDate = new Date(form.endDate);
+              
+              if (currentDate >= startDate && currentDate <= endDate) {
+                buttonClasses += 'bg-slate-50 text-slate-700 border border-slate-200/50 font-medium';
+              } else {
+                buttonClasses += 'text-gray-700 hover:bg-gray-50';
+              }
+            } else if (isInRange) {
+              // In range but not a course day
+              buttonClasses += 'bg-gray-25 text-gray-400';
+            } else if (isTodayDate) {
+              // Today
+              buttonClasses += 'bg-indigo-50 text-indigo-700 border border-indigo-200';
+            } else {
+              // Regular day
+              buttonClasses += 'text-gray-700 hover:bg-gray-50';
+            }
             
             return (
               <button
@@ -158,17 +236,7 @@ const DateCalendar = ({
                 type="button"
                 disabled={isDisabled}
                 onClick={() => handleDateClick(day)}
-                className={`h-8 flex items-center justify-center text-sm font-medium rounded-md transition-colors ${
-                  isSelected
-                    ? 'bg-indigo-600 text-white'
-                    : isInRange
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : isDisabled
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : isTodayDate
-                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                    : 'text-gray-700'
-                }`}
+                className={buttonClasses}
               >
                 {day}
               </button>

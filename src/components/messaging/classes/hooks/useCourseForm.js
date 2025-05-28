@@ -406,6 +406,15 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     }
   }, [form.beginDate]);
 
+  // Update end calendar when end date is set (for auto-generate)
+  useEffect(() => {
+    if (form.endDate) {
+      const endDate = new Date(form.endDate);
+      setEndMonth(endDate.getMonth());
+      setEndYear(endDate.getFullYear());
+    }
+  }, [form.endDate]);
+
   // Update total days when format or level changes
   useEffect(() => {
     const newTotalDays = calculateTotalDays(form.format, form.level);

@@ -4,6 +4,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { useChannelManagement } from '../../../hooks/useChannelManagement';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useChannelClassSync } from '../../../hooks/useChannelClassSync';
 
 const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
     const [activeTab, setActiveTab] = useState('about');
@@ -25,6 +26,8 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
         removeMemberFromChannel,
         getAllUsers
     } = useChannelManagement();
+
+    const { handleChannelTypeChange } = useChannelClassSync();
 
     // Channel types - same as CreateChannel for consistency
     const channelTypes = [
@@ -81,11 +84,17 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
 
         try {
             setUpdating(true);
+            const oldType = channel.type;
+            
+            // Update channel type in database
             const channelRef = doc(db, 'channels', channel.id);
             await updateDoc(channelRef, {
                 type: selectedType,
                 updatedAt: serverTimestamp()
             });
+            
+            // Handle class creation/archiving based on type change
+            await handleChannelTypeChange(channel.id, selectedType, oldType, channel.name);
             
             setEditingType(false);
             onUpdate?.(); // Notify parent component to refresh

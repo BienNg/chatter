@@ -3,6 +3,7 @@ import { X, PlusCircle } from 'lucide-react';
 import { useLevels } from '../../../hooks/useLevels';
 import { useTypes } from '../../../hooks/useTypes';
 import { useTeachers } from '../../../hooks/useTeachers';
+import { useClasses } from '../../../hooks/useClasses';
 
 const WEEKDAYS = [
   { key: 'Mon', label: 'M' },
@@ -15,10 +16,11 @@ const WEEKDAYS = [
 ];
 const FORMATS = ['Online', 'Offline'];
 
-const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
+const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, initialData = null, isEditing = false }) => {
   const { levels, addLevel } = useLevels();
   const { types, addType } = useTypes();
   const { teachers, addTeacher } = useTeachers();
+  const { createClass, updateClass } = useClasses();
   const [form, setForm] = useState({
     className: channelName ? channelName.toUpperCase() : '',
     level: '',
@@ -84,6 +86,42 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
     // eslint-disable-next-line
   }, [isOpen, channelName]);
 
+  // Populate form with initial data when editing
+  React.useEffect(() => {
+    if (isOpen && isEditing && initialData) {
+      // When editing, extract class name from course name by removing " - [level]" part
+      let extractedClassName = initialData.className || '';
+      if (initialData.level && extractedClassName.includes(` - ${initialData.level}`)) {
+        extractedClassName = extractedClassName.replace(` - ${initialData.level}`, '');
+      }
+      
+      setForm({
+        className: extractedClassName,
+        level: initialData.level || '',
+        format: initialData.format || 'Online',
+        type: initialData.classType || '',
+        teachers: initialData.teachers || [],
+        beginDate: initialData.beginDate || '',
+        endDate: initialData.endDate || '',
+        days: initialData.days || [],
+        sheetUrl: initialData.googleDriveUrl || '',
+      });
+    } else if (isOpen && !isEditing) {
+      // Reset form for new course creation
+      setForm({
+        className: channelName ? channelName.toUpperCase() : '',
+        level: '',
+        format: 'Online',
+        type: '',
+        teachers: [],
+        beginDate: '',
+        endDate: '',
+        days: [],
+        sheetUrl: '',
+      });
+    }
+  }, [isOpen, isEditing, initialData, channelName]);
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -100,14 +138,81 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!channelId) {
+      console.error('No channel ID provided');
+      return;
+    }
+    
+    // Validate required fields
+    if (!form.className.trim()) {
+      alert('Class name is required');
+      return;
+    }
+    
+    if (!form.level.trim()) {
+      alert('Level is required');
+      return;
+    }
+    
+    // Construct the final course name as "[Class Name] - [Level]"
+    const finalCourseName = `${form.className} - ${form.level}`;
+    
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      if (onCreate) onCreate(form);
+    try {
+      let result;
+      
+      if (isEditing && initialData) {
+        // Update existing course
+        await updateClass(initialData.id, {
+          className: finalCourseName,
+          classType: form.type,
+          format: form.format,
+          googleDriveUrl: form.sheetUrl,
+          teachers: form.teachers,
+          level: form.level,
+          beginDate: form.beginDate,
+          endDate: form.endDate,
+          days: form.days,
+        });
+        
+        result = {
+          ...initialData,
+          className: finalCourseName,
+          classType: form.type,
+          format: form.format,
+          googleDriveUrl: form.sheetUrl,
+          teachers: form.teachers,
+          level: form.level,
+          beginDate: form.beginDate,
+          endDate: form.endDate,
+          days: form.days,
+        };
+      } else {
+        // Create new course
+        const courseData = {
+          ...form,
+          className: finalCourseName
+        };
+        result = await createClass(courseData, channelId);
+      }
+      
+      // Call onCreate callback if provided
+      if (onCreate) {
+        onCreate(result);
+      }
+      
+      // Close modal
       onClose();
-    }, 800);
+      
+    } catch (error) {
+      console.error('Error saving course:', error);
+      // TODO: Show error message to user
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLevelSelect = (level) => {
@@ -227,7 +332,9 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8 relative">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Create New Class</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {isEditing ? 'Edit Course' : 'Create New Course'}
+            </h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X className="h-6 w-6" />
             </button>
@@ -236,26 +343,26 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Class Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class Name *</label>
                 <input
                   type="text"
                   name="className"
                   value={form.className}
                   onChange={handleChange}
-                  placeholder="Enter class name"
+                  placeholder="Enter class name (e.g., G35)"
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   required
                 />
               </div>
               {/* Level - custom dropdown */}
               <div className="relative" ref={levelRef}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Level *</label>
                 <button
                   type="button"
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-white text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between"
                   onClick={() => setLevelDropdown((open) => !open)}
                 >
-                  <span className={`text-gray-900 ${!form.level ? 'text-gray-400' : ''}`}>{form.level || 'Select level'}</span>
+                  <span className={`text-gray-900 ${!form.level ? 'text-gray-400' : ''}`}>{form.level || 'Select level (required)'}</span>
                   <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {levelDropdown && (
@@ -283,6 +390,18 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
                 )}
               </div>
             </div>
+            
+            {/* Course Name Preview */}
+            {form.className && form.level && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center">
+                  <div className="text-sm text-blue-700">
+                    <span className="font-medium">Course Name Preview:</span> {form.className} - {form.level}
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Format */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
@@ -338,37 +457,38 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
             <div className="relative" ref={teacherRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">Teachers</label>
               
-              {/* Selected Teachers Tags */}
-              <div className="flex flex-wrap gap-2 mb-2">
-                {form.teachers.map((teacher, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
-                  >
-                    {teacher}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTeacher(teacher)}
-                      className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-600 focus:outline-none"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                ))}
-              </div>
-
-              {/* Search Input */}
+              {/* Search Input with Selected Teachers Tags Inside */}
               <div className="relative">
-                <input
-                  type="text"
-                  value={teacherSearchValue}
-                  onChange={(e) => setTeacherSearchValue(e.target.value)}
-                  onFocus={() => setTeacherDropdown(true)}
-                  placeholder="Search teachers..."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <div className="w-full min-h-[42px] px-3 py-2 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 bg-white flex flex-wrap items-center gap-1">
+                  {/* Selected Teachers Tags */}
+                  {form.teachers.map((teacher, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200"
+                    >
+                      {teacher}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTeacher(teacher)}
+                        className="ml-1 inline-flex items-center justify-center w-3 h-3 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-600 focus:outline-none"
+                      >
+                        <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                  
+                  {/* Search Input */}
+                  <input
+                    type="text"
+                    value={teacherSearchValue}
+                    onChange={(e) => setTeacherSearchValue(e.target.value)}
+                    onFocus={() => setTeacherDropdown(true)}
+                    placeholder={form.teachers.length === 0 ? "Search teachers..." : ""}
+                    className="flex-1 min-w-[120px] outline-none bg-transparent text-sm py-1"
+                  />
+                </div>
                 
                 {/* Dropdown */}
                 {teacherDropdown && (
@@ -427,9 +547,9 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
                 />
               </div>
             </div>
-            {/* Class Days */}
+            {/* Course Days */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Class Days</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Course Days</label>
               <div className="flex space-x-2">
                 {WEEKDAYS.map((d) => (
                   <button
@@ -469,7 +589,10 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
                 disabled={loading}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Creating...' : 'Create Class'}
+                {loading 
+                  ? (isEditing ? 'Updating...' : 'Creating...') 
+                  : (isEditing ? 'Update Course' : 'Create Course')
+                }
               </button>
             </div>
           </form>
@@ -653,4 +776,4 @@ const CreateClassModal = ({ isOpen, onClose, onCreate, channelName }) => {
   );
 };
 
-export default CreateClassModal; 
+export default CreateCourseModal; 

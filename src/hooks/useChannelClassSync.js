@@ -23,16 +23,10 @@ export const useChannelClassSync = () => {
                 const existingClass = await getClassByChannelId(channelId);
                 
                 if (!existingClass) {
-                    // Create a new class with default values
+                    // Create a new class with minimal default values
                     const defaultClassData = {
                         className: channelName ? channelName.toUpperCase() : 'NEW CLASS',
                         type: '', // Will need to be filled in later
-                        format: 'Online',
-                        teachers: [],
-                        level: '',
-                        beginDate: '',
-                        endDate: '',
-                        days: [],
                         sheetUrl: ''
                     };
                     
@@ -67,12 +61,6 @@ export const useChannelClassSync = () => {
                 const defaultClassData = {
                     className: channelName ? channelName.toUpperCase() : 'NEW CLASS',
                     type: '',
-                    format: 'Online',
-                    teachers: [],
-                    level: '',
-                    beginDate: '',
-                    endDate: '',
-                    days: [],
                     sheetUrl: ''
                 };
                 

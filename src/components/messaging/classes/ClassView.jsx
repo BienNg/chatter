@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Calendar, Users, Globe, FileText, ExternalLink } from 'lucide-react';
+import { Calendar, Users, Globe, FileText, ExternalLink } from 'lucide-react';
 import { useClasses } from '../../../hooks/useClasses';
-import CreateCourseModal from './CreateCourseModal';
 
 const ClassView = ({ channelId, channelName }) => {
     const { classes, loading, error, getClassByChannelId } = useClasses(channelId);
     const [classData, setClassData] = useState(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         const loadClassData = async () => {
@@ -21,16 +18,6 @@ const ClassView = ({ channelId, channelName }) => {
         
         loadClassData();
     }, [channelId, getClassByChannelId]);
-
-    const handleClassCreated = (newClass) => {
-        setClassData(newClass);
-        setShowCreateModal(false);
-    };
-
-    const handleClassUpdated = (updatedClass) => {
-        setClassData(updatedClass);
-        setShowEditModal(false);
-    };
 
     const formatDays = (days) => {
         if (!days || days.length === 0) return 'No schedule set';
@@ -81,13 +68,6 @@ const ClassView = ({ channelId, channelName }) => {
                         <h1 className="text-2xl font-bold text-gray-900">{classData.className}</h1>
                         <p className="text-sm text-gray-500 mt-1">Class Information</p>
                     </div>
-                    <button
-                        onClick={() => setShowEditModal(true)}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                    </button>
                 </div>
 
                 {/* Class Details Grid */}
@@ -187,17 +167,6 @@ const ClassView = ({ channelId, channelName }) => {
                     </span>
                 </div>
             </div>
-
-            {/* Edit Modal */}
-            <CreateCourseModal
-                isOpen={showEditModal}
-                onClose={() => setShowEditModal(false)}
-                onCreate={handleClassUpdated}
-                channelName={channelName}
-                channelId={channelId}
-                initialData={classData}
-                isEditing={true}
-            />
         </>
     );
 };

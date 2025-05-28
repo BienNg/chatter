@@ -70,15 +70,29 @@ const MessagingInterface = () => {
     activeThread: persistentActiveThread 
   } = useThread();
 
-  // Navigation logic
-  const { getTabsForChannel, handleTabSelect } = useTabNavigation(channelId, channels);
+  // Navigation logic with persistence
+  const { 
+    getTabsForChannel, 
+    handleTabSelect, 
+    handleChannelSelect,
+    handleSubTabSelect,
+    saveMessagingState
+  } = useTabNavigation(channelId, channels);
+
+  // Save global messaging state whenever channel, tab, or sub-tab changes
+  useEffect(() => {
+    if (channelId && currentTab) {
+      saveMessagingState(channelId, currentTab, subTab);
+    }
+  }, [channelId, currentTab, subTab, saveMessagingState]);
 
   // Auto-redirect to first channel if none selected
   useEffect(() => {
     if (channels.length > 0 && !channelId) {
-      navigate(`/channels/${channels[0].id}/messages`);
+      // Use the enhanced channel select that remembers last tab
+      handleChannelSelect(channels[0].id);
     }
-  }, [channels, channelId, navigate]);
+  }, [channels, channelId, handleChannelSelect]);
 
   // Clear scroll target when channel changes
   useEffect(() => {
@@ -97,6 +111,19 @@ const MessagingInterface = () => {
   const activeChannel = channels.find((channel) => channel.id === channelId);
   const tabs = activeChannel ? getTabsForChannel(activeChannel) : [];
   
+  // Auto-switch to messages tab when current tab becomes unavailable for the active channel
+  useEffect(() => {
+    if (activeChannel && currentTab) {
+      const availableTabs = getTabsForChannel(activeChannel);
+      const isCurrentTabAvailable = availableTabs.some(tab => tab.id === currentTab);
+      
+      // If current tab is not available for this channel type, switch to messages
+      if (!isCurrentTabAvailable) {
+        navigate(`/channels/${channelId}/messages`);
+      }
+    }
+  }, [activeChannel, currentTab, channelId, navigate, getTabsForChannel]);
+
   // Get active thread from URL or persistent context
   let activeThread = null;
   if (contentType === 'thread' && contentId) {
@@ -108,15 +135,8 @@ const MessagingInterface = () => {
   // Event handlers
   const handleChannelSelectWithNavigation = (newChannelId) => {
     switchChannel(newChannelId);
-    const newChannel = channels.find(ch => ch.id === newChannelId);
-    const availableTabs = getTabsForChannel(newChannel);
-    const isCurrentTabAvailable = availableTabs.some(tab => tab.id === currentTab);
-    
-    if (!isCurrentTabAvailable) {
-      navigate(`/channels/${newChannelId}/messages`);
-    } else {
-      navigate(`/channels/${newChannelId}/${currentTab}`);
-    }
+    // Use the enhanced channel select that remembers last tab
+    handleChannelSelect(newChannelId);
   };
 
   const handleOpenThread = (threadMessageId) => {
@@ -160,6 +180,10 @@ const MessagingInterface = () => {
 
   const handleClassesSubTabSelect = (subTabId) => {
     if (!channelId) return;
+    
+    // Save the sub-tab selection to persistence
+    handleSubTabSelect(channelId, 'classes', subTabId);
+    
     navigate(`/channels/${channelId}/classes/${subTabId}`);
   };
 

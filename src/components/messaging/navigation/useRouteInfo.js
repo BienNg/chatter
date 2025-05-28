@@ -52,6 +52,10 @@ export const useRouteInfo = () => {
           contentId = pathSegments[3];
         }
         break;
+      default:
+        // For any unknown tab segment, default to messages
+        currentTab = 'messages';
+        break;
     }
   }
   

@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
+import { useTabPersistence } from '../../../hooks/useTabPersistence';
 
 /**
  * useTabNavigation - Custom hook for tab navigation logic
- * Handles tab switching and channel-specific tab configuration
+ * Handles tab switching and channel-specific tab configuration with persistence
  */
 export const useTabNavigation = (channelId, channels) => {
   const navigate = useNavigate();
+  const { getLastTab, getLastSubTab, saveTab, saveSubTab, saveMessagingState } = useTabPersistence();
 
   // Dynamic tabs based on channel type
   const getTabsForChannel = (channel) => {
@@ -31,6 +33,9 @@ export const useTabNavigation = (channelId, channels) => {
   const handleTabSelect = (tab) => {
     if (!channelId) return;
     
+    // Save the selected tab to persistence
+    saveTab(channelId, tab.toLowerCase());
+    
     // Navigate to the selected tab
     switch (tab.toLowerCase()) {
       case 'messages':
@@ -40,7 +45,10 @@ export const useTabNavigation = (channelId, channels) => {
         navigate(`/channels/${channelId}/tasks`);
         break;
       case 'classes':
-        navigate(`/channels/${channelId}/classes`);
+        // For classes tab, check if there's a saved sub-tab
+        const lastSubTab = getLastSubTab(channelId, 'classes');
+        const subTabPath = lastSubTab ? `/${lastSubTab}` : '';
+        navigate(`/channels/${channelId}/classes${subTabPath}`);
         break;
       case 'import':
         navigate(`/channels/${channelId}/import`);
@@ -54,17 +62,52 @@ export const useTabNavigation = (channelId, channels) => {
   };
 
   const handleChannelSelect = (newChannelId) => {
-    // Check if current tab is valid for the new channel
+    // Get the new channel and its available tabs
     const newChannel = channels.find(ch => ch.id === newChannelId);
     const availableTabs = getTabsForChannel(newChannel);
     
-    // Default to messages tab for new channel
-    navigate(`/channels/${newChannelId}/messages`);
+    // Get the last active tab for this channel
+    const lastTab = getLastTab(newChannelId, availableTabs);
+    
+    // Navigate to the last active tab, or messages if none saved
+    switch (lastTab) {
+      case 'messages':
+        navigate(`/channels/${newChannelId}/messages`);
+        break;
+      case 'tasks':
+        navigate(`/channels/${newChannelId}/tasks`);
+        break;
+      case 'classes':
+        // For classes tab, restore the last sub-tab if available
+        const lastSubTab = getLastSubTab(newChannelId, 'classes');
+        const subTabPath = lastSubTab ? `/${lastSubTab}` : '';
+        navigate(`/channels/${newChannelId}/classes${subTabPath}`);
+        break;
+      case 'import':
+        navigate(`/channels/${newChannelId}/import`);
+        break;
+      case 'wiki':
+        navigate(`/channels/${newChannelId}/wiki`);
+        break;
+      default:
+        navigate(`/channels/${newChannelId}/messages`);
+    }
+  };
+
+  const handleSubTabSelect = (channelId, tab, subTab) => {
+    if (!channelId || !tab || !subTab) return;
+    
+    // Save the selected sub-tab to persistence
+    saveSubTab(channelId, tab, subTab);
   };
 
   return {
     getTabsForChannel,
     handleTabSelect,
-    handleChannelSelect
+    handleChannelSelect,
+    handleSubTabSelect,
+    getLastTab,
+    getLastSubTab,
+    saveMessagingState
   };
 }; 

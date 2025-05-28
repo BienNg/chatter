@@ -92,18 +92,36 @@ export const useClasses = (channelId = null) => {
                 channelId,
                 className: classData.className,
                 classType: classData.type,
-                format: classData.format || 'Online',
-                googleDriveUrl: classData.sheetUrl || '',
-                teachers: classData.teachers || [],
-                level: classData.level || '',
-                beginDate: classData.beginDate || '',
-                endDate: classData.endDate || '',
-                days: classData.days || [],
-                status: 'active',
                 createdAt: timestamp,
                 updatedAt: timestamp,
                 createdBy: currentUser.uid
             };
+
+            // Only add fields that are explicitly provided
+            if (classData.format !== undefined) {
+                newClass.format = classData.format;
+            }
+            if (classData.sheetUrl !== undefined) {
+                newClass.googleDriveUrl = classData.sheetUrl;
+            }
+            if (classData.teachers !== undefined) {
+                newClass.teachers = classData.teachers;
+            }
+            if (classData.level !== undefined) {
+                newClass.level = classData.level;
+            }
+            if (classData.beginDate !== undefined) {
+                newClass.beginDate = classData.beginDate;
+            }
+            if (classData.endDate !== undefined) {
+                newClass.endDate = classData.endDate;
+            }
+            if (classData.days !== undefined) {
+                newClass.days = classData.days;
+            }
+            if (classData.status !== undefined) {
+                newClass.status = classData.status;
+            }
             
             const docRef = await addDoc(collection(db, 'classes'), newClass);
             

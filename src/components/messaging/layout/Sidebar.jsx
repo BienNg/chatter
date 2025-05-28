@@ -6,6 +6,7 @@ import {
   DollarSign, 
   Settings 
 } from 'lucide-react';
+import { useTabPersistence } from '../../../hooks/useTabPersistence';
 
 /**
  * Sidebar - Left navigation bar component
@@ -14,6 +15,7 @@ import {
 export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { getLastMessagingState } = useTabPersistence();
 
   // Determine active section from URL if not explicitly provided
   const currentSection = activeSection || (location.pathname.startsWith('/crm') ? 'crm' : 'messaging');
@@ -25,7 +27,25 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
   };
 
   const handleNavigateToMessaging = () => {
-    navigate('/channels');
+    // Try to restore the last messaging state
+    const lastMessagingState = getLastMessagingState();
+    
+    if (lastMessagingState && lastMessagingState.channelId) {
+      // Restore the complete state: channel + tab + sub-tab
+      const { channelId, tab, subTab } = lastMessagingState;
+      
+      let targetPath = `/channels/${channelId}/${tab}`;
+      
+      // Add sub-tab path if it exists
+      if (subTab && tab === 'classes') {
+        targetPath += `/${subTab}`;
+      }
+      
+      navigate(targetPath);
+    } else {
+      // Fallback to default channels route
+      navigate('/channels');
+    }
   };
 
   const handleNavigateToCRM = () => {

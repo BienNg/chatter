@@ -41,6 +41,10 @@ export const useRouteInfo = () => {
           subTab = pathSegments[3]; // courses or info
         }
         break;
+      case 'import':
+        currentTab = 'import';
+        // Import tab doesn't have sub-navigation yet
+        break;
       case 'wiki':
         currentTab = 'wiki';
         if (pathSegments[3]) {

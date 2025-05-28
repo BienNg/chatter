@@ -19,6 +19,7 @@ import {
   MessagesTab, 
   ClassesTab, 
   WikiTab, 
+  ImportTab,
   EmptyState, 
   LoadingState 
 } from './content';
@@ -244,6 +245,13 @@ const MessagingInterface = () => {
           <WikiTab 
             contentType={contentType}
             contentId={contentId}
+          />
+        );
+
+      case 'import':
+        return (
+          <ImportTab 
+            channelId={channelId}
           />
         );
 

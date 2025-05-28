@@ -116,6 +116,9 @@ function App() {
                                         <Route path="info" element={<MessagingInterface />} />
                                     </Route>
                                     
+                                    {/* Import tab */}
+                                    <Route path="import" element={<MessagingInterface />} />
+                                    
                                     {/* Wiki tab */}
                                     <Route path="wiki" element={<MessagingInterface />} />
                                     <Route path="wiki/:pageId" element={<MessagingInterface />} />

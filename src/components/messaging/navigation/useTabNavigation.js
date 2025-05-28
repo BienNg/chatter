@@ -20,6 +20,11 @@ export const useTabNavigation = (channelId, channels) => {
       baseTabs.splice(1, 0, { id: 'classes', label: 'Classes' });
     }
 
+    // Only show Import tab for channels with type "import"
+    if (channel?.type === 'import') {
+      baseTabs.splice(1, 0, { id: 'import', label: 'Import' });
+    }
+
     return baseTabs;
   };
 
@@ -36,6 +41,9 @@ export const useTabNavigation = (channelId, channels) => {
         break;
       case 'classes':
         navigate(`/channels/${channelId}/classes`);
+        break;
+      case 'import':
+        navigate(`/channels/${channelId}/import`);
         break;
       case 'wiki':
         navigate(`/channels/${channelId}/wiki`);

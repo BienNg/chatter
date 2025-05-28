@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   MessageSquare, 
   Users, 
@@ -10,11 +11,33 @@ import {
  * Sidebar - Left navigation bar component
  * Handles main app navigation and user profile display
  */
-export const Sidebar = ({ userProfile, currentUser, onLogout }) => {
+export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine active section from URL if not explicitly provided
+  const currentSection = activeSection || (location.pathname.startsWith('/crm') ? 'crm' : 'messaging');
+
   const getUserInitial = () => {
     return userProfile?.fullName?.charAt(0) || 
            currentUser?.email?.charAt(0) || 
            'U';
+  };
+
+  const handleNavigateToMessaging = () => {
+    navigate('/channels');
+  };
+
+  const handleNavigateToCRM = () => {
+    navigate('/crm');
+  };
+
+  const getButtonClasses = (section) => {
+    const baseClasses = "w-10 h-10 rounded-lg flex items-center justify-center transition-colors";
+    const activeClasses = "bg-indigo-800 text-white";
+    const inactiveClasses = "hover:bg-indigo-800 text-indigo-300";
+    
+    return `${baseClasses} ${currentSection === section ? activeClasses : inactiveClasses}`;
   };
 
   return (
@@ -26,10 +49,18 @@ export const Sidebar = ({ userProfile, currentUser, onLogout }) => {
 
       {/* Navigation Items */}
       <div className="flex flex-col items-center space-y-4">
-        <button className="w-10 h-10 rounded-lg bg-indigo-800 flex items-center justify-center text-white">
+        <button 
+          onClick={handleNavigateToMessaging}
+          className={getButtonClasses('messaging')}
+          title="Messaging"
+        >
           <MessageSquare className="w-5 h-5" />
         </button>
-        <button className="w-10 h-10 rounded-lg hover:bg-indigo-800 flex items-center justify-center text-indigo-300 transition-colors">
+        <button 
+          onClick={handleNavigateToCRM}
+          className={getButtonClasses('crm')}
+          title="CRM System"
+        >
           <Users className="w-5 h-5" />
         </button>
         <button className="w-10 h-10 rounded-lg hover:bg-indigo-800 flex items-center justify-center text-indigo-300 transition-colors">

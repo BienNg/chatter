@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThreadProvider } from './contexts/ThreadContext';
 import { Login, OnboardingFlow } from './components/auth';
 import { MessagingInterface } from './components/messaging';
+import { CRMInterface } from './components/crm';
 
 
 // Protected Route wrapper component
@@ -125,6 +126,16 @@ function App() {
                                 </Route>
                             </Route>
                         </Route>
+
+                        {/* CRM System Routes */}
+                        <Route
+                            path="/crm"
+                            element={
+                                <ProtectedRoute>
+                                    <CRMInterface />
+                                </ProtectedRoute>
+                            }
+                        />
 
                         {/* Catch all route */}
                         <Route path="*" element={<Navigate to="/" replace />} />

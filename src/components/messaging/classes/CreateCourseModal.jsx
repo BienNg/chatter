@@ -24,14 +24,15 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
   const [form, setForm] = useState({
     className: channelName ? channelName.toUpperCase() : '',
     level: '',
-    format: 'Online',
+    format: '',
+    formatOption: '',
     type: '',
     teachers: [],
     beginDate: '',
     endDate: '',
     days: [],
     sheetUrl: '',
-    totalDays: 30,
+    totalDays: '',
   });
   const [loading, setLoading] = useState(false);
   const [levelDropdown, setLevelDropdown] = useState(false);
@@ -191,28 +192,30 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
       setForm({
         className: extractedClassName,
         level: initialData.level || '',
-        format: initialData.format || 'Online',
+        format: initialData.format || '',
+        formatOption: initialData.formatOption || '',
         type: initialData.classType || '',
         teachers: initialData.teachers || [],
         beginDate: initialData.beginDate || '',
         endDate: initialData.endDate || '',
         days: initialData.days || [],
         sheetUrl: initialData.googleDriveUrl || '',
-        totalDays: initialData.totalDays || 30,
+        totalDays: initialData.totalDays || '',
       });
     } else if (isOpen && !isEditing && !form.className) {
       // Only initialize form if it's completely empty (first time opening)
       setForm({
         className: channelName ? channelName.toUpperCase() : '',
         level: '',
-        format: 'Online',
+        format: '',
+        formatOption: '',
         type: '',
         teachers: [],
         beginDate: '',
         endDate: '',
         days: [],
         sheetUrl: '',
-        totalDays: 30,
+        totalDays: '',
       });
     } else if (isOpen && !isEditing && channelName && form.className !== channelName.toUpperCase()) {
       // Update class name if channel name changed but preserve other selections
@@ -238,6 +241,34 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
       setEndYear(startDate.getFullYear());
     }
   }, [form.beginDate]);
+
+  // Function to calculate total days based on format and level
+  const calculateTotalDays = (format, level) => {
+    if (!format || !level) return '';
+    
+    if (format === 'Offline') {
+      return 20;
+    }
+    
+    if (format === 'Online') {
+      if (level === 'A1.1' || level === 'A1.2') {
+        return 18;
+      }
+      if (level === 'A2.1' || level === 'A2.2' || level === 'B1.1' || level === 'B1.2') {
+        return 20;
+      }
+    }
+    
+    return '';
+  };
+
+  // Update total days when format or level changes
+  React.useEffect(() => {
+    const newTotalDays = calculateTotalDays(form.format, form.level);
+    if (newTotalDays !== form.totalDays) {
+      setForm(prev => ({ ...prev, totalDays: newTotalDays }));
+    }
+  }, [form.format, form.level]);
 
   if (!isOpen) return null;
 
@@ -274,8 +305,18 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
       return;
     }
     
-    // Construct the final course name as "[Class Name] - [Level]"
-    const finalCourseName = `${form.className} - ${form.level}`;
+    if (!form.format.trim()) {
+      alert('Format is required');
+      return;
+    }
+    
+    if (!form.formatOption.trim()) {
+      alert('Location is required');
+      return;
+    }
+    
+    // Construct the final course name as "[Class Name] - [Level] - [Format] - [Location]"
+    const finalCourseName = `${form.className} - ${form.level} - ${form.format} - ${form.formatOption}`;
     
     setLoading(true);
     try {
@@ -287,6 +328,7 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
           className: finalCourseName,
           classType: form.type,
           format: form.format,
+          formatOption: form.formatOption,
           googleDriveUrl: form.sheetUrl,
           teachers: form.teachers,
           level: form.level,
@@ -301,6 +343,7 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
           className: finalCourseName,
           classType: form.type,
           format: form.format,
+          formatOption: form.formatOption,
           googleDriveUrl: form.sheetUrl,
           teachers: form.teachers,
           level: form.level,
@@ -335,7 +378,11 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
   };
 
   const handleLevelSelect = (level) => {
-    setForm((prev) => ({ ...prev, level }));
+    setForm((prev) => ({ 
+      ...prev, 
+      level,
+      totalDays: calculateTotalDays(prev.format, level)
+    }));
     setLevelDropdown(false);
   };
 
@@ -449,16 +496,20 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
     setForm({
       className: channelName ? channelName.toUpperCase() : '',
       level: '',
-      format: 'Online',
+      format: '',
+      formatOption: '',
       type: '',
       teachers: [],
       beginDate: '',
       endDate: '',
       days: [],
       sheetUrl: '',
-      totalDays: 30,
+      totalDays: '',
     });
   };
+
+  // Check if all required fields are filled
+  const isFormValid = form.className.trim() && form.level.trim() && form.format.trim() && form.formatOption.trim();
 
   return (
     <>
@@ -536,33 +587,77 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                   </div>
                 </div>
                 
+                {/* Format */}
+                <div className="flex items-end space-x-6">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Format *</label>
+                    <div className="flex space-x-4">
+                      {FORMATS.map((fmt) => (
+                        <button
+                          type="button"
+                          key={fmt}
+                          className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.format === fmt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                          onClick={() => {
+                            setForm((prev) => ({ 
+                              ...prev, 
+                              format: fmt,
+                              formatOption: '',
+                              totalDays: calculateTotalDays(fmt, prev.level)
+                            }));
+                          }}
+                        >
+                          {fmt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                    <div className="flex space-x-4">
+                      {form.format === 'Online' ? (
+                        <>
+                          {['VN', 'DE'].map((option) => (
+                            <button
+                              type="button"
+                              key={option}
+                              className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.formatOption === option ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                              onClick={() => setForm((prev) => ({ ...prev, formatOption: option }))}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </>
+                      ) : form.format === 'Offline' ? (
+                        <>
+                          {['Hanoi', 'Saigon'].map((option) => (
+                            <button
+                              type="button"
+                              key={option}
+                              className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.formatOption === option ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                              onClick={() => setForm((prev) => ({ ...prev, formatOption: option }))}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="text-sm text-gray-400 py-1.5">Select format first</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
                 {/* Course Name Preview */}
-                {form.className && form.level && (
+                {form.className && form.level && form.format && form.formatOption && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <div className="flex items-center">
                       <div className="text-sm text-blue-700">
-                        <span className="font-medium">Course Name Preview:</span> {form.className} - {form.level}
+                        <span className="font-medium">Course Name Preview:</span> {form.className} - {form.level} - {form.format} - {form.formatOption}
                       </div>
                     </div>
                   </div>
                 )}
-                
-                {/* Format */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
-                  <div className="flex space-x-4">
-                    {FORMATS.map((fmt) => (
-                      <button
-                        type="button"
-                        key={fmt}
-                        className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.format === fmt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                        onClick={() => setForm((prev) => ({ ...prev, format: fmt }))}
-                      >
-                        {fmt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Type - custom dropdown */}
                 <div className="relative" ref={typeRef}>
@@ -718,12 +813,16 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                   {/* Start Date Calendar */}
                   <div className="group">
                     <label className="block text-sm font-semibold text-gray-700 mb-4 flex items-center">
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></div>
+                      <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></div>
                       Start Date
                     </label>
                     
-                    <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 group-hover:border-emerald-200 transition-all duration-300 hover:shadow-lg">
-                      {/* Calendar Header */}
+                    <div className={`bg-white border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg ${
+                      form.beginDate 
+                        ? 'border-indigo-300' 
+                        : 'border-gray-200 group-hover:border-indigo-200'
+                    }`}>
+                      {/* Start Calendar Header */}
                       <div className="flex items-center justify-between mb-4">
                         <button 
                           type="button" 
@@ -764,7 +863,7 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                           <button 
                             key={`prev-${day}`} 
                             type="button" 
-                            className="h-8 flex items-center justify-center text-sm text-gray-300 hover:bg-gray-50 rounded-md transition-colors"
+                            className="h-8 flex items-center justify-center text-sm text-gray-300 rounded-md"
                           >
                             {day}
                           </button>
@@ -789,10 +888,10 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                               }}
                               className={`h-8 flex items-center justify-center text-sm font-medium rounded-md transition-colors ${
                                 isSelected
-                                  ? 'bg-emerald-100 text-emerald-700'
+                                  ? 'bg-indigo-600 text-white'
                                   : isTodayDate
-                                  ? 'bg-gray-50 text-gray-900 border border-gray-200'
-                                  : 'text-gray-700 hover:bg-gray-50'
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                  : 'text-gray-700'
                               }`}
                             >
                               {day}
@@ -805,7 +904,7 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                           <button 
                             key={`next-${day}`} 
                             type="button" 
-                            className="h-8 flex items-center justify-center text-sm text-gray-300 hover:bg-gray-50 rounded-md transition-colors"
+                            className="h-8 flex items-center justify-center text-sm text-gray-300 rounded-md"
                           >
                             {day}
                           </button>
@@ -818,14 +917,14 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                   <div className="group">
                     <label className="block text-sm font-semibold text-gray-700 mb-4 flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-rose-500 rounded-full mr-2"></div>
+                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></div>
                         End Date
                       </div>
                       <button
                         type="button"
-                        disabled={form.days.length === 0}
+                        disabled={!(form.days.length > 0 && form.totalDays && form.beginDate)}
                         className={`text-sm font-medium flex items-center transition-colors ${
-                          form.days.length > 0
+                          (form.days.length > 0 && form.totalDays && form.beginDate)
                             ? 'text-indigo-600 hover:text-indigo-700 cursor-pointer'
                             : 'text-gray-400 cursor-not-allowed'
                         }`}
@@ -837,7 +936,11 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                       </button>
                     </label>
                     
-                    <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 group-hover:border-rose-200 transition-all duration-300 hover:shadow-lg">
+                    <div className={`bg-white border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg ${
+                      form.endDate 
+                        ? 'border-indigo-300' 
+                        : 'border-gray-200 group-hover:border-indigo-200'
+                    }`}>
                       {/* Calendar Header with Generate Button */}
                       <div className="flex items-center justify-between mb-4">
                         <button 
@@ -879,7 +982,7 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                           <button 
                             key={`prev-${day}`} 
                             type="button" 
-                            className="h-8 flex items-center justify-center text-sm text-gray-300 hover:bg-gray-50 rounded-md transition-colors"
+                            className="h-8 flex items-center justify-center text-sm text-gray-300 rounded-md"
                           >
                             {day}
                           </button>
@@ -915,14 +1018,14 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                               }}
                               className={`h-8 flex items-center justify-center text-sm font-medium rounded-md transition-colors ${
                                 isSelected
-                                  ? 'bg-rose-100 text-rose-700'
+                                  ? 'bg-indigo-600 text-white'
                                   : isInRange
-                                  ? 'bg-gray-50 text-gray-700'
+                                  ? 'bg-indigo-50 text-indigo-700'
                                   : isBeforeStart
                                   ? 'text-gray-300 cursor-not-allowed'
                                   : isTodayDate
-                                  ? 'bg-gray-50 text-gray-900 border border-gray-200'
-                                  : 'text-gray-700 hover:bg-gray-50'
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                  : 'text-gray-700'
                               }`}
                             >
                               {day}
@@ -935,7 +1038,7 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
                           <button 
                             key={`next-${day}`} 
                             type="button" 
-                            className="h-8 flex items-center justify-center text-sm text-gray-300 hover:bg-gray-50 rounded-md transition-colors"
+                            className="h-8 flex items-center justify-center text-sm text-gray-300 rounded-md"
                           >
                             {day}
                           </button>
@@ -949,13 +1052,6 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
               {!isEditing && (
                 <button
                   type="button"
@@ -967,8 +1063,12 @@ const CreateCourseModal = ({ isOpen, onClose, onCreate, channelName, channelId, 
               )}
               <button
                 type="submit"
-                disabled={loading}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !isFormValid}
+                className={`px-4 py-2 rounded-lg transition ${
+                  loading || !isFormValid
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
               >
                 {loading 
                   ? (isEditing ? 'Updating...' : 'Creating...') 

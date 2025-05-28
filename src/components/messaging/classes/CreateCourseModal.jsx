@@ -14,11 +14,14 @@ const CreateCourseModal = ({
   initialData = null, 
   isEditing = false 
 }) => {
+  console.log('CreateCourseModal props:', { isOpen, channelName, channelId, isEditing });
+  
   const courseForm = useCourseForm(channelName, channelId, initialData, isEditing, isOpen);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
+    console.log('CreateCourseModal - handleSubmit called with channelId:', channelId);
     courseForm.handleSubmit(e, onCreate, onClose);
   };
 

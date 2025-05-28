@@ -78,6 +78,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Courses collection - for courses linked to classes
+    match /courses/{courseId} {
+      allow read, write: if request.auth != null;
+    }
+    
     // Class Students collection - for student enrollment in classes
     match /classStudents/{enrollmentId} {
       allow read, write: if request.auth != null;

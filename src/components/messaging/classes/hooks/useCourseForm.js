@@ -2,13 +2,18 @@ import { useState, useRef, useEffect } from 'react';
 import { useLevels } from '../../../../hooks/useLevels';
 import { useTypes } from '../../../../hooks/useTypes';
 import { useTeachers } from '../../../../hooks/useTeachers';
+import { useCourses } from '../../../../hooks/useCourses';
 import { useClasses } from '../../../../hooks/useClasses';
 
 export const useCourseForm = (channelName, channelId, initialData, isEditing, isOpen) => {
   const { levels, addLevel } = useLevels();
   const { types, addType } = useTypes();
   const { teachers, addTeacher } = useTeachers();
-  const { createClass, updateClass } = useClasses();
+  const { createCourse, updateCourse } = useCourses();
+  const { getClassByChannelId } = useClasses();
+
+  // State to store the classId
+  const [classId, setClassId] = useState(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -241,9 +246,36 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
   const handleSubmit = async (e, onCreate, onClose) => {
     e.preventDefault();
     
-    if (!channelId) {
-      console.error('No channel ID provided');
-      return;
+    console.log('Form submission - channelId:', channelId, 'classId:', classId);
+    
+    if (!classId) {
+      console.error('No class ID available - make sure this channel has a class linked to it');
+      console.log('Current channelId:', channelId);
+      console.log('Current classId:', classId);
+      
+      // Try to fetch the class again before failing
+      if (channelId) {
+        console.log('Attempting to fetch class data again...');
+        try {
+          const classData = await getClassByChannelId(channelId);
+          console.log('Retry - Class data retrieved:', classData);
+          if (classData) {
+            setClassId(classData.id);
+            console.log('Retry - Class ID set to:', classData.id);
+            // Continue with the submission using the newly found classId
+          } else {
+            alert('No class found for this channel. Please ensure this channel is set up as a class.');
+            return;
+          }
+        } catch (error) {
+          console.error('Retry failed - Error fetching class data:', error);
+          alert('Error finding class for this channel. Please try again.');
+          return;
+        }
+      } else {
+        alert('No channel ID available. Please try again.');
+        return;
+      }
     }
     
     // Validate required fields
@@ -273,12 +305,17 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     setLoading(true);
     try {
       let result;
+      const currentClassId = classId || (await getClassByChannelId(channelId))?.id;
+      
+      if (!currentClassId) {
+        throw new Error('Unable to find class ID for this channel');
+      }
       
       if (isEditing && initialData) {
         // Update existing course
-        await updateClass(initialData.id, {
-          className: finalCourseName,
-          classType: form.type,
+        await updateCourse(initialData.id, {
+          courseName: finalCourseName,
+          courseType: form.type,
           format: form.format,
           formatOption: form.formatOption,
           googleDriveUrl: form.sheetUrl,
@@ -292,8 +329,8 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
         
         result = {
           ...initialData,
-          className: finalCourseName,
-          classType: form.type,
+          courseName: finalCourseName,
+          courseType: form.type,
           format: form.format,
           formatOption: form.formatOption,
           googleDriveUrl: form.sheetUrl,
@@ -310,7 +347,8 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           ...form,
           className: finalCourseName
         };
-        result = await createClass(courseData, channelId);
+        console.log('Creating course with classId:', currentClassId);
+        result = await createCourse(courseData, currentClassId);
       }
       
       if (onCreate) {
@@ -321,6 +359,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
       
     } catch (error) {
       console.error('Error saving course:', error);
+      alert('Error saving course: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -350,7 +389,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
   // Populate form with initial data when editing
   useEffect(() => {
     if (isOpen && isEditing && initialData) {
-      let extractedClassName = initialData.className || '';
+      let extractedClassName = initialData.courseName || initialData.className || '';
       if (initialData.level && extractedClassName.includes(` - ${initialData.level}`)) {
         extractedClassName = extractedClassName.replace(` - ${initialData.level}`, '');
       }
@@ -360,7 +399,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
         level: initialData.level || '',
         format: initialData.format || '',
         formatOption: initialData.formatOption || '',
-        type: initialData.classType || '',
+        type: initialData.courseType || initialData.classType || '',
         teachers: initialData.teachers || [],
         beginDate: initialData.beginDate || '',
         endDate: initialData.endDate || '',
@@ -422,6 +461,34 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
       setForm(prev => ({ ...prev, totalDays: newTotalDays }));
     }
   }, [form.format, form.level]);
+
+  // Get classId when component mounts or channelId changes
+  useEffect(() => {
+    const fetchClassId = async () => {
+      if (channelId) {
+        console.log('Fetching class for channelId:', channelId);
+        try {
+          const classData = await getClassByChannelId(channelId);
+          console.log('Class data retrieved:', classData);
+          if (classData) {
+            setClassId(classData.id);
+            console.log('Class ID set to:', classData.id);
+          } else {
+            console.error('No class found for this channel:', channelId);
+            setClassId(null);
+          }
+        } catch (error) {
+          console.error('Error fetching class data:', error);
+          setClassId(null);
+        }
+      } else {
+        console.log('No channelId provided');
+        setClassId(null);
+      }
+    };
+
+    fetchClassId();
+  }, [channelId, getClassByChannelId]);
 
   // Check if all required fields are filled
   const isFormValid = form.className.trim() && form.level.trim() && form.format.trim() && form.formatOption.trim();

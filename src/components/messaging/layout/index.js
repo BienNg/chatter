@@ -5,5 +5,4 @@ export { ChannelSidebar } from './ChannelSidebar';
 export { ChannelList } from './ChannelList';
 export { DirectMessages } from './DirectMessages';
 export { MainContent } from './MainContent';
-export { ResizeHandle } from './ResizeHandle';
-export { ThreadResizeHandle } from './ThreadResizeHandle'; 
+export { ResizeHandle } from './ResizeHandle'; 

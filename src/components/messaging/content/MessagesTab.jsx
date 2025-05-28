@@ -5,11 +5,10 @@ import { MessageComposition } from '../composition';
 import { ThreadView } from '../thread';
 import ChannelToolbar from '../ChannelToolbar';
 import ErrorBoundary from '../ErrorBoundary';
-import { useResizableThread } from '../../../hooks/useResizableThread';
 
 /**
  * MessagesTab - Messages tab content component
- * Handles message display, composition, and thread management with resizable thread panel
+ * Handles message display, composition, and thread management
  */
 export const MessagesTab = ({
   channelId,
@@ -35,13 +34,6 @@ export const MessagesTab = ({
   // Channel info
   activeChannel
 }) => {
-  // Resizable thread functionality
-  const {
-    threadWidth,
-    isResizing,
-    handleMouseDown
-  } = useResizableThread(384, 300, 600);
-
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Channel Toolbar */}
@@ -52,12 +44,7 @@ export const MessagesTab = ({
       />
       
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        <div 
-          className="flex flex-col min-h-0 transition-all duration-300 ease-in-out"
-          style={{ 
-            width: activeThread ? `calc(100% - ${threadWidth}px)` : '100%'
-          }}
-        >
+        <div className={`flex-1 flex flex-col min-h-0 ${activeThread ? 'mr-96' : ''}`}>
           {/* Message List */}
           <div className="flex-1 min-h-0 overflow-hidden">
             {messages.length === 0 ? (
@@ -108,9 +95,6 @@ export const MessagesTab = ({
             onClose={onCloseThread}
             channelId={channelId}
             isOpen={true}
-            width={threadWidth}
-            onResizeStart={handleMouseDown}
-            isResizing={isResizing}
           />
         )}
       </div>

@@ -6,6 +6,7 @@ import MessageComposition from '../composition/MessageComposition';
 import MessageReactions from '../MessageReactions';
 import ReactionDetailsModal from '../ReactionDetailsModal';
 import { useMessageReactions } from '../../../hooks/useMessageReactions';
+import DOMPurify from 'dompurify';
 
 const ThreadView = ({ message, isOpen, onClose, channelId }) => {
     const [reactionModal, setReactionModal] = useState({ isOpen: false, messageId: null, reactions: [] });
@@ -185,7 +186,19 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                                 </span>
                             </div>
                             <div className="text-sm text-gray-700 leading-relaxed text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
-                                {msg.content}
+                                {msg.content?.includes('<') && msg.content?.includes('>') ? (
+                                    <div
+                                        dangerouslySetInnerHTML={{
+                                            __html: DOMPurify.sanitize(msg.content, {
+                                                ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a'],
+                                                ALLOWED_ATTR: ['href', 'target', 'rel'],
+                                                ALLOW_DATA_ATTR: false
+                                            })
+                                        }}
+                                    />
+                                ) : (
+                                    msg.content
+                                )}
                             </div>
 
                             {/* Message Reactions */}

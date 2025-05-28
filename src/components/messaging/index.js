@@ -7,6 +7,7 @@ export { default as DeleteMessageModal } from './DeleteMessageModal';
 export { default as UndoDeleteToast } from './UndoDeleteToast';
 export { default as BidirectionalLinkingDemo } from './BidirectionalLinkingDemo';
 export { default as ChannelToolbar } from './ChannelToolbar';
+export { default as CreateClassModal } from './classes/CreateClassModal';
 
 // Task components (re-exported from tasks directory)
 export { TaskTab } from './tasks'; 

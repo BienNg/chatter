@@ -30,6 +30,7 @@ import ErrorBoundary from './ErrorBoundary';
 import { TaskTab } from './tasks';
 import ChannelAboutModal from './channel/ChannelAboutModal';
 import ChannelToolbar from './ChannelToolbar';
+import { CreateClassModal } from './';
 
 
 // Helper function to extract tab and content info from URL
@@ -283,6 +284,9 @@ const MessagingInterface = () => {
         setShowChannelAbout(false);
     };
 
+    // Add state for CreateClassModal
+    const [showCreateClass, setShowCreateClass] = useState(false);
+
     if (channelsLoading) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
@@ -456,6 +460,8 @@ const MessagingInterface = () => {
                 );
 
             case 'classes':
+                // TODO: Replace with real classes data
+                const classes = [];
                 return (
                     <div className="flex-1 flex flex-col">
                         {/* Classes Sub-tabs */}
@@ -476,11 +482,33 @@ const MessagingInterface = () => {
                         </div>
 
                         {/* Classes Content */}
-                        <div className="flex-1 flex items-center justify-center text-gray-500">
-                            <div className="text-center">
-                                <p className="text-lg font-medium">Classes - {subTab || 'courses'}</p>
-                                <p className="text-sm">Coming soon...</p>
-                            </div>
+                        <div className="flex-1 flex items-center justify-center bg-white">
+                            {classes.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center text-center p-8">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                        <Users className="h-8 w-8 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Classes Created</h3>
+                                    <p className="text-gray-500 mb-6 max-w-md">
+                                        Start by creating your first class. You can add students, schedule sessions, and manage course materials.
+                                    </p>
+                                    <button
+                                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                                        onClick={() => setShowCreateClass(true)}
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create New Class
+                                    </button>
+                                    <CreateClassModal
+                                        isOpen={showCreateClass}
+                                        onClose={() => setShowCreateClass(false)}
+                                        onCreate={() => setShowCreateClass(false)}
+                                        channelName={activeChannel?.name}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-500">Classes list goes here</div>
+                            )}
                         </div>
                     </div>
                 );

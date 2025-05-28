@@ -167,7 +167,7 @@ export const useClasses = (channelId = null) => {
     };
 
     // Get class by channel ID
-    const getClassByChannelId = async (channelId) => {
+    const getClassByChannelId = useCallback(async (channelId) => {
         try {
             const classQuery = query(
                 collection(db, 'classes'),
@@ -190,7 +190,7 @@ export const useClasses = (channelId = null) => {
             console.error('Error getting class by channel ID:', err);
             return null;
         }
-    };
+    }, []);
 
     // Query classes by various filters
     const queryClasses = async (filters = {}) => {

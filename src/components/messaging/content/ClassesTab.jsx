@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Plus } from 'lucide-react';
 import CreateCourseModal from '../classes/CreateCourseModal';
-import ClassView from '../classes/ClassView';
+import ClassDetailsView from '../classes/ClassDetailsView';
 
 /**
  * ClassesTab - Classes tab content component
@@ -36,38 +36,21 @@ export const ClassesTab = ({
     switch (currentSubTab) {
       case 'info':
         return (
-          <div className="p-6">
-            <ClassView 
-              channelId={channelId} 
-              channelName={activeChannel?.name}
-            />
+          <div className="flex-1 flex items-center justify-center bg-white">
+            <div className="text-center text-gray-500">
+              <p>Info tab content coming soon...</p>
+            </div>
           </div>
         );
       
       case 'courses':
       default:
         return (
-          <div className="flex-1 flex items-center justify-center bg-white">
-            {courses.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center p-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Users className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Courses Created</h3>
-                <p className="text-gray-500 mb-6 max-w-md">
-                  Start by creating your first course. You can add students, schedule sessions, and manage course materials.
-                </p>
-                <button
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-                  onClick={() => setShowCreateCourse(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create New Course
-                </button>
-              </div>
-            ) : (
-              <div className="text-center text-gray-500">Courses list goes here</div>
-            )}
+          <div className="h-full">
+            <ClassDetailsView 
+              channelId={channelId} 
+              channelName={activeChannel?.name}
+            />
           </div>
         );
     }

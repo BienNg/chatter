@@ -83,9 +83,21 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
-    // Class Students collection - for student enrollment in classes
+    // Class Students collection - for student enrollment in classes (legacy)
     match /classStudents/{enrollmentId} {
       allow read, write: if request.auth != null;
+    }
+    
+    // Enrollments collection - new enrollment system
+    match /enrollments/{enrollmentId} {
+      // Allow authenticated users to read all enrollments
+      allow read: if request.auth != null;
+      // Allow authenticated users to create enrollments
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy;
+      // Allow users to update enrollments they created
+      allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      // Allow users to delete enrollments they created
+      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
     }
     
     // Student Management System Collections

@@ -21,14 +21,17 @@ import {
   TrendingUp,
   Trash2,
   ChevronLeft,
-  ChevronDown
+  ChevronDown,
+  ArrowRight
 } from 'lucide-react';
 import { useClasses } from '../../../hooks/useClasses';
 import { useClassStudents } from '../../../hooks/useClassStudents';
 import { useCourses } from '../../../hooks/useCourses';
+import { useEnrollments } from '../../../hooks/useEnrollments';
 import CreateCourseModal from '../classes/CreateCourseModal';
 import AddStudentToClassModal from '../classes/AddStudentToClassModal';
 import ClassDetailsView from '../classes/ClassDetailsView';
+import { StudentSelector } from '../classes/components';
 
 /**
  * ClassesTab - Classes tab content component
@@ -60,138 +63,15 @@ export const ClassesTab = ({
   // Use the courses hook
   const { courses, loading: coursesLoading, createCourse, deleteCourse, updateCourse, refetch: refetchCourses } = useCourses(classData?.id);
 
-  // Mock student data for the class
-  const mockClassStudents = [
-    {
-      id: 'stu1',
-      name: 'Anh Kiệt',
-      email: 'kietbui1612@gmail.com',
-      avatar: 'AK',
-      avatarColor: 'bg-blue-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-05',
-      status: 'active',
-      progress: 85,
-      attendance: 92,
-      lastActivity: '2 hours ago'
-    },
-    {
-      id: 'stu2', 
-      name: 'Minh Thư',
-      email: 'thunguyen98@gmail.com',
-      avatar: 'MT',
-      avatarColor: 'bg-purple-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-04',
-      status: 'active',
-      progress: 78,
-      attendance: 88,
-      lastActivity: '1 day ago'
-    },
-    {
-      id: 'stu3',
-      name: 'Hoàng Long',
-      email: 'longhoang2000@gmail.com', 
-      avatar: 'HL',
-      avatarColor: 'bg-green-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-04',
-      status: 'active',
-      progress: 92,
-      attendance: 95,
-      lastActivity: '3 hours ago'
-    },
-    {
-      id: 'stu4',
-      name: 'Thanh Hà',
-      email: 'hale123@gmail.com',
-      avatar: 'TH',
-      avatarColor: 'bg-emerald-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-03',
-      status: 'active',
-      progress: 67,
-      attendance: 82,
-      lastActivity: '5 hours ago'
-    },
-    {
-      id: 'stu5',
-      name: 'Đức Anh',
-      email: 'anhdo555@gmail.com',
-      avatar: 'DA',
-      avatarColor: 'bg-blue-600',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-03',
-      status: 'active',
-      progress: 73,
-      attendance: 90,
-      lastActivity: '1 day ago'
-    },
-    {
-      id: 'stu6',
-      name: 'Mai Linh',
-      email: 'linhmai2002@gmail.com',
-      avatar: 'ML',
-      avatarColor: 'bg-pink-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-02',
-      status: 'active',
-      progress: 89,
-      attendance: 94,
-      lastActivity: '4 hours ago'
-    },
-    {
-      id: 'stu7',
-      name: 'Quang Minh',
-      email: 'minhquang99@gmail.com',
-      avatar: 'QM',
-      avatarColor: 'bg-yellow-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-02',
-      status: 'active',
-      progress: 81,
-      attendance: 87,
-      lastActivity: '6 hours ago'
-    },
-    {
-      id: 'stu8',
-      name: 'Thu Trang',
-      email: 'trangnt24@gmail.com',
-      avatar: 'TT',
-      avatarColor: 'bg-red-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-01',
-      status: 'active',
-      progress: 76,
-      attendance: 85,
-      lastActivity: '2 days ago'
-    },
-    {
-      id: 'stu9',
-      name: 'Văn Nam',
-      email: 'namvan2001@gmail.com',
-      avatar: 'VN',
-      avatarColor: 'bg-orange-500',
-      amount: 5900000,
-      currency: 'VND',
-      enrollmentDate: '2025-03-01',
-      status: 'active',
-      progress: 84,
-      attendance: 91,
-      lastActivity: '8 hours ago'
-    }
-  ];
+  // Use the new enrollments hook
+  const { 
+    enrollStudent: enrollStudentInCourse, 
+    getCourseEnrollments,
+    getClassEnrollments 
+  } = useEnrollments();
 
-  // Use real students if available, otherwise use mock data for demo
-  const displayStudents = classStudents.length > 0 ? classStudents : mockClassStudents;
+  // Use only real students from the collection
+  const displayStudents = classStudents;
 
   useEffect(() => {
     const loadClassData = async () => {
@@ -222,6 +102,33 @@ export const ClassesTab = ({
       setShowAddStudentModal(false);
     } catch (error) {
       console.error('Error adding student:', error);
+    }
+  };
+
+  const handleSelectExistingStudent = async (enrollmentData, courseId) => {
+    try {
+      // Use the new enrollment system
+      await enrollStudentInCourse({
+        ...enrollmentData,
+        courseId: courseId,
+        classId: classData?.id,
+        courseName: courses.find(c => c.id === courseId)?.courseName || '',
+        courseLevel: courses.find(c => c.id === courseId)?.level || '',
+        className: classData?.className || ''
+      });
+      
+      console.log('Student enrolled successfully in course:', enrollmentData.studentName);
+    } catch (error) {
+      console.error('Error enrolling student in course:', error);
+      
+      // Check if it's a duplicate student error
+      if (error.message.includes('already enrolled')) {
+        console.warn('Student is already enrolled in this course');
+        return;
+      }
+      
+      // Show error message to user for other types of errors
+      alert('Error enrolling student: ' + error.message);
     }
   };
 
@@ -285,10 +192,35 @@ export const ClassesTab = ({
     return 'bg-red-500';
   };
 
+  // Determine course status based on dates
+  const getCourseStatus = (course) => {
+    if (!course.beginDate || !course.endDate) {
+      return 'planning'; // Default to planning if dates are missing
+    }
+
+    const currentDate = new Date();
+    const startDate = new Date(course.beginDate);
+    const endDate = new Date(course.endDate);
+    
+    // Set time to start of day for accurate comparison
+    currentDate.setHours(0, 0, 0, 0);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    if (currentDate < startDate) {
+      return 'planning'; // Before start date
+    } else if (currentDate >= startDate && currentDate <= endDate) {
+      return 'active'; // Between start and end date (inclusive)
+    } else {
+      return 'completed'; // After end date
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Active' },
-      pending: { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Pending' },
+      planning: { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Planning' },
+      completed: { bg: 'bg-gray-50', text: 'text-gray-700', label: 'Completed' },
       inactive: { bg: 'bg-gray-50', text: 'text-gray-700', label: 'Inactive' },
       archived: { bg: 'bg-gray-50', text: 'text-gray-700', label: 'Archived' }
     };
@@ -310,12 +242,19 @@ export const ClassesTab = ({
         icon: '●',
         iconColor: 'text-emerald-500'
       },
-      pending: { 
+      planning: { 
         bg: 'bg-gradient-to-r from-yellow-100 to-orange-100', 
         text: 'text-yellow-700', 
-        label: 'Pending',
+        label: 'Planning',
         icon: '◐',
         iconColor: 'text-yellow-500'
+      },
+      completed: { 
+        bg: 'bg-gradient-to-r from-gray-100 to-slate-100', 
+        text: 'text-gray-700', 
+        label: 'Completed',
+        icon: '◻',
+        iconColor: 'text-gray-500'
       },
       inactive: { 
         bg: 'bg-gradient-to-r from-gray-100 to-slate-100', 
@@ -480,7 +419,7 @@ export const ClassesTab = ({
                           </div>
                           
                           <div className="flex items-center space-x-2">
-                            {getStatusBadgeEnhanced(course.status || 'active')}
+                            {getStatusBadgeEnhanced(getCourseStatus(course))}
                           </div>
                         </div>
                       </div>
@@ -527,12 +466,15 @@ export const ClassesTab = ({
                               Duration
                             </span>
                           </div>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex-1">
                               <span className="text-xs text-gray-500 block">Start Date</span>
                               <span className="font-semibold text-gray-900">{formatDate(course.beginDate).replace(',', '')}</span>
                             </div>
-                            <div>
+                            <div className="flex items-center justify-center px-3">
+                              <ArrowRight className="w-6 h-6 text-gray-400" />
+                            </div>
+                            <div className="flex-1 text-right">
                               <span className="text-xs text-gray-500 block">End Date</span>
                               <span className="font-semibold text-gray-900">{formatDate(course.endDate).replace(',', '')}</span>
                             </div>
@@ -565,94 +507,87 @@ export const ClassesTab = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 border border-gray-200">
                           <Users className="w-4 h-4 text-gray-500" />
-                          <span className="font-medium text-gray-700">{displayStudents.length} student{displayStudents.length !== 1 ? 's' : ''} enrolled</span>
+                          <span className="font-medium text-gray-700">{getCourseEnrollments(course.id).length} student{getCourseEnrollments(course.id).length !== 1 ? 's' : ''} enrolled</span>
                         </div>
-                        
-                        <button
-                          onClick={() => setShowAddStudentModal(true)}
-                          className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                        >
-                          <Plus className="h-4 w-4 mr-1.5" />
-                          Add Student
-                        </button>
                       </div>
                     </div>
-                    
-                    {/* Enhanced Student Table */}
-                    <div className="bg-white flex-1 overflow-y-auto">
-                      <div className="divide-y divide-gray-100">
-                        {displayStudents.filter(student =>
-                          student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-                        ).map((student, studentIndex) => (
-                          <div key={student.id} className="group hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all duration-200 px-8 py-6">
-                            <div className="flex items-center justify-between">
-                              {/* Student Info */}
-                              <div className="flex items-center space-x-4 flex-1">
-                                {/* Enhanced Avatar */}
-                                <div className="relative">
-                                  <div className={`w-12 h-12 ${student.avatarColor} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-200`}>
-                                    <span className="text-sm font-bold text-white">{student.avatar}</span>
-                                  </div>
-                                  {/* Online Status Indicator */}
-                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 border-2 border-white rounded-full"></div>
-                                </div>
-                                
-                                {/* Student Details */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center space-x-3 mb-1">
-                                    <h4 className="text-base font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors duration-200">
-                                      {student.name}
-                                    </h4>
-                                  </div>
-                                  <div className="text-sm text-gray-500 mb-2">{student.email}</div>
-                                </div>
-                              </div>
 
-                              {/* Payment & Actions */}
-                              <div className="flex items-center space-x-6">
-                                {/* Payment Info */}
-                                <div className="text-right">
-                                  <div className="text-lg font-bold text-gray-900">
-                                    {new Intl.NumberFormat('vi-VN').format(student.amount)} <span className="text-xs text-gray-500 font-normal">VND</span>
-                                  </div>
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    {formatDate(student.enrollmentDate)}
-                                  </div>
-                                </div>
-                                
-                                {/* Action Button */}
-                                <button className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100">
-                                  <ChevronRight className="w-5 h-5" />
-                                </button>
-                              </div>
-                            </div>
+                    {/* Students Content */}
+                    <div className="flex-1 overflow-y-auto p-8">
+                      <div className="space-y-6">
+                        {/* Student Selector Section */}
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-lg font-semibold text-gray-900">Enroll Students</h4>
+                            <span className="text-sm text-gray-500">
+                              {getCourseEnrollments(course.id).length} enrolled
+                            </span>
                           </div>
-                        ))}
-                      </div>
-
-                      {/* Enhanced Empty State */}
-                      {displayStudents.filter(student =>
-                        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-                      ).length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-16 px-8">
-                          <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl flex items-center justify-center mb-6">
-                            <Users className="w-10 h-10 text-indigo-500" />
-                          </div>
-                          <h4 className="text-xl font-semibold text-gray-900 mb-2">No Students Yet</h4>
-                          <p className="text-gray-500 text-center mb-8 max-w-sm leading-relaxed">
-                            This course is ready for students! Add your first student to get started with this amazing learning journey.
-                          </p>
-                          <button 
-                            onClick={() => setShowAddStudentModal(true)}
-                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                          >
-                            <Plus className="w-5 h-5 mr-2" />
-                            Add First Student
-                          </button>
+                          
+                          <StudentSelector
+                            onSelectStudent={(enrollmentData) => handleSelectExistingStudent(enrollmentData, course.id)}
+                            className="w-full"
+                            courseId={course.id}
+                            courseName={course.courseName}
+                            courseLevel={course.level}
+                            classId={classData?.id}
+                            enrolledStudents={getCourseEnrollments(course.id)}
+                          />
                         </div>
-                      )}
+
+                        {/* Enrolled Students List */}
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Enrolled Students</h4>
+                          {getCourseEnrollments(course.id).length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                              <p className="text-sm">No students enrolled in this course yet.</p>
+                              <p className="text-xs text-gray-400 mt-1">Use the search above to add students.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {getCourseEnrollments(course.id).map((enrollment) => (
+                                <div key={enrollment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                  <div className="flex items-center space-x-3">
+                                    <div 
+                                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                                      style={{ 
+                                        backgroundColor: typeof enrollment.avatarColor === 'object' 
+                                          ? undefined 
+                                          : enrollment.avatarColor,
+                                        background: typeof enrollment.avatarColor === 'object' 
+                                          ? enrollment.avatarColor.background 
+                                          : undefined
+                                      }}
+                                    >
+                                      {enrollment.avatar || enrollment.studentName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-900">{enrollment.studentName}</p>
+                                      <p className="text-xs text-gray-500">{enrollment.studentEmail}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-3">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                      enrollment.status === 'active' ? 'bg-green-100 text-green-800' :
+                                      enrollment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                      enrollment.status === 'dropped' ? 'bg-red-100 text-red-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {enrollment.status}
+                                    </span>
+                                    {enrollment.progress > 0 && (
+                                      <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                                        {enrollment.progress}% progress
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -750,7 +685,7 @@ export const ClassesTab = ({
                         <Award className="w-4 h-4 text-gray-400" />
                       </div>
                       <p className="text-sm font-semibold text-gray-900">
-                        {courses.filter(c => c.status === 'active').length}
+                        {courses.filter(c => getCourseStatus(c) === 'active').length}
                       </p>
                     </div>
                     
@@ -862,7 +797,7 @@ export const ClassesTab = ({
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Status</h3>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    {getStatusBadge(classData.status || 'active')}
+                    {getStatusBadge(getCourseStatus(classData))}
                   </div>
                 </div>
               </div>
@@ -887,7 +822,15 @@ export const ClassesTab = ({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Active Courses:</span>
-                        <span className="text-sm font-medium text-gray-900">{courses.filter(c => c.status === 'active').length}</span>
+                        <span className="text-sm font-medium text-emerald-700">{courses.filter(c => getCourseStatus(c) === 'active').length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Planning Courses:</span>
+                        <span className="text-sm font-medium text-yellow-700">{courses.filter(c => getCourseStatus(c) === 'planning').length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Completed Courses:</span>
+                        <span className="text-sm font-medium text-gray-700">{courses.filter(c => getCourseStatus(c) === 'completed').length}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Course Levels:</span>

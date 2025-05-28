@@ -23,11 +23,16 @@ export function useStudents() {
       setError(null);
       const q = query(collection(db, 'students'), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
-      const studentsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || new Date()
-      }));
+      const studentsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Ensure studentId exists for enrollment compatibility
+          studentId: data.studentId || doc.id,
+          createdAt: data.createdAt?.toDate?.() || new Date()
+        };
+      });
       setStudents(studentsData);
     } catch (err) {
       console.error('Error fetching students:', err);
@@ -57,20 +62,31 @@ export function useStudents() {
 
       const newStudent = {
         ...studentData,
+        // Ensure we have a studentId field for enrollment compatibility
+        // If not provided, we'll use the document ID after creation
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
       const docRef = await addDoc(collection(db, 'students'), newStudent);
       
-      // Add the new student to local state immediately for better UX
+      // Update the document with the studentId field set to the document ID
+      // This ensures compatibility with the enrollment system
       const studentWithId = {
         ...newStudent,
         id: docRef.id,
+        studentId: docRef.id, // Use document ID as studentId for consistency
         createdAt: new Date(),
         updatedAt: new Date()
       };
       
+      // Update the document in Firestore to include the studentId field
+      await updateDoc(doc(db, 'students', docRef.id), { 
+        studentId: docRef.id,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Add the new student to local state immediately for better UX
       setStudents(prev => [studentWithId, ...prev]);
       
       return docRef.id;

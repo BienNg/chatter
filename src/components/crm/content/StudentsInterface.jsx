@@ -6,6 +6,7 @@ import { useFunnelSteps } from '../../../hooks/useFunnelSteps';
 import { useCourseInterests } from '../../../hooks/useCourseInterests';
 import { usePlatforms } from '../../../hooks/usePlatforms';
 import { useCountries } from '../../../hooks/useCountries';
+import { useEnrollments } from '../../../hooks/useEnrollments';
 
 const StudentsInterface = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +24,7 @@ const StudentsInterface = () => {
   const { courseInterests } = useCourseInterests();
   const { platforms } = usePlatforms();
   const { countries } = useCountries();
+  const { getStudentEnrollments } = useEnrollments();
 
   // Filter options
   const filterOptions = {
@@ -88,29 +90,40 @@ const StudentsInterface = () => {
     return styles[platform] || 'bg-gray-50 text-gray-700';
   };
 
-  const renderCourses = (courses) => {
-    if (!courses || courses.length === 0) {
-      return <span className="text-gray-400 text-sm">No courses</span>;
+  const renderCourses = (student) => {
+    // Get enrollments for this student using the new enrollment system
+    const enrollments = getStudentEnrollments(student.studentId || student.id);
+    
+    if (!enrollments || enrollments.length === 0) {
+      return <span className="text-gray-400 text-sm">No enrollments</span>;
     }
 
-    if (courses.length === 1) {
+    if (enrollments.length === 1) {
+      const enrollment = enrollments[0];
       return (
-        <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-indigo-50 text-indigo-700">
-          {courses[0]}
-        </span>
+        <div className="flex flex-col space-y-1">
+          <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-indigo-50 text-indigo-700 w-fit">
+            {enrollment.courseName || enrollment.className || 'Course'}
+          </span>
+          <span className="text-xs text-gray-500">
+            {enrollment.status === 'active' ? 'Active' : enrollment.status}
+            {enrollment.progress && ` • ${enrollment.progress}%`}
+          </span>
+        </div>
       );
     }
 
     return (
       <div className="flex flex-col space-y-1">
         <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-indigo-50 text-indigo-700 w-fit">
-          {courses[0]}
+          {enrollments[0].courseName || enrollments[0].className || 'Course'}
         </span>
-        {courses.length > 1 && (
-          <span className="text-xs text-gray-500">
-            +{courses.length - 1} more
-          </span>
-        )}
+        <span className="text-xs text-gray-500">
+          +{enrollments.length - 1} more courses
+        </span>
+        <span className="text-xs text-gray-500">
+          {enrollments.filter(e => e.status === 'active').length} active
+        </span>
       </div>
     );
   };
@@ -242,7 +255,7 @@ const StudentsInterface = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funnel Step</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Courses</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollments</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -253,7 +266,14 @@ const StudentsInterface = () => {
                   <div className="flex items-center">
                     <div 
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm"
-                      style={{ backgroundColor: student.avatarColor }}
+                      style={{ 
+                        backgroundColor: typeof student.avatarColor === 'object' 
+                          ? undefined 
+                          : student.avatarColor,
+                        background: typeof student.avatarColor === 'object' 
+                          ? student.avatarColor.background 
+                          : undefined
+                      }}
                     >
                       {student.avatar}
                     </div>
@@ -285,7 +305,7 @@ const StudentsInterface = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {renderCourses(student.courses)}
+                  {renderCourses(student)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>

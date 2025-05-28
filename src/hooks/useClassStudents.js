@@ -69,23 +69,52 @@ export const useClassStudents = (classId = null) => {
     try {
       setError(null);
       
-      // Check if student is already enrolled
-      const existingEnrollment = classStudents.find(
-        student => student.email.toLowerCase() === studentData.email.toLowerCase()
-      );
+      // Only check for email duplicates if email is provided and not empty
+      let existingByEmail = null;
+      if (studentData.email && studentData.email.trim() !== '') {
+        existingByEmail = classStudents.find(
+          student => student.email?.toLowerCase() === studentData.email.toLowerCase()
+        );
+      }
       
-      if (existingEnrollment) {
-        throw new Error('Student is already enrolled in this class');
+      // Check if student is already enrolled by studentId (if provided)
+      const existingByStudentId = studentData.studentId ? classStudents.find(
+        student => student.studentId === studentData.studentId
+      ) : null;
+      
+      if (existingByEmail) {
+        throw new Error(`Student with email "${studentData.email}" is already enrolled in this class`);
+      }
+      
+      if (existingByStudentId) {
+        throw new Error(`Student is already enrolled in this class (ID: ${studentData.studentId})`);
       }
       
       const timestamp = serverTimestamp();
+      
+      // Generate a better avatar color based on the student's name using inline styles
+      const avatarColors = [
+        { background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }, // indigo to purple
+        { background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)' }, // blue to cyan
+        { background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }, // green to emerald
+        { background: 'linear-gradient(135deg, #eab308 0%, #f97316 100%)' }, // yellow to orange
+        { background: 'linear-gradient(135deg, #ef4444 0%, #ec4899 100%)' }, // red to pink
+        { background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }, // purple to indigo
+        { background: 'linear-gradient(135deg, #14b8a6 0%, #3b82f6 100%)' }, // teal to blue
+        { background: 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)' }  // orange to red
+      ];
+      
+      // Generate color based on name hash for consistency
+      const nameHash = studentData.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const selectedColor = avatarColors[nameHash % avatarColors.length];
+      
       const newEnrollment = {
         classId,
         studentId: studentData.studentId || null, // Reference to students collection if exists
         name: studentData.name,
-        email: studentData.email,
+        email: studentData.email || '', // Ensure email is never undefined
         avatar: studentData.avatar || studentData.name.split(' ').map(n => n[0]).join('').toUpperCase(),
-        avatarColor: studentData.avatarColor || 'bg-blue-500',
+        avatarColor: studentData.avatarColor || selectedColor,
         amount: studentData.amount || 0,
         currency: studentData.currency || 'USD',
         enrollmentDate: timestamp,
@@ -115,7 +144,12 @@ export const useClassStudents = (classId = null) => {
       return docRef.id;
     } catch (err) {
       console.error('Error enrolling student:', err);
-      setError(err.message || 'Failed to enroll student');
+      
+      // Don't set error state for duplicate enrollment errors as they're handled gracefully in the UI
+      if (!err.message.includes('already enrolled')) {
+        setError(err.message || 'Failed to enroll student');
+      }
+      
       throw err;
     }
   };

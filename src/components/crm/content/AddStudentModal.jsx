@@ -15,7 +15,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     phone: '',
     location: '',
     city: '',
-    funnelStep: 'Lead',
+    funnelStep: '',
     interest: [],
     platform: [],
     courses: [],
@@ -93,14 +93,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     }
 
     // City is now optional - no validation needed
-
-    if (!formData.interest || formData.interest.length === 0) {
-      newErrors.interest = 'At least one course interest is required';
-    }
-
-    if (!formData.platform || formData.platform.length === 0) {
-      newErrors.platform = 'At least one platform is required';
-    }
+    // Course Interest and Platform are now optional - no validation needed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -163,7 +156,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
         phone: '',
         location: '',
         city: '',
-        funnelStep: 'Lead',
+        funnelStep: '',
         interest: [],
         platform: [],
         courses: [],
@@ -248,7 +241,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                         className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                           errors.email ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        placeholder="student@example.com (optional)"
+                        placeholder="student@example.com"
                       />
                     </div>
                     {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
@@ -267,7 +260,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                         className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                           errors.phone ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        placeholder="+84 901 234 567 (optional)"
+                        placeholder="+84 901 234 567"
                       />
                     </div>
                     {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
@@ -317,7 +310,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                       value={formData.city}
                       onChange={(value) => handleInputChange('city', value)}
                       options={cities}
-                      placeholder="Select city (optional)"
+                      placeholder="Select city"
                       allowAddNew={true}
                       onAddNew={(newOption) => handleAddNewOption('cities', newOption)}
                       addNewLabel="New City..."
@@ -341,8 +334,6 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                       onChange={(value) => handleInputChange('interest', value)}
                       options={courseInterests}
                       placeholder="Search and select courses..."
-                      required={true}
-                      error={errors.interest}
                       allowAddNew={true}
                       onAddNew={(newOption) => handleAddNewOption('courseInterests', newOption)}
                     />
@@ -355,8 +346,6 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                       onChange={(value) => handleInputChange('platform', value)}
                       options={platforms}
                       placeholder="Search and select platforms..."
-                      required={true}
-                      error={errors.platform}
                       allowAddNew={true}
                       onAddNew={(newOption) => handleAddNewOption('platforms', newOption)}
                     />
@@ -373,7 +362,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes (Optional)
+                    Notes
                   </label>
                   <textarea
                     value={formData.notes}

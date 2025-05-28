@@ -1,0 +1,72 @@
+import React, { useState } from 'react';
+import { 
+  Plus, 
+  Search, 
+  Hash,
+  Users,
+  Settings,
+  MessageSquare,
+  User,
+  DollarSign
+} from 'lucide-react';
+import { ChannelList } from './ChannelList';
+import { DirectMessages } from './DirectMessages';
+
+/**
+ * ChannelSidebar - Channel navigation and organization
+ * Handles channel listing, search, and direct messages
+ */
+export const ChannelSidebar = ({ 
+  channels, 
+  activeChannelId, 
+  onChannelSelect, 
+  onCreateChannel 
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredChannels = channels.filter(channel =>
+    channel.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="w-64 bg-indigo-800 text-white flex flex-col">
+      {/* Header */}
+      <div className="p-4 flex items-center justify-between">
+        <h1 className="text-lg font-semibold">Channels</h1>
+        <button 
+          onClick={onCreateChannel}
+          className="w-8 h-8 rounded-lg hover:bg-indigo-700 flex items-center justify-center transition-colors"
+          title="Create Channel"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="px-4 mb-4">
+        <div className="flex items-center bg-indigo-700/50 rounded-lg px-3 py-2">
+          <Search className="w-4 h-4 text-indigo-300 mr-2" />
+          <input
+            type="text"
+            placeholder="Search channels"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none text-sm text-white placeholder-indigo-300 focus:outline-none w-full"
+          />
+        </div>
+      </div>
+
+      {/* Channel List */}
+      <div className="flex-1 overflow-y-auto px-2">
+        <ChannelList
+          channels={filteredChannels}
+          activeChannelId={activeChannelId}
+          onChannelSelect={onChannelSelect}
+        />
+      </div>
+
+      {/* Direct Messages */}
+      <DirectMessages />
+    </div>
+  );
+}; 

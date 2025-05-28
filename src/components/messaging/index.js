@@ -9,5 +9,14 @@ export { default as BidirectionalLinkingDemo } from './BidirectionalLinkingDemo'
 export { default as ChannelToolbar } from './ChannelToolbar';
 export { default as CreateClassModal } from './classes/CreateClassModal';
 
+// Layout components
+export * from './layout';
+
+// Navigation components
+export * from './navigation';
+
+// Content components
+export * from './content';
+
 // Task components (re-exported from tasks directory)
 export { TaskTab } from './tasks'; 

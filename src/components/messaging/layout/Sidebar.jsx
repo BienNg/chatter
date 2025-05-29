@@ -7,6 +7,7 @@ import {
   Settings 
 } from 'lucide-react';
 import { useTabPersistence } from '../../../hooks/useTabPersistence';
+import { generateSectionUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 
 /**
  * Sidebar - Left navigation bar component
@@ -71,6 +72,27 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
     return `${baseClasses} ${currentSection === section ? activeClasses : inactiveClasses}`;
   };
 
+  // Generate URLs for middle-click functionality
+  const getMessagingUrl = () => {
+    const lastMessagingState = getLastMessagingState();
+    if (lastMessagingState && lastMessagingState.channelId) {
+      return generateSectionUrl('messaging', {
+        channelId: lastMessagingState.channelId,
+        tab: lastMessagingState.tab,
+        subTab: lastMessagingState.subTab
+      });
+    }
+    return generateSectionUrl('messaging');
+  };
+
+  const messagingUrl = getMessagingUrl();
+  const crmUrl = generateSectionUrl('crm');
+  const bookkeepingUrl = generateSectionUrl('bookkeeping');
+
+  const messagingHandlers = getMiddleClickHandlers(messagingUrl, handleNavigateToMessaging);
+  const crmHandlers = getMiddleClickHandlers(crmUrl, handleNavigateToCRM);
+  const bookkeepingHandlers = getMiddleClickHandlers(bookkeepingUrl, handleNavigateToBookkeeping);
+
   return (
     <div className="w-16 bg-indigo-900 flex flex-col items-center py-4">
       {/* App Logo */}
@@ -82,6 +104,7 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
       <div className="flex flex-col items-center space-y-4">
         <button 
           onClick={handleNavigateToMessaging}
+          {...messagingHandlers}
           className={getButtonClasses('messaging')}
           title="Messaging"
         >
@@ -89,6 +112,7 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
         </button>
         <button 
           onClick={handleNavigateToCRM}
+          {...crmHandlers}
           className={getButtonClasses('crm')}
           title="CRM System"
         >
@@ -96,6 +120,7 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
         </button>
         <button 
           onClick={handleNavigateToBookkeeping}
+          {...bookkeepingHandlers}
           className={getButtonClasses('bookkeeping')}
           title="Bookkeeping"
         >

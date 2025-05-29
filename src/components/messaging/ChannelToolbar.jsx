@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
+import { generateChannelUrl, getMiddleClickHandlers } from '../../utils/navigation';
 
 const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
     const [activeTab, setActiveTab] = useState('pinned');
@@ -112,59 +113,77 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
 
         return (
             <div className="space-y-2">
-                {filteredMessages.map((message) => (
-                    <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2 mb-1">
-                                    <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs">
-                                        {message.author?.displayName?.charAt(0) || 'U'}
+                {filteredMessages.map((message) => {
+                    // Generate URLs for middle-click functionality
+                    const messageUrl = generateChannelUrl(channelId, 'messages');
+                    const threadUrl = generateChannelUrl(channelId, 'messages') + `/thread/${message.id}`;
+                    
+                    const jumpToMessageHandlers = getMiddleClickHandlers(
+                        messageUrl,
+                        () => onJumpToMessage(message.id)
+                    );
+                    
+                    const openThreadHandlers = getMiddleClickHandlers(
+                        threadUrl,
+                        () => onOpenThread(message.id)
+                    );
+
+                    return (
+                        <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs">
+                                            {message.author?.displayName?.charAt(0) || 'U'}
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-900">
+                                            {message.author?.displayName || 'Unknown User'}
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                            {formatDistanceToNow(message.createdAt)}
+                                        </span>
                                     </div>
-                                    <span className="text-sm font-medium text-gray-900">
-                                        {message.author?.displayName || 'Unknown User'}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                        {formatDistanceToNow(message.createdAt)}
-                                    </span>
+                                    <p className="text-sm text-gray-700 line-clamp-2 mb-2">
+                                        {message.content}
+                                    </p>
+                                    {message.attachments?.length > 0 && (
+                                        <div className="flex items-center space-x-1 text-xs text-gray-500">
+                                            <File className="w-3 h-3" />
+                                            <span>{message.attachments.length} attachment(s)</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <p className="text-sm text-gray-700 line-clamp-2 mb-2">
-                                    {message.content}
-                                </p>
-                                {message.attachments?.length > 0 && (
-                                    <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                        <File className="w-3 h-3" />
-                                        <span>{message.attachments.length} attachment(s)</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex items-center space-x-1 ml-2">
-                                <button
-                                    onClick={() => onJumpToMessage(message.id)}
-                                    className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
-                                    title="Jump to message"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                </button>
-                                {message.replyCount > 0 && (
+                                <div className="flex items-center space-x-1 ml-2">
                                     <button
-                                        onClick={() => onOpenThread(message.id)}
+                                        onClick={() => onJumpToMessage(message.id)}
+                                        {...jumpToMessageHandlers}
                                         className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
-                                        title="Open thread"
+                                        title="Jump to message"
                                     >
-                                        <MessageSquare className="w-4 h-4" />
+                                        <ExternalLink className="w-4 h-4" />
                                     </button>
-                                )}
-                                <button
-                                    onClick={() => handleUnpinMessage(message.id)}
-                                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                                    title="Unpin message"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
+                                    {message.replyCount > 0 && (
+                                        <button
+                                            onClick={() => onOpenThread(message.id)}
+                                            {...openThreadHandlers}
+                                            className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                                            title="Open thread"
+                                        >
+                                            <MessageSquare className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleUnpinMessage(message.id)}
+                                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                        title="Unpin message"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         );
     };

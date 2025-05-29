@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { seedAccounts } from '../utils/seedAccounts';
 
 const AuthContext = createContext({});
 
@@ -72,6 +73,13 @@ export const AuthProvider = ({ children }) => {
                 await createUserProfile(user);
                 const profile = await fetchUserProfile(user.uid);
                 setUserProfile(profile);
+                
+                // Seed accounts collection if needed
+                try {
+                    await seedAccounts();
+                } catch (error) {
+                    console.error('Error seeding accounts:', error);
+                }
             } else {
                 setCurrentUser(null);
                 setUserProfile(null);

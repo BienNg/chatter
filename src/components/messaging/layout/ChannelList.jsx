@@ -8,6 +8,7 @@ import {
   DollarSign,
   Plus
 } from 'lucide-react';
+import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 
 /**
  * ChannelList - Organized channel display with grouping
@@ -60,30 +61,39 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
             )}
             
             {/* Channels in this group */}
-            {channels.map((channel) => (
-              <button
-                key={channel.id}
-                onClick={() => onChannelSelect(channel.id)}
-                className={`flex items-center w-full px-3 py-2 rounded-lg mb-1 transition-colors ${
-                  channel.id === activeChannelId
-                    ? 'bg-indigo-700 text-white'
-                    : 'text-indigo-200 hover:bg-indigo-700/50'
-                }`}
-              >
-                <Hash className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span className="truncate">{channel.name}</span>
-                {/* Subtle type indicator dot */}
-                {sortedGroups.length > 1 && (
-                  <div 
-                    className={`w-1.5 h-1.5 rounded-full ml-auto flex-shrink-0 ${
-                      channel.id === activeChannelId 
-                        ? 'bg-white/60' 
-                        : metadata.color.replace('text-', 'bg-').replace('-300', '-400')
-                    }`}
-                  />
-                )}
-              </button>
-            ))}
+            {channels.map((channel) => {
+              const channelUrl = generateChannelUrl(channel.id);
+              const middleClickHandlers = getMiddleClickHandlers(
+                channelUrl,
+                () => onChannelSelect(channel.id)
+              );
+
+              return (
+                <button
+                  key={channel.id}
+                  onClick={() => onChannelSelect(channel.id)}
+                  {...middleClickHandlers}
+                  className={`flex items-center w-full px-3 py-2 rounded-lg mb-1 transition-colors ${
+                    channel.id === activeChannelId
+                      ? 'bg-indigo-700 text-white'
+                      : 'text-indigo-200 hover:bg-indigo-700/50'
+                  }`}
+                >
+                  <Hash className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">{channel.name}</span>
+                  {/* Subtle type indicator dot */}
+                  {sortedGroups.length > 1 && (
+                    <div 
+                      className={`w-1.5 h-1.5 rounded-full ml-auto flex-shrink-0 ${
+                        channel.id === activeChannelId 
+                          ? 'bg-white/60' 
+                          : metadata.color.replace('text-', 'bg-').replace('-300', '-400')
+                      }`}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
         );
       })}

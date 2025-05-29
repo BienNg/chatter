@@ -18,7 +18,14 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
   const { getLastMessagingState } = useTabPersistence();
 
   // Determine active section from URL if not explicitly provided
-  const currentSection = activeSection || (location.pathname.startsWith('/crm') ? 'crm' : 'messaging');
+  const getCurrentSection = () => {
+    if (activeSection) return activeSection;
+    if (location.pathname.startsWith('/crm')) return 'crm';
+    if (location.pathname.startsWith('/bookkeeping')) return 'bookkeeping';
+    return 'messaging';
+  };
+
+  const currentSection = getCurrentSection();
 
   const getUserInitial = () => {
     return userProfile?.fullName?.charAt(0) || 
@@ -52,6 +59,10 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
     navigate('/crm');
   };
 
+  const handleNavigateToBookkeeping = () => {
+    navigate('/bookkeeping');
+  };
+
   const getButtonClasses = (section) => {
     const baseClasses = "w-10 h-10 rounded-lg flex items-center justify-center transition-colors";
     const activeClasses = "bg-indigo-800 text-white";
@@ -83,7 +94,11 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
         >
           <Users className="w-5 h-5" />
         </button>
-        <button className="w-10 h-10 rounded-lg hover:bg-indigo-800 flex items-center justify-center text-indigo-300 transition-colors">
+        <button 
+          onClick={handleNavigateToBookkeeping}
+          className={getButtonClasses('bookkeeping')}
+          title="Bookkeeping"
+        >
           <DollarSign className="w-5 h-5" />
         </button>
       </div>

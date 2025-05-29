@@ -546,44 +546,52 @@ export const ClassesTab = ({
                             </div>
                           ) : (
                             <div className="space-y-3">
-                              {getCourseEnrollments(course.id).map((enrollment) => (
-                                <div key={enrollment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                  <div className="flex items-center space-x-3">
+                              {getCourseEnrollments(course.id).map((enrollment) => {
+                                // Generate consistent avatar color if not provided
+                                const avatarColors = [
+                                  'bg-indigo-500',
+                                  'bg-blue-500', 
+                                  'bg-green-500',
+                                  'bg-yellow-500',
+                                  'bg-red-500',
+                                  'bg-purple-500',
+                                  'bg-pink-500',
+                                  'bg-teal-500'
+                                ];
+                                
+                                const nameHash = enrollment.studentName ? 
+                                  enrollment.studentName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+                                const fallbackColor = avatarColors[nameHash % avatarColors.length];
+                                
+                                const avatarInitials = enrollment.avatar || 
+                                  (enrollment.studentName ? 
+                                    enrollment.studentName.split(' ').map(n => n[0]).join('').toUpperCase() : 
+                                    '?');
+
+                                return (
+                                  <div key={enrollment.id} className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
                                     <div 
-                                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                                      style={{ 
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${
+                                        enrollment.avatarColor ? '' : fallbackColor
+                                      }`}
+                                      style={enrollment.avatarColor ? { 
                                         backgroundColor: typeof enrollment.avatarColor === 'object' 
                                           ? undefined 
                                           : enrollment.avatarColor,
                                         background: typeof enrollment.avatarColor === 'object' 
                                           ? enrollment.avatarColor.background 
                                           : undefined
-                                      }}
+                                      } : {}}
                                     >
-                                      {enrollment.avatar || enrollment.studentName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                      {avatarInitials}
                                     </div>
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-900">{enrollment.studentName}</p>
-                                      <p className="text-xs text-gray-500">{enrollment.studentEmail}</p>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">{enrollment.studentName}</p>
+                                      <p className="text-xs text-gray-500 truncate">{enrollment.studentEmail}</p>
                                     </div>
                                   </div>
-                                  <div className="flex items-center space-x-3">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                      enrollment.status === 'active' ? 'bg-green-100 text-green-800' :
-                                      enrollment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                      enrollment.status === 'dropped' ? 'bg-red-100 text-red-800' :
-                                      'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {enrollment.status}
-                                    </span>
-                                    {enrollment.progress > 0 && (
-                                      <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
-                                        {enrollment.progress}% progress
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </div>

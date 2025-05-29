@@ -6,6 +6,7 @@ import { ThreadProvider } from './contexts/ThreadContext';
 import { Login, OnboardingFlow } from './components/auth';
 import { MessagingInterface } from './components/messaging';
 import { CRMInterface } from './components/crm';
+import { BookkeepingInterface } from './components/bookkeeping';
 
 
 // Protected Route wrapper component
@@ -133,6 +134,16 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     <CRMInterface />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Bookkeeping System Routes */}
+                        <Route
+                            path="/bookkeeping"
+                            element={
+                                <ProtectedRoute>
+                                    <BookkeepingInterface />
                                 </ProtectedRoute>
                             }
                         />

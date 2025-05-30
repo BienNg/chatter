@@ -60,7 +60,10 @@ const MessagingInterface = () => {
     deletingMessages,
     togglePinMessage,
     getPinnedMessages,
-    isMessagePinned
+    isMessagePinned,
+    hasMoreMessages,
+    loadingMore,
+    loadMoreMessages
   } = useMessages(channelId);
   const { currentUser, userProfile, logout } = useAuth();
   const { 
@@ -240,6 +243,9 @@ const MessagingInterface = () => {
             togglePinMessage={togglePinMessage}
             getPinnedMessages={getPinnedMessages}
             isMessagePinned={isMessagePinned}
+            hasMoreMessages={hasMoreMessages}
+            loadingMore={loadingMore}
+            loadMoreMessages={loadMoreMessages}
             activeChannel={activeChannel}
           />
         );

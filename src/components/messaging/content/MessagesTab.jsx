@@ -31,6 +31,10 @@ export const MessagesTab = ({
   togglePinMessage,
   getPinnedMessages,
   isMessagePinned,
+  // Pagination
+  hasMoreMessages,
+  loadingMore,
+  loadMoreMessages,
   // Channel info
   activeChannel
 }) => {
@@ -56,10 +60,12 @@ export const MessagesTab = ({
             ) : (
               <ErrorBoundary fallbackMessage="Error loading messages. Please refresh the page.">
                 <MessageListView 
+                  channelId={channelId}
+                  onOpenThread={onOpenThread}
+                  scrollToMessageId={scrollToMessageId}
                   messages={messages} 
                   loading={messagesLoading} 
-                  onOpenThread={onOpenThread}
-                  channelId={channelId}
+                  sendMessage={onSendMessage}
                   deleteMessage={deleteMessage}
                   undoDeleteMessage={undoDeleteMessage}
                   canDeleteMessage={canDeleteMessage}
@@ -69,8 +75,10 @@ export const MessagesTab = ({
                   togglePinMessage={togglePinMessage}
                   getPinnedMessages={getPinnedMessages}
                   isMessagePinned={isMessagePinned}
+                  hasMoreMessages={hasMoreMessages}
+                  loadingMore={loadingMore}
+                  loadMoreMessages={loadMoreMessages}
                   onJumpToTask={onOpenTask}
-                  scrollToMessageId={scrollToMessageId}
                 />
               </ErrorBoundary>
             )}

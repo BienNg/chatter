@@ -14,7 +14,8 @@ import {
     writeBatch,
     arrayRemove,
     serverTimestamp,
-    limit
+    limit,
+    where
 } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { db } from '../firebase';
@@ -25,6 +26,8 @@ export const useMessages = (channelId) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [deletingMessages, setDeletingMessages] = useState(new Set());
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     
     const { currentUser, userProfile } = useAuth();
 
@@ -32,16 +35,21 @@ export const useMessages = (channelId) => {
         if (!channelId) {
             setMessages([]);
             setLoading(false);
+            setHasMoreMessages(true);
+            setLoadingMore(false);
             return;
         }
 
         setLoading(true);
+        setHasMoreMessages(true);
+        setLoadingMore(false);
         
         // Query messages in channel, ordered by timestamp
+        // OPTIMIZATION: Reduced limit from 100 to 25 to minimize Firestore reads
         const messagesQuery = query(
             collection(db, 'channels', channelId, 'messages'),
             orderBy('createdAt', 'asc'),
-            limit(100) // Limit for performance
+            limit(25) // Reduced for performance and quota management
         );
 
         const unsubscribe = onSnapshot(
@@ -54,6 +62,11 @@ export const useMessages = (channelId) => {
                 setMessages(messageData);
                 setLoading(false);
                 setError(null);
+                
+                // Check if we have fewer messages than limit (means no more to load)
+                if (messageData.length < 25) {
+                    setHasMoreMessages(false);
+                }
             },
             (err) => {
                 console.error('Error fetching messages:', err);
@@ -62,7 +75,10 @@ export const useMessages = (channelId) => {
             }
         );
 
-        return () => unsubscribe();
+        return () => {
+            // Ensure proper cleanup of listener
+            unsubscribe();
+        };
     }, [channelId]);
 
     const sendMessage = async (content, attachments = []) => {
@@ -481,6 +497,52 @@ export const useMessages = (channelId) => {
         }
     };
 
+    // Load more messages (pagination)
+    const loadMoreMessages = async () => {
+        if (!channelId || !hasMoreMessages || loadingMore) return;
+
+        try {
+            setLoadingMore(true);
+            
+            // Get the oldest message timestamp for pagination
+            const oldestMessage = messages[0];
+            if (!oldestMessage) return;
+
+            const moreMessagesQuery = query(
+                collection(db, 'channels', channelId, 'messages'),
+                orderBy('createdAt', 'desc'),
+                where('createdAt', '<', oldestMessage.createdAt),
+                limit(25)
+            );
+
+            const snapshot = await getDocs(moreMessagesQuery);
+            
+            if (snapshot.empty) {
+                setHasMoreMessages(false);
+                return;
+            }
+
+            const moreMessages = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            // Prepend to existing messages (since we're loading older ones)
+            setMessages(prev => [...moreMessages.reverse(), ...prev]);
+            
+            // Check if we've reached the beginning
+            if (snapshot.docs.length < 25) {
+                setHasMoreMessages(false);
+            }
+
+        } catch (error) {
+            console.error('Error loading more messages:', error);
+            setError(error.message);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
     return {
         messages,
         loading,
@@ -494,6 +556,10 @@ export const useMessages = (channelId) => {
         deletingMessages,
         togglePinMessage,
         getPinnedMessages,
-        isMessagePinned
+        isMessagePinned,
+        // Pagination functionality
+        hasMoreMessages,
+        loadingMore,
+        loadMoreMessages
     };
 };

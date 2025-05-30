@@ -20,21 +20,26 @@ import MessageComposition from './composition/MessageComposition';
 import { useTasks } from '../../hooks/useTasks';
 import { useMessageReactions } from '../../hooks/useMessageReactions';
 const MessageListView = ({ 
-    messages, 
-    loading, 
+    channelId, 
     onOpenThread, 
-    channelId,
+    scrollToMessageId,
+    // Destructure all props from useMessages
+    messages,
+    loading,
+    sendMessage,
+    editMessage,
     deleteMessage,
     undoDeleteMessage,
     canDeleteMessage,
     isWithinEditWindow,
     deletingMessages,
-    editMessage,
     togglePinMessage,
     getPinnedMessages,
     isMessagePinned,
-    onJumpToTask,
-    scrollToMessageId
+    hasMoreMessages,
+    loadingMore,
+    loadMoreMessages,
+    onJumpToTask
 }) => {
     const [hoveredMessage, setHoveredMessage] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, message: null });
@@ -310,14 +315,36 @@ const MessageListView = ({
     return (
         <div className="flex flex-col bg-white h-full">
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-0 min-h-0">
-                {messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
-                        <div className="text-center py-12">
-                            <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
-                            <p className="text-gray-500">Be the first to send a message in this channel!</p>
-                        </div>
+            <div className="flex-1 overflow-y-auto p-4">
+                {/* Load More Messages Button */}
+                {hasMoreMessages && (
+                    <div className="flex justify-center mb-4">
+                        <button
+                            onClick={loadMoreMessages}
+                            disabled={loadingMore}
+                            className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {loadingMore ? (
+                                <div className="flex items-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 mr-2"></div>
+                                    Loading...
+                                </div>
+                            ) : (
+                                'Load More Messages'
+                            )}
+                        </button>
+                    </div>
+                )}
+
+                {loading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                ) : messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                        <MessageSquare className="h-12 w-12 mb-4 text-gray-300" />
+                        <p className="text-lg font-medium">No messages yet</p>
+                        <p className="text-sm">Be the first to start the conversation!</p>
                     </div>
                 ) : (
                     messages.map((message) => {
@@ -474,6 +501,7 @@ const MessageListView = ({
                                                                         {/* Thread Preview */}
                                     <ThreadPreview 
                                         message={message}
+                                        channelId={channelId}
                                         onOpenThread={handleThreadClick}
                                     />
                                 </div>
@@ -512,7 +540,7 @@ const MessageListView = ({
                 onConfirm={handleDeleteConfirm}
                 onCancel={handleDeleteCancel}
                 canHardDelete={true} // TODO: Check user permissions
-                hasReplies={deleteModal.message?.replyCount > 0}
+                hasReplies={false} // OPTIMIZATION: Simplified - let users choose deletion type
                 isPinned={false} // TODO: Check if message is pinned
                 isWithinEditWindow={deleteModal.message ? isWithinEditWindow(deleteModal.message) : true}
             />

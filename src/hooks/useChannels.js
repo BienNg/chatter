@@ -29,6 +29,7 @@ export const useChannels = () => {
         setLoading(true);
         
         // Query channels where user is a member
+        // OPTIMIZATION: This is essential for core functionality, keeping real-time
         const channelsQuery = query(
             collection(db, 'channels'),
             where('members', 'array-contains', currentUser.uid),
@@ -59,7 +60,10 @@ export const useChannels = () => {
             }
         );
 
-        return () => unsubscribe();
+        return () => {
+            // Ensure proper cleanup of channels listener
+            unsubscribe();
+        };
     }, [currentUser?.uid]);
 
     const getChannelById = async (channelId) => {

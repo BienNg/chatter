@@ -54,7 +54,10 @@ export const useTasks = (channelId) => {
             }
         );
 
-        return () => unsubscribe();
+        return () => {
+            // Ensure proper cleanup to prevent memory leaks
+            unsubscribe();
+        };
     }, [channelId]);
 
     // Helper function to update task lastActivity

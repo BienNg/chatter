@@ -1,10 +1,13 @@
-// src/hooks/useChannelManagement.js (Updated with notifications)
-import { useState } from 'react';
+// src/hooks/useChannelManagement.js (Updated with notifications and caching)
+import { useState, useRef, useCallback } from 'react';
 import { doc, updateDoc, arrayUnion, arrayRemove, collection, query, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export const useChannelManagement = () => {
     const [loading, setLoading] = useState(false);
+    const usersCache = useRef(null);
+    const lastFetchTime = useRef(0);
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
     const sendNotification = async (userId, type, channelId, channelName) => {
         try {
@@ -111,12 +114,20 @@ export const useChannelManagement = () => {
 
     const getAllUsers = async () => {
         try {
+            const currentTime = Date.now();
+            if (usersCache.current && currentTime - lastFetchTime.current < CACHE_DURATION) {
+                return usersCache.current;
+            }
+
             const usersRef = collection(db, 'users');
             const snapshot = await getDocs(usersRef);
             const users = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data()
             }));
+
+            usersCache.current = users;
+            lastFetchTime.current = currentTime;
             return users;
         } catch (error) {
             console.error('Error fetching users:', error);

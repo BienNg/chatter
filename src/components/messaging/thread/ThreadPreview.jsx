@@ -1,19 +1,50 @@
 import React from 'react';
 import { MessageSquare, Clock } from 'lucide-react';
+import { useThreadReplies } from '../../../hooks/useThreadReplies';
 import './ThreadPreview.css';
 
 const ThreadPreview = ({ 
     message, 
     onOpenThread, 
-    className = "" 
+    className = "",
+    channelId // Need channelId to fetch replies
 }) => {
-    // Extract thread data from message
+    // OPTIMIZATION: Get real-time reply count instead of using stored metadata
+    const { replies, loading } = useThreadReplies(channelId, message.id);
+    const actualReplyCount = replies.length;
+    
+    // Extract thread data from message with real-time data
     const threadData = {
-        replyCount: message.replyCount || 0,
-        lastReply: message.lastReply || null,
-        participants: message.threadParticipants || [],
-        lastActivity: message.lastThreadActivity || null
+        replyCount: actualReplyCount, // Use actual count from replies
+        lastReply: replies.length > 0 ? replies[replies.length - 1] : null, // Get last reply from actual data
+        participants: getUniqueParticipants(replies, message),
+        lastActivity: replies.length > 0 ? replies[replies.length - 1].createdAt : null
     };
+
+    // Get unique participants from replies + original message author
+    function getUniqueParticipants(replies, originalMessage) {
+        const participantMap = new Map();
+        
+        // Add original message author
+        if (originalMessage.author) {
+            participantMap.set(
+                originalMessage.author.id || originalMessage.author.email, 
+                originalMessage.author
+            );
+        }
+        
+        // Add reply authors
+        replies.forEach(reply => {
+            if (reply.author) {
+                participantMap.set(
+                    reply.author.id || reply.author.email, 
+                    reply.author
+                );
+            }
+        });
+        
+        return Array.from(participantMap.values());
+    }
 
     // Get author initials for avatar
     const getAuthorInitials = (author) => {

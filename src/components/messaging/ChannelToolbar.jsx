@@ -162,16 +162,14 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
                                     >
                                         <ExternalLink className="w-4 h-4" />
                                     </button>
-                                    {message.replyCount > 0 && (
-                                        <button
-                                            onClick={() => onOpenThread(message.id)}
-                                            {...openThreadHandlers}
-                                            className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
-                                            title="Open thread"
-                                        >
-                                            <MessageSquare className="w-4 h-4" />
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={() => onOpenThread(message.id)}
+                                        {...openThreadHandlers}
+                                        className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                                        title="Open thread"
+                                    >
+                                        <MessageSquare className="w-4 h-4" />
+                                    </button>
                                     <button
                                         onClick={() => handleUnpinMessage(message.id)}
                                         className="p-1 text-gray-400 hover:text-red-600 transition-colors"

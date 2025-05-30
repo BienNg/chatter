@@ -153,12 +153,7 @@ const MessageComposition = ({
     }, []); // Only run on mount
 
     const handleSend = async () => {
-        // Prevent multiple simultaneous sends
-        if (isSending) {
-            console.log('Already sending, ignoring duplicate send request');
-            return;
-        }
-
+        // Basic validations
         if (!message.trim() && attachedFiles.length === 0) {
             setError('Message cannot be empty');
             return;
@@ -183,57 +178,43 @@ const MessageComposition = ({
         // Store the current message and files before clearing (for potential restoration)
         const currentMessage = message;
         const currentFiles = attachedFiles;
+        const messageData = {
+            content: message.trim() || '[File attachment]',
+            attachments: attachedFiles
+        };
 
-        console.log('Sending message:', { content: currentMessage, attachments: currentFiles });
+        // Clear form immediately (except in edit mode)
+        if (mode !== 'edit') {
+            // Clear the rich text editor immediately
+            if (richEditorRef.current) {
+                richEditorRef.current.clear();
+            }
+            
+            setMessage('');
+            setAttachedFiles([]);
+            
+            // Clear draft since we're sending
+            if (channelId) {
+                clearDraft(channelId, threadId);
+            }
+        }
 
+        // Send message without blocking the UI
+        setError('');
+        
         try {
-            setError('');
-            setIsSending(true);
-            
-            const messageData = {
-                content: message.trim() || '[File attachment]',
-                attachments: attachedFiles
-            };
-
-            // Clear form immediately after validation (except in edit mode)
-            if (mode !== 'edit') {
-                // Clear the rich text editor immediately
-                if (richEditorRef.current) {
-                    richEditorRef.current.clear();
-                }
-                
-                setMessage('');
-                setAttachedFiles([]);
-                
-                // Clear draft since we're sending
-                if (channelId) {
-                    clearDraft(channelId, threadId);
-                }
-            }
-
-            // Handle both async and sync onSendMessage functions
-            const result = onSendMessage?.(messageData);
-            if (result && typeof result.then === 'function') {
-                await result;
-            }
-            
+            // Send the message
+            await onSendMessage?.(messageData);
             console.log('Message sent successfully');
-            
         } catch (err) {
             console.error('Send message error:', err);
             setError(err?.message || 'Failed to send message');
             
             // Restore the message and files if send failed (except in edit mode)
             if (mode !== 'edit') {
-                // Restore state first
                 setMessage(currentMessage);
                 setAttachedFiles(currentFiles);
-                
-                // The RichTextEditor will automatically update via the value prop
-                // No need to manually manipulate the DOM
             }
-        } finally {
-            setIsSending(false);
         }
     };
 

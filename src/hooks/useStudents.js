@@ -120,6 +120,24 @@ export function useStudents() {
     }
   };
 
+  // Get student by ID
+  const getStudentById = useCallback(async (studentId) => {
+    try {
+      // First check if student is in local state
+      const localStudent = students.find(student => student.id === studentId);
+      if (localStudent) {
+        return localStudent;
+      }
+
+      // If not in local state, fetch from database
+      const student = await studentServices.getStudentById(studentId);
+      return student;
+    } catch (err) {
+      console.error('Error getting student by ID:', err);
+      throw err;
+    }
+  }, [students]);
+
   return {
     students,
     loading,
@@ -127,6 +145,7 @@ export function useStudents() {
     addStudent,
     updateStudent,
     deleteStudent,
+    getStudentById,
     refetch: fetchStudents
   };
 } 

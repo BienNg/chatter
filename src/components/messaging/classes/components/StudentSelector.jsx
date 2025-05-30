@@ -10,8 +10,7 @@ const StudentSelector = ({
   courseId,
   courseName,
   courseLevel,
-  classId,
-  enrolledStudents = [] 
+  classId
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,24 +19,13 @@ const StudentSelector = ({
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Get enrolled student IDs and emails for filtering
-  const enrolledStudentIds = enrolledStudents.map(student => student.studentId).filter(Boolean);
-  const enrolledStudentEmails = enrolledStudents
-    .map(student => student.email?.toLowerCase())
-    .filter(email => email && email.trim() !== ''); // Filter out empty emails
-
   // Filter students based on search term and exclude already enrolled students
   const filteredStudents = students.filter(student => {
-    // Check if student is already enrolled by ID using the new enrollment system
-    const isEnrolledById = courseId && student.studentId && isStudentEnrolled(student.studentId, courseId);
-    
-    // Check if student is already enrolled by email (fallback for legacy data)
-    const isEnrolledByEmail = student.email && 
-                             student.email.trim() !== '' && 
-                             enrolledStudentEmails.includes(student.email.toLowerCase());
-    
-    // Student is considered enrolled if either ID or email matches
-    const isAlreadyEnrolled = isEnrolledById || isEnrolledByEmail;
+    // Use the isStudentEnrolled hook as the single source of truth for enrollment status
+    // Only check enrollment if we have both courseId and student.studentId
+    const isAlreadyEnrolled = courseId && student.studentId 
+      ? isStudentEnrolled(student.studentId, courseId)
+      : false;
     
     // Filter by search term
     const matchesSearch = !searchTerm || 

@@ -22,16 +22,23 @@ import {
   Trash2,
   ChevronLeft,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  CreditCard,
+  DollarSign,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 import { useClasses } from '../../../hooks/useClasses';
 import { useClassStudents } from '../../../hooks/useClassStudents';
 import { useCourses } from '../../../hooks/useCourses';
 import { useEnrollments } from '../../../hooks/useEnrollments';
+import { usePayments } from '../../../hooks/usePayments';
 import CreateCourseModal from '../classes/CreateCourseModal';
 import AddStudentToClassModal from '../classes/AddStudentToClassModal';
 import ClassDetailsView from '../classes/ClassDetailsView';
 import { StudentSelector } from '../classes/components';
+import PaymentModal from '../../shared/PaymentModal';
+import StudentDetailsModal from '../../shared/StudentDetailsModal';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 
 /**
@@ -51,6 +58,12 @@ export const ClassesTab = ({
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [removingEnrollmentId, setRemovingEnrollmentId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { enrollmentId, studentName, courseName }
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentModalData, setPaymentModalData] = useState(null); // For pre-filling payment modal
+  const [showStudentDetailsModal, setShowStudentDetailsModal] = useState(false);
+  const [selectedEnrollment, setSelectedEnrollment] = useState(null); // For student details modal
 
   // Use the class students hook
   const {
@@ -68,8 +81,16 @@ export const ClassesTab = ({
   const { 
     enrollStudent: enrollStudentInCourse, 
     getCourseEnrollments,
-    getClassEnrollments 
+    getClassEnrollments,
+    removeEnrollment,
+    getEnrichedEnrollments
   } = useEnrollments();
+
+  // Use the payments hook for creating payments
+  const { addPayment, getPaymentsByEnrollment } = usePayments();
+
+  const [enrichedEnrollments, setEnrichedEnrollments] = useState({});
+  const [enrollmentPayments, setEnrollmentPayments] = useState({}); // Store payment data by enrollment ID
 
   // Use only real students from the collection
   const displayStudents = classStudents;
@@ -97,6 +118,23 @@ export const ClassesTab = ({
     loadClassData();
   }, [channelId]);
 
+  // Handle keyboard shortcuts for confirmation modal
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (confirmDelete && event.key === 'Escape') {
+        handleCancelDelete();
+      }
+    };
+
+    if (confirmDelete) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [confirmDelete]);
+
   const handleAddStudent = async (studentData) => {
     try {
       await enrollStudent(studentData);
@@ -119,6 +157,9 @@ export const ClassesTab = ({
       });
       
       console.log('Student enrolled successfully in course:', enrollmentData.studentName);
+      
+      // Refresh enriched enrollment data
+      await loadEnrichedEnrollments();
     } catch (error) {
       console.error('Error enrolling student in course:', error);
       
@@ -158,6 +199,108 @@ export const ClassesTab = ({
     }
   };
 
+  const handleRemoveStudent = async (enrollmentId, studentName, courseName) => {
+    if (removingEnrollmentId) return; // Prevent multiple simultaneous removals
+    
+    // Show confirmation modal instead of window.confirm
+    setConfirmDelete({ enrollmentId, studentName, courseName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    
+    const { enrollmentId, studentName } = confirmDelete;
+    
+    try {
+      setRemovingEnrollmentId(enrollmentId);
+      await removeEnrollment(enrollmentId);
+      console.log('Student removed successfully from course:', studentName);
+      
+      // Refresh enriched enrollment data
+      await loadEnrichedEnrollments();
+    } catch (error) {
+      console.error('Error removing student from course:', error);
+      alert('Error removing student: ' + error.message);
+    } finally {
+      setRemovingEnrollmentId(null);
+      setConfirmDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDelete(null);
+  };
+
+  const handleAddPayment = (enrollment, course) => {
+    setPaymentModalData({
+      studentId: enrollment.studentId,
+      studentName: enrollment.studentName,
+      studentEmail: enrollment.studentEmail,
+      courseId: course.id,
+      courseName: course.courseName,
+      enrollmentId: enrollment.id,
+      currency: 'VND'
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async (paymentData) => {
+    try {
+      // Create payment with enrollment linking
+      const enrichedPaymentData = {
+        ...paymentData,
+        enrollmentId: paymentModalData.enrollmentId,
+        additionalData: {
+          enrollmentId: paymentModalData.enrollmentId
+        }
+      };
+
+      // Create the payment using the usePayments hook
+      await addPayment(enrichedPaymentData);
+      
+      console.log('Payment created successfully:', enrichedPaymentData);
+      
+      // Update the enrollment with payment information if needed
+      // This could be handled automatically in your payment creation function
+      
+      // Refresh the enrollment data
+      await loadEnrichedEnrollments();
+      
+      // Close modal
+      setShowPaymentModal(false);
+      setPaymentModalData(null);
+      
+      // Show success message
+      alert('Payment recorded successfully!');
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      throw error; // Let the modal handle the error
+    }
+  };
+
+  const handleOpenStudentDetails = (enrollment) => {
+    console.log('Opening student details for enrollment:', enrollment);
+    
+    // Validate enrollment data before opening modal
+    if (!enrollment) {
+      console.error('No enrollment data provided to handleOpenStudentDetails');
+      return;
+    }
+    
+    if (!enrollment.studentName && !enrollment.studentId) {
+      console.error('Invalid enrollment data - missing studentName and studentId:', enrollment);
+      return;
+    }
+    
+    setSelectedEnrollment(enrollment);
+    setShowStudentDetailsModal(true);
+  };
+
+  const handleCloseStudentDetails = () => {
+    setShowStudentDetailsModal(false);
+    setSelectedEnrollment(null);
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     try {
@@ -185,6 +328,51 @@ export const ClassesTab = ({
       style: 'currency',
       currency: currency || 'USD'
     }).format(amount);
+  };
+
+  const getPaymentStatusBadge = (paymentStatus, payment) => {
+    const statusConfig = {
+      pending: { 
+        bg: 'bg-yellow-100', 
+        text: 'text-yellow-700', 
+        icon: AlertCircle,
+        label: 'Pending' 
+      },
+      paid: { 
+        bg: 'bg-green-100', 
+        text: 'text-green-700', 
+        icon: CheckCircle,
+        label: 'Paid' 
+      },
+      partial: { 
+        bg: 'bg-blue-100', 
+        text: 'text-blue-700', 
+        icon: CreditCard,
+        label: 'Partial' 
+      },
+      overdue: { 
+        bg: 'bg-red-100', 
+        text: 'text-red-700', 
+        icon: AlertCircle,
+        label: 'Overdue' 
+      },
+      completed: { 
+        bg: 'bg-green-100', 
+        text: 'text-green-700', 
+        icon: CheckCircle,
+        label: 'Completed' 
+      }
+    };
+    
+    const config = statusConfig[paymentStatus] || statusConfig.pending;
+    const Icon = config.icon;
+    
+    return (
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+        <Icon className="w-3 h-3 mr-1" />
+        {config.label}
+      </span>
+    );
   };
 
   const getProgressColor = (progress) => {
@@ -293,6 +481,57 @@ export const ClassesTab = ({
     { id: 'courses', label: 'Courses' },
     { id: 'info', label: 'Info' }
   ];
+
+  // Load enriched enrollment data with payment information
+  const loadEnrichedEnrollments = async () => {
+    if (!courses.length) return;
+    
+    console.log('Loading enriched enrollments for courses:', courses);
+    
+    const enrichedData = {};
+    const paymentData = {};
+    
+    for (const course of courses) {
+      try {
+        const enrichedEnrollments = await getEnrichedEnrollments(course.id);
+        console.log(`Enriched enrollments for course ${course.id}:`, enrichedEnrollments);
+        enrichedData[course.id] = enrichedEnrollments;
+        
+        // Load payment data for each enrollment
+        const enrollments = enrichedEnrollments || getCourseEnrollments(course.id);
+        for (const enrollment of enrollments) {
+          if (!enrollment || !enrollment.id) {
+            console.warn('Skipping invalid enrollment:', enrollment);
+            continue;
+          }
+          
+          try {
+            const payments = await getPaymentsByEnrollment(enrollment.id);
+            paymentData[enrollment.id] = payments;
+          } catch (error) {
+            console.error('Error loading payments for enrollment:', enrollment.id, error);
+            paymentData[enrollment.id] = [];
+          }
+        }
+      } catch (error) {
+        console.error('Error loading enriched enrollments for course:', course.id, error);
+        const fallbackEnrollments = getCourseEnrollments(course.id);
+        console.log(`Fallback enrollments for course ${course.id}:`, fallbackEnrollments);
+        enrichedData[course.id] = fallbackEnrollments;
+      }
+    }
+    
+    console.log('Final enriched enrollments data:', enrichedData);
+    console.log('Final payment data:', paymentData);
+    
+    setEnrichedEnrollments(enrichedData);
+    setEnrollmentPayments(paymentData);
+  };
+
+  // Load enriched enrollments when courses change
+  useEffect(() => {
+    loadEnrichedEnrollments();
+  }, [courses, getCourseEnrollments]);
 
   const renderCoursesView = () => {
     if (loading) {
@@ -508,7 +747,9 @@ export const ClassesTab = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 border border-gray-200">
                           <Users className="w-4 h-4 text-gray-500" />
-                          <span className="font-medium text-gray-700">{getCourseEnrollments(course.id).length} student{getCourseEnrollments(course.id).length !== 1 ? 's' : ''} enrolled</span>
+                          <span className="font-medium text-gray-700">
+                            {(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length} student{(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length !== 1 ? 's' : ''} enrolled
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -521,78 +762,241 @@ export const ClassesTab = ({
                           <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-semibold text-gray-900">Enroll Students</h4>
                             <span className="text-sm text-gray-500">
-                              {getCourseEnrollments(course.id).length} enrolled
+                              {(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length} enrolled
                             </span>
                           </div>
                           
                           <StudentSelector
+                            key={`student-selector-${course.id}-${(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length}`}
                             onSelectStudent={(enrollmentData) => handleSelectExistingStudent(enrollmentData, course.id)}
                             className="w-full"
                             courseId={course.id}
                             courseName={course.courseName}
                             courseLevel={course.level}
                             classId={classData?.id}
-                            enrolledStudents={getCourseEnrollments(course.id)}
                           />
                         </div>
 
                         {/* Enrolled Students List */}
                         <div>
                           <h4 className="text-lg font-semibold text-gray-900 mb-4">Enrolled Students</h4>
-                          {getCourseEnrollments(course.id).length === 0 ? (
+                          {(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                               <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                               <p className="text-sm">No students enrolled in this course yet.</p>
                               <p className="text-xs text-gray-400 mt-1">Use the search above to add students.</p>
                             </div>
                           ) : (
-                            <div className="space-y-3">
-                              {getCourseEnrollments(course.id).map((enrollment) => {
-                                // Generate consistent avatar color if not provided
-                                const avatarColors = [
-                                  'bg-indigo-500',
-                                  'bg-blue-500', 
-                                  'bg-green-500',
-                                  'bg-yellow-500',
-                                  'bg-red-500',
-                                  'bg-purple-500',
-                                  'bg-pink-500',
-                                  'bg-teal-500'
-                                ];
-                                
-                                const nameHash = enrollment.studentName ? 
-                                  enrollment.studentName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
-                                const fallbackColor = avatarColors[nameHash % avatarColors.length];
-                                
-                                const avatarInitials = enrollment.avatar || 
-                                  (enrollment.studentName ? 
-                                    enrollment.studentName.split(' ').map(n => n[0]).join('').toUpperCase() : 
-                                    '?');
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                              {/* Table Header */}
+                              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                                <div className="grid grid-cols-12 gap-4">
+                                  <div className="col-span-6">
+                                    <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Student</h5>
+                                  </div>
+                                  <div className="col-span-4">
+                                    <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment Status</h5>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">Actions</h5>
+                                  </div>
+                                </div>
+                              </div>
 
-                                return (
-                                  <div key={enrollment.id} className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
-                                    <div 
-                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${
-                                        enrollment.avatarColor ? '' : fallbackColor
-                                      }`}
-                                      style={enrollment.avatarColor ? { 
-                                        backgroundColor: typeof enrollment.avatarColor === 'object' 
-                                          ? undefined 
-                                          : enrollment.avatarColor,
-                                        background: typeof enrollment.avatarColor === 'object' 
-                                          ? enrollment.avatarColor.background 
-                                          : undefined
-                                      } : {}}
-                                    >
-                                      {avatarInitials}
+                              {/* Table Body */}
+                              <div className="divide-y divide-gray-200">
+                                {(enrichedEnrollments[course.id] || getCourseEnrollments(course.id))
+                                  .filter(enrollment => {
+                                    // Filter out null/undefined enrollments and enrollments without required data
+                                    const isValid = enrollment && (enrollment.studentName || enrollment.studentId);
+                                    if (!isValid) {
+                                      console.warn('Filtering out invalid enrollment:', enrollment);
+                                    }
+                                    return isValid;
+                                  })
+                                  .map((enrollment, index) => {
+                                    // Generate consistent avatar color if not provided
+                                    const avatarColors = [
+                                      'bg-indigo-500',
+                                      'bg-blue-500', 
+                                      'bg-green-500',
+                                      'bg-yellow-500',
+                                      'bg-red-500',
+                                      'bg-purple-500',
+                                      'bg-pink-500',
+                                      'bg-teal-500'
+                                    ];
+                                    
+                                    const nameHash = enrollment.studentName ? 
+                                      enrollment.studentName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+                                    const fallbackColor = avatarColors[nameHash % avatarColors.length];
+                                    
+                                    const avatarInitials = enrollment.avatar || 
+                                      (enrollment.studentName ? 
+                                        enrollment.studentName.split(' ').map(n => n[0]).join('').toUpperCase() : 
+                                        '?');
+
+                                    const payments = enrollmentPayments[enrollment.id] || [];
+                                    const latestPayment = payments.length > 0 ? payments[payments.length - 1] : null;
+                                    const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                                    const hasPayments = payments.length > 0;
+
+                                    return (
+                                      <div 
+                                        key={enrollment.id} 
+                                        className={`px-6 py-4 hover:bg-gray-50 transition-colors duration-150 cursor-pointer ${
+                                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                                        }`}
+                                        onClick={() => handleOpenStudentDetails(enrollment)}
+                                      >
+                                        <div className="grid grid-cols-12 gap-4 items-center">
+                                          {/* Student Column */}
+                                          <div className="col-span-6">
+                                            <div className="flex items-center space-x-3">
+                                              <div 
+                                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm ${
+                                                  enrollment.avatarColor ? '' : fallbackColor
+                                                }`}
+                                                style={enrollment.avatarColor ? { 
+                                                  backgroundColor: typeof enrollment.avatarColor === 'object' 
+                                                    ? undefined 
+                                                    : enrollment.avatarColor,
+                                                  background: typeof enrollment.avatarColor === 'object' 
+                                                    ? enrollment.avatarColor.background 
+                                                    : undefined
+                                                } : {}}
+                                              >
+                                                {avatarInitials}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                                  {enrollment.studentName}
+                                                </p>
+                                                <p className="text-xs text-gray-500 truncate">
+                                                  {enrollment.studentEmail}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Payment Status Column */}
+                                          <div className="col-span-4">
+                                            <div className="space-y-2">
+                                              {/* Payment Status Badge */}
+                                              <div className="flex items-center space-x-2">
+                                                {hasPayments ? (
+                                                  getPaymentStatusBadge(latestPayment.status || 'pending', latestPayment)
+                                                ) : (
+                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                                    <AlertCircle className="w-3 h-3 mr-1" />
+                                                    No Payment
+                                                  </span>
+                                                )}
+                                              </div>
+                                              
+                                              {/* Payment Amount and Details */}
+                                              <div className="space-y-1">
+                                                <div className="flex items-center space-x-2">
+                                                  <DollarSign className="w-3 h-3 text-gray-400" />
+                                                  <span className="text-sm font-medium text-gray-900">
+                                                    {hasPayments ? formatCurrency(totalPaid, latestPayment.currency) : '₫0'}
+                                                  </span>
+                                                  {payments.length > 1 && (
+                                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                      {payments.length} payments
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Payment Type and Date */}
+                                                {latestPayment && (
+                                                  <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                                    <span>{latestPayment.paymentType?.replace('_', ' ') || 'Payment'}</span>
+                                                    {latestPayment.paymentDate && (
+                                                      <>
+                                                        <span>•</span>
+                                                        <span>{new Date(latestPayment.paymentDate).toLocaleDateString()}</span>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                )}
+                                                
+                                                {/* Payment Notes */}
+                                                {latestPayment?.notes && (
+                                                  <p className="text-xs text-gray-500 italic truncate" title={latestPayment.notes}>
+                                                    "{latestPayment.notes}"
+                                                  </p>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Actions Column */}
+                                          <div className="col-span-2">
+                                            <div className="flex items-center justify-end space-x-2">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleAddPayment(enrollment, course);
+                                                }}
+                                                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors duration-150"
+                                                title={`Add payment for ${enrollment.studentName}`}
+                                              >
+                                                <CreditCard className="w-4 h-4" />
+                                              </button>
+                                              
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleRemoveStudent(enrollment.id, enrollment.studentName, course.courseName);
+                                                }}
+                                                disabled={removingEnrollmentId === enrollment.id}
+                                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150 ${
+                                                  removingEnrollmentId === enrollment.id
+                                                    ? 'text-gray-300 cursor-not-allowed'
+                                                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                                                }`}
+                                                title={`Remove ${enrollment.studentName} from course`}
+                                              >
+                                                {removingEnrollmentId === enrollment.id ? (
+                                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                                                ) : (
+                                                  <Trash2 className="w-4 h-4" />
+                                                )}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+
+                              {/* Table Footer */}
+                              <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                    <Users className="w-4 h-4" />
+                                    <span>
+                                      {(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length} student{(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length !== 1 ? 's' : ''} enrolled
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                    <div className="flex items-center space-x-1">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                      <span>Paid</span>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 truncate">{enrollment.studentName}</p>
-                                      <p className="text-xs text-gray-500 truncate">{enrollment.studentEmail}</p>
+                                    <div className="flex items-center space-x-1">
+                                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                      <span>Pending</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                      <span>No Payment</span>
                                     </div>
                                   </div>
-                                );
-                              })}
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -931,6 +1335,68 @@ export const ClassesTab = ({
         className={classData?.className}
       />
 
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={(e) => e.target === e.currentTarget && handleCancelDelete()}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 ease-out scale-100 animate-in slide-in-from-bottom-4 zoom-in-95">
+            {/* Modal Header */}
+            <div className="px-6 py-6 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Remove Student</h3>
+                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-6">
+              <p className="text-gray-700 leading-relaxed">
+                Are you sure you want to remove{' '}
+                <span className="font-semibold text-gray-900">{confirmDelete.studentName}</span>{' '}
+                from{' '}
+                <span className="font-semibold text-gray-900">{confirmDelete.courseName}</span>?
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end space-x-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={removingEnrollmentId === confirmDelete.enrollmentId}
+                autoFocus
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={removingEnrollmentId === confirmDelete.enrollmentId}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                {removingEnrollmentId === confirmDelete.enrollmentId ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Removing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Remove Student</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Course Modal */}
       <CreateCourseModal
         isOpen={showCreateCourse}
@@ -943,6 +1409,29 @@ export const ClassesTab = ({
         channelId={channelId}
         initialData={editingCourse}
         isEditing={!!editingCourse}
+      />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false);
+          setPaymentModalData(null);
+        }}
+        onSubmit={handlePaymentSubmit}
+        title="Add Payment for Student"
+        description="Record a payment for this student's course enrollment"
+        currency="VND"
+        prefilledData={paymentModalData}
+        readOnlyFields={['studentId', 'courseId']}
+        submitButtonText="Record Payment"
+      />
+
+      {/* Student Details Modal */}
+      <StudentDetailsModal
+        enrollment={selectedEnrollment}
+        isOpen={showStudentDetailsModal}
+        onClose={handleCloseStudentDetails}
       />
     </div>
   );

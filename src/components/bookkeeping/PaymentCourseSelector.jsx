@@ -7,7 +7,9 @@ const PaymentCourseSelector = ({
   selectedCourseId,
   className, 
   disabled = false,
-  error = null
+  error = null,
+  prefilledName = null,
+  readOnly = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -170,43 +172,48 @@ const PaymentCourseSelector = ({
       </label>
       
       {/* Selected Course Display or Input Field */}
-      {selectedCourse && !isOpen ? (
+      {(selectedCourse && !isOpen) || (readOnly && prefilledName) ? (
         <div 
-          onClick={() => setIsOpen(true)}
-          className={`w-full px-3 py-2 border rounded-lg cursor-pointer hover:border-gray-400 transition-colors ${
+          onClick={readOnly ? undefined : () => setIsOpen(true)}
+          className={`w-full px-3 py-2 border rounded-lg transition-colors ${
             error ? 'border-red-300' : 'border-gray-300'
-          } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+          } ${disabled || readOnly ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer hover:border-gray-400'}`}
         >
           <div className="flex items-center space-x-3">
             {/* Course Icon */}
             <div 
               className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: getCourseIconColor(selectedCourse).background }}
+              style={{ background: getCourseIconColor(selectedCourse || { courseName: prefilledName }).background }}
             >
               <span className="text-[10px] font-bold text-white">
-                {getCourseInitials(selectedCourse)}
+                {selectedCourse ? getCourseInitials(selectedCourse) :
+                 prefilledName ? prefilledName.split('-')[0]?.trim().toUpperCase() || 'CRS' : 'CRS'}
               </span>
             </div>
             
             {/* Course Info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {getDisplayName(selectedCourse)}
+                {selectedCourse ? getDisplayName(selectedCourse) : prefilledName || 'Unknown Course'}
               </p>
-              <p className="text-xs text-gray-500 truncate">{getDisplaySubtext(selectedCourse)}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {selectedCourse ? getDisplaySubtext(selectedCourse) : (readOnly ? 'Pre-selected course' : '')}
+              </p>
             </div>
             
             {/* Clear button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClearSelection();
-              }}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              ×
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClearSelection();
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -220,11 +227,11 @@ const PaymentCourseSelector = ({
             value={searchTerm}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
-            disabled={disabled}
+            disabled={disabled || readOnly}
             className={`block w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors ${
               error ? 'border-red-300' : 'border-gray-300'
-            } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${className}`}
-            placeholder={selectedCourse ? "Search to change course..." : "Search for a course..."}
+            } ${disabled || readOnly ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${className}`}
+            placeholder={selectedCourse ? "Search to change course..." : (readOnly ? "Course is pre-selected" : "Search for a course...")}
           />
         </div>
       )}
@@ -235,7 +242,7 @@ const PaymentCourseSelector = ({
       )}
 
       {/* Dropdown */}
-      {isOpen && !disabled && (
+      {isOpen && !disabled && !readOnly && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {loading ? (
             <div className="px-4 py-3 text-sm text-gray-500 text-center">

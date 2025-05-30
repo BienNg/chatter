@@ -3,6 +3,8 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import TaskReply from './TaskReply';
 import { ExternalLink, Trash2, MessageSquare } from 'lucide-react';
+import { useThreadReplies } from '../../../hooks/useThreadReplies';
+import DOMPurify from 'dompurify';
 
 const TaskThread = ({ taskId, sourceMessageId, channelId, sourceMessage, onJumpToMessage, onDeleteTask }) => {
     const [replies, setReplies] = useState([]);
@@ -119,7 +121,25 @@ const TaskThread = ({ taskId, sourceMessageId, channelId, sourceMessage, onJumpT
                             </span>
                         </div>
                         <div className="mt-1 text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
-                            {sourceMessage?.content}
+                            {sourceMessage?.content?.includes('<') && sourceMessage?.content?.includes('>') ? (
+                                <div
+                                    dangerouslySetInnerHTML={{
+                                        __html: DOMPurify.sanitize(sourceMessage.content, {
+                                            ALLOWED_TAGS: [
+                                                'p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 
+                                                'blockquote', 'pre', 'code', 'a', 'div', 'span', 'h1', 'h2', 
+                                                'h3', 'h4', 'h5', 'h6', 'style'
+                                            ],
+                                            ALLOWED_ATTR: [
+                                                'href', 'target', 'rel', 'style', 'class', 'title'
+                                            ],
+                                            ALLOW_DATA_ATTR: false
+                                        })
+                                    }}
+                                />
+                            ) : (
+                                sourceMessage?.content
+                            )}
                         </div>
                     </div>
                 </div>

@@ -146,7 +146,13 @@ function App() {
                                     <BookkeepingInterface />
                                 </ProtectedRoute>
                             }
-                        />
+                        >
+                            {/* Default bookkeeping overview */}
+                            <Route index element={<BookkeepingInterface />} />
+                            
+                            {/* Payment details route */}
+                            <Route path="payment/:paymentId" element={<BookkeepingInterface />} />
+                        </Route>
 
                         {/* Catch all route */}
                         <Route path="*" element={<Navigate to="/" replace />} />

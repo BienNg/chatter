@@ -7,7 +7,9 @@ const PaymentStudentSelector = ({
   selectedStudentId,
   className, 
   disabled = false,
-  error = null
+  error = null,
+  prefilledName = null,
+  readOnly = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +25,6 @@ const PaymentStudentSelector = ({
   const filteredStudents = students.filter(student => {
     const matchesSearch = !searchTerm || 
                          student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (student.email && student.email.toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesSearch;
@@ -84,7 +85,7 @@ const PaymentStudentSelector = ({
   };
 
   const getStudentInitials = (student) => {
-    const name = student.fullName || student.name || '';
+    const name = student.name || '';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
@@ -96,43 +97,48 @@ const PaymentStudentSelector = ({
       </label>
       
       {/* Selected Student Display or Input Field */}
-      {selectedStudent && !isOpen ? (
+      {(selectedStudent && !isOpen) || (readOnly && prefilledName) ? (
         <div 
-          onClick={() => setIsOpen(true)}
-          className={`w-full px-3 py-2 border rounded-lg cursor-pointer hover:border-gray-400 transition-colors ${
+          onClick={readOnly ? undefined : () => setIsOpen(true)}
+          className={`w-full px-3 py-2 border rounded-lg transition-colors ${
             error ? 'border-red-300' : 'border-gray-300'
-          } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+          } ${disabled || readOnly ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer hover:border-gray-400'}`}
         >
           <div className="flex items-center space-x-3">
             {/* Avatar */}
             <div 
               className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: getAvatarColor(selectedStudent.fullName || selectedStudent.name).background }}
+              style={{ background: getAvatarColor(selectedStudent?.name || prefilledName).background }}
             >
               <span className="text-xs font-bold text-white">
-                {getStudentInitials(selectedStudent)}
+                {selectedStudent ? getStudentInitials(selectedStudent) : 
+                 prefilledName ? prefilledName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'}
               </span>
             </div>
             
             {/* Student Info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {selectedStudent.fullName || selectedStudent.name}
+                {selectedStudent?.name || prefilledName || 'Unknown Student'}
               </p>
-              <p className="text-xs text-gray-500 truncate">{selectedStudent.email}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {selectedStudent?.email || (readOnly ? 'Pre-selected student' : '')}
+              </p>
             </div>
             
             {/* Clear button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClearSelection();
-              }}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              ×
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClearSelection();
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -146,11 +152,11 @@ const PaymentStudentSelector = ({
             value={searchTerm}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
-            disabled={disabled}
+            disabled={disabled || readOnly}
             className={`block w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors ${
               error ? 'border-red-300' : 'border-gray-300'
-            } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${className}`}
-            placeholder={selectedStudent ? "Search to change student..." : "Search for a student..."}
+            } ${disabled || readOnly ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${className}`}
+            placeholder={selectedStudent ? "Search to change student..." : (readOnly ? "Student is pre-selected" : "Search for a student...")}
           />
         </div>
       )}
@@ -161,7 +167,7 @@ const PaymentStudentSelector = ({
       )}
 
       {/* Dropdown */}
-      {isOpen && !disabled && (
+      {isOpen && !disabled && !readOnly && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {loading ? (
             <div className="px-4 py-3 text-sm text-gray-500 text-center">
@@ -179,7 +185,7 @@ const PaymentStudentSelector = ({
           ) : (
             <div className="py-1">
               {filteredStudents.map((student) => {
-                const avatarColor = getAvatarColor(student.fullName || student.name);
+                const avatarColor = getAvatarColor(student.name);
                 const isSelected = selectedStudentId === student.id;
                 
                 return (
@@ -207,7 +213,7 @@ const PaymentStudentSelector = ({
                           <p className={`text-sm font-medium truncate ${
                             isSelected ? 'text-indigo-900' : 'text-gray-900'
                           }`}>
-                            {student.fullName || student.name}
+                            {student.name}
                           </p>
                         </div>
                         <p className={`text-xs truncate ${

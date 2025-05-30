@@ -143,6 +143,7 @@ export const useEnrollments = () => {
         amount: enrollmentData.amount || 0,
         currency: enrollmentData.currency || 'VND',
         paymentStatus: enrollmentData.paymentStatus || 'pending', // pending, paid, partial, overdue
+        paymentId: enrollmentData.paymentId || null, // Reference to payments collection
         
         // Dates
         enrollmentDate: timestamp,
@@ -344,6 +345,141 @@ export const useEnrollments = () => {
     );
   }, [enrollments]);
 
+  // Get payment information for enrollment
+  const getEnrollmentPayment = useCallback(async (enrollmentId) => {
+    try {
+      const enrollment = enrollments.find(e => e.id === enrollmentId);
+      if (!enrollment?.paymentId) return null;
+
+      const paymentDoc = await getDoc(doc(db, 'payments', enrollment.paymentId));
+      if (!paymentDoc.exists()) return null;
+
+      return {
+        id: paymentDoc.id,
+        ...paymentDoc.data(),
+        createdAt: paymentDoc.data().createdAt?.toDate?.() || new Date(),
+        updatedAt: paymentDoc.data().updatedAt?.toDate?.() || new Date(),
+        paymentDate: paymentDoc.data().paymentDate?.toDate?.() || new Date()
+      };
+    } catch (error) {
+      console.error('Error fetching enrollment payment:', error);
+      return null;
+    }
+  }, [enrollments]);
+
+  // Create enrollment with payment
+  const createEnrollmentWithPayment = async (enrollmentData, paymentData) => {
+    try {
+      setError(null);
+      
+      // First create the payment
+      const paymentDoc = {
+        ...paymentData,
+        studentId: enrollmentData.studentId,
+        courseId: enrollmentData.courseId,
+        classId: enrollmentData.classId,
+        studentName: enrollmentData.studentName,
+        studentEmail: enrollmentData.studentEmail,
+        courseName: enrollmentData.courseName,
+        enrollmentId: null, // Will be updated after enrollment creation
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdBy: currentUser.uid
+      };
+
+      const paymentRef = await addDoc(collection(db, 'payments'), paymentDoc);
+      
+      // Create enrollment with payment reference
+      const enrollmentWithPayment = {
+        ...enrollmentData,
+        paymentId: paymentRef.id,
+        paymentStatus: paymentData.status || 'pending',
+        amount: paymentData.amount || 0,
+        currency: paymentData.currency || 'VND'
+      };
+
+      const enrollmentId = await enrollStudent(enrollmentWithPayment);
+
+      // Update payment with enrollment reference
+      await updateDoc(doc(db, 'payments', paymentRef.id), {
+        enrollmentId: enrollmentId,
+        updatedAt: serverTimestamp()
+      });
+
+      return { enrollmentId, paymentId: paymentRef.id };
+    } catch (error) {
+      console.error('Error creating enrollment with payment:', error);
+      throw error;
+    }
+  };
+
+  // Update payment status and sync with enrollment
+  const updatePaymentStatus = async (enrollmentId, paymentStatus, paymentData = {}) => {
+    try {
+      const enrollment = enrollments.find(e => e.id === enrollmentId);
+      if (!enrollment) throw new Error('Enrollment not found');
+
+      // Update enrollment payment status
+      await updateEnrollment(enrollmentId, { 
+        paymentStatus,
+        ...paymentData.enrollmentUpdates
+      });
+
+      // Update payment if it exists
+      if (enrollment.paymentId && paymentData.paymentUpdates) {
+        await updateDoc(doc(db, 'payments', enrollment.paymentId), {
+          ...paymentData.paymentUpdates,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      throw error;
+    }
+  };
+
+  // Get enriched enrollments with payment data for display
+  const getEnrichedEnrollments = useCallback(async (courseId) => {
+    try {
+      const courseEnrollments = getCourseEnrollments(courseId);
+      
+      const enrichedEnrollments = await Promise.all(
+        courseEnrollments.map(async (enrollment) => {
+          let paymentInfo = null;
+          
+          if (enrollment.paymentId) {
+            try {
+              const paymentDoc = await getDoc(doc(db, 'payments', enrollment.paymentId));
+              if (paymentDoc.exists()) {
+                paymentInfo = {
+                  id: paymentDoc.id,
+                  ...paymentDoc.data(),
+                  createdAt: paymentDoc.data().createdAt?.toDate?.() || new Date(),
+                  updatedAt: paymentDoc.data().updatedAt?.toDate?.() || new Date(),
+                  paymentDate: paymentDoc.data().paymentDate?.toDate?.() || new Date()
+                };
+              }
+            } catch (error) {
+              console.warn('Error fetching payment for enrollment:', enrollment.id, error);
+            }
+          }
+
+          return {
+            ...enrollment,
+            payment: paymentInfo
+          };
+        })
+      );
+
+      return enrichedEnrollments;
+    } catch (error) {
+      console.error('Error getting enriched enrollments:', error);
+      return getCourseEnrollments(courseId);
+    }
+  }, [getCourseEnrollments]);
+
   return {
     enrollments,
     loading,
@@ -361,6 +497,10 @@ export const useEnrollments = () => {
     searchEnrollments,
     getEnrollmentById,
     isStudentEnrolled,
+    getEnrollmentPayment,
+    createEnrollmentWithPayment,
+    updatePaymentStatus,
+    getEnrichedEnrollments,
     refetch: fetchEnrollments
   };
 }; 

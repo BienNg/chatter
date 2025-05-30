@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePayments } from '../../hooks/usePayments';
-import { Eye, Search, Filter } from 'lucide-react';
+import { Eye, Search, Filter, Trash2, AlertTriangle, MoreVertical, Edit, MessageSquare } from 'lucide-react';
+import PaymentDetailsModal from '../shared/PaymentDetailsModal';
+import SendToChatModal from './SendToChatModal';
 
 /**
  * PaymentsList - Displays recent payments in a table format
  * Shows student information, course details, payment amounts, and status
  */
 const PaymentsList = ({ currency = 'EUR' }) => {
-  const { payments, loading } = usePayments();
+  const { payments, loading, deletePayment } = usePayments();
+  const navigate = useNavigate();
+  const params = useParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingPaymentId, setDeletingPaymentId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [showSendToChatModal, setShowSendToChatModal] = useState(false);
+  const [paymentToShare, setPaymentToShare] = useState(null);
 
   const formatCurrency = (amount, curr = currency) => {
     const formatters = {
@@ -58,19 +70,165 @@ const PaymentsList = ({ currency = 'EUR' }) => {
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = searchQuery === '' || 
+      // Student information
       payment.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.studentEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Course information
       payment.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.studentEmail.toLowerCase().includes(searchQuery.toLowerCase());
+      payment.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Status
+      payment.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Amount and currency
+      payment.amount.toString().includes(searchQuery.toLowerCase()) ||
+      payment.currency.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      formatCurrency(payment.amount, payment.currency).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Notes
+      (payment.notes || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Date
+      new Date(payment.createdAt).toLocaleDateString().includes(searchQuery.toLowerCase()) ||
+      new Date(payment.createdAt).toLocaleDateString('en-US').includes(searchQuery.toLowerCase()) ||
+      new Date(payment.createdAt).toLocaleDateString('de-DE').includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
+  // Handle URL-based modal opening
+  useEffect(() => {
+    if (params.paymentId && payments.length > 0) {
+      const payment = payments.find(p => p.id === params.paymentId);
+      if (payment) {
+        setSelectedPayment(payment);
+        setIsModalOpen(true);
+      }
+    } else if (!params.paymentId) {
+      setIsModalOpen(false);
+      setSelectedPayment(null);
+    }
+  }, [params.paymentId, payments]);
+
   const handleViewReceipt = (paymentId) => {
-    console.log('View receipt for payment:', paymentId);
-    // In a real app, this would open a receipt modal or navigate to receipt page
+    // Navigate to payment detail URL
+    navigate(`/bookkeeping/payment/${paymentId}`);
   };
+
+  const handleCloseModal = () => {
+    // Navigate back to bookkeeping overview
+    navigate('/bookkeeping');
+  };
+
+  const handleEditPayment = (payment) => {
+    console.log('Edit payment:', payment);
+    // In a real app, this would open an edit modal
+    // For now, keep the modal open to maintain the URL state
+  };
+
+  const handleDeletePayment = (payment, e) => {
+    e.stopPropagation(); // Prevent row click
+    setConfirmDelete({
+      id: payment.id,
+      studentName: payment.studentName,
+      amount: payment.amount,
+      currency: payment.currency
+    });
+  };
+
+  const handleDeleteFromModal = async (payment) => {
+    // Direct deletion from the side peek modal (which has its own confirmation)
+    try {
+      setDeletingPaymentId(payment.id);
+      await deletePayment(payment.id);
+      console.log('Payment deleted successfully from modal');
+      // Navigate back to overview after successful deletion
+      navigate('/bookkeeping');
+    } catch (error) {
+      console.error('Error deleting payment from modal:', error);
+      alert('Failed to delete payment. Please try again.');
+    } finally {
+      setDeletingPaymentId(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingPaymentId(confirmDelete.id);
+      await deletePayment(confirmDelete.id);
+      console.log('Payment deleted successfully');
+      
+      // If currently viewing the deleted payment details, navigate back to overview
+      if (params.paymentId === confirmDelete.id) {
+        navigate('/bookkeeping');
+      }
+      
+      setConfirmDelete(null);
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      alert('Failed to delete payment. Please try again.');
+    } finally {
+      setDeletingPaymentId(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDelete(null);
+  };
+
+  const handleRowClick = (paymentId) => {
+    if (deletingPaymentId === paymentId) return; // Prevent clicks while deleting
+    handleViewReceipt(paymentId);
+  };
+
+  const handleSendToChat = (payment) => {
+    setPaymentToShare(payment);
+    setShowSendToChatModal(true);
+  };
+
+  const handleCloseSendToChatModal = () => {
+    setShowSendToChatModal(false);
+    setPaymentToShare(null);
+  };
+
+  const handleDropdownToggle = (paymentId, e) => {
+    e.stopPropagation(); // Prevent row click
+    setOpenDropdownId(openDropdownId === paymentId ? null : paymentId);
+  };
+
+  const handleDropdownAction = (action, payment, e) => {
+    e.stopPropagation(); // Prevent row click
+    setOpenDropdownId(null); // Close dropdown
+    
+    switch (action) {
+      case 'view':
+        handleViewReceipt(payment.id);
+        break;
+      case 'edit':
+        handleEditPayment(payment);
+        break;
+      case 'delete':
+        handleDeletePayment(payment, e);
+        break;
+      case 'sendToChat':
+        handleSendToChat(payment);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenDropdownId(null);
+    };
+
+    if (openDropdownId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openDropdownId]);
 
   if (loading) {
     return (
@@ -151,6 +309,9 @@ const PaymentsList = ({ currency = 'EUR' }) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Date
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Notes
+              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
@@ -159,21 +320,62 @@ const PaymentsList = ({ currency = 'EUR' }) => {
           <tbody className="divide-y divide-gray-200">
             {filteredPayments.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                  <div className="text-center">
-                    <p className="text-lg font-medium">No payments found</p>
-                    <p className="text-sm">
-                      {searchQuery || statusFilter !== 'all' 
-                        ? 'Try adjusting your search or filter criteria'
-                        : 'Payments will appear here once recorded'
-                      }
-                    </p>
+                <td colSpan="7" className="px-6 py-16 text-center text-gray-500">
+                  <div className="text-center max-w-md mx-auto">
+                    {searchQuery || statusFilter !== 'all' ? (
+                      // Filtered but no results
+                      <>
+                        <div className="mb-4">
+                          <Search className="h-12 w-12 text-gray-300 mx-auto" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No payments match your filters</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Try adjusting your search terms or filter criteria to find payments.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setSearchQuery('');
+                            setStatusFilter('all');
+                          }}
+                          className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+                        >
+                          Clear all filters
+                        </button>
+                      </>
+                    ) : (
+                      // No payments at all
+                      <>
+                        <div className="mb-4">
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" 
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No payment records yet</h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                          Start tracking your financial transactions by recording your first payment. 
+                          All student payments, course fees, and transaction history will appear here.
+                        </p>
+                        <div className="text-xs text-gray-400 space-y-1">
+                          <p>💡 <strong>Tip:</strong> Use the "Record Payment" button above to add your first transaction</p>
+                          <p>📊 Once you have payments, you'll see financial stats and trends</p>
+                          <p>🔍 Use search and filters to quickly find specific transactions</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
             ) : (
               filteredPayments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50">
+                <tr 
+                  key={payment.id} 
+                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  onClick={() => handleRowClick(payment.id)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-medium text-sm ${getAvatarColor(payment.studentName)}`}>
@@ -191,9 +393,9 @@ const PaymentsList = ({ currency = 'EUR' }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {formatCurrency(payment.amount)}
+                      {formatCurrency(payment.amount, payment.currency)}
                     </div>
-                    {payment.originalCurrency !== currency && (
+                    {payment.originalCurrency && payment.originalCurrency !== payment.currency && (
                       <div className="text-sm text-gray-500">
                         {formatCurrency(payment.originalAmount, payment.originalCurrency)}
                       </div>
@@ -205,14 +407,71 @@ const PaymentsList = ({ currency = 'EUR' }) => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(payment.createdAt).toLocaleDateString()}
                   </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                    <div className="truncate" title={payment.notes || ''}>
+                      {payment.notes || '-'}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleViewReceipt(payment.id)}
-                      className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Receipt
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={(e) => handleDropdownToggle(payment.id, e)}
+                        className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-all duration-150"
+                        disabled={deletingPaymentId === payment.id}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                      
+                      {/* Dropdown Menu */}
+                      {openDropdownId === payment.id && (
+                        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                          <div className="py-1">
+                            <button
+                              onClick={(e) => handleDropdownAction('view', payment, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                              disabled={deletingPaymentId === payment.id}
+                            >
+                              <Eye className="h-4 w-4 mr-3" />
+                              View Details
+                            </button>
+                            <button
+                              onClick={(e) => handleDropdownAction('edit', payment, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                              disabled={deletingPaymentId === payment.id}
+                            >
+                              <Edit className="h-4 w-4 mr-3" />
+                              Edit Payment
+                            </button>
+                            <button
+                              onClick={(e) => handleDropdownAction('sendToChat', payment, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                              disabled={deletingPaymentId === payment.id}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-3" />
+                              Send to Chat
+                            </button>
+                            <div className="border-t border-gray-100"></div>
+                            <button
+                              onClick={(e) => handleDropdownAction('delete', payment, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
+                              disabled={deletingPaymentId === payment.id}
+                            >
+                              {deletingPaymentId === payment.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-3"></div>
+                                  Deleting...
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="h-4 w-4 mr-3" />
+                                  Delete Payment
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -220,6 +479,82 @@ const PaymentsList = ({ currency = 'EUR' }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Payment Details Modal */}
+      <PaymentDetailsModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        payment={selectedPayment}
+        currency={currency}
+        onEdit={handleEditPayment}
+        onDelete={handleDeleteFromModal}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Delete Payment</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-700">
+                Are you sure you want to delete the payment of{' '}
+                <span className="font-semibold">
+                  {new Intl.NumberFormat('de-DE', { 
+                    style: 'currency', 
+                    currency: confirmDelete.currency 
+                  }).format(confirmDelete.amount)}
+                </span>{' '}
+                from <span className="font-semibold">{confirmDelete.studentName}</span>?
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={handleCancelDelete}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={deletingPaymentId}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                disabled={deletingPaymentId}
+              >
+                {deletingPaymentId ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Payment</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send to Chat Modal */}
+      {showSendToChatModal && (
+        <SendToChatModal
+          isOpen={showSendToChatModal}
+          onClose={handleCloseSendToChatModal}
+          payment={paymentToShare}
+        />
+      )}
     </div>
   );
 };

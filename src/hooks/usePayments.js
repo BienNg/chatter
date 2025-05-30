@@ -15,110 +15,6 @@ import {
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
-// Sample payment data for demonstration
-const SAMPLE_PAYMENTS = [
-    {
-        id: 'sample-1',
-        studentId: 'student-1',
-        studentName: 'John Doe',
-        studentEmail: 'john@example.com',
-        courseId: 'course-1',
-        courseName: 'A1.1 Morning Class',
-        amount: 750,
-        currency: 'EUR',
-        originalAmount: 750,
-        originalCurrency: 'EUR',
-        paymentType: 'Full Course',
-        paymentMethod: 'bank_transfer',
-        status: 'completed',
-        notes: 'Full payment for A1.1 course',
-        createdAt: new Date('2024-02-15'),
-        updatedAt: new Date('2024-02-15'),
-        paymentDate: new Date('2024-02-15'),
-        createdBy: 'demo-user'
-    },
-    {
-        id: 'sample-2',
-        studentId: 'student-2',
-        studentName: 'Mai Tran',
-        studentEmail: 'mai@example.com',
-        courseId: 'course-2',
-        courseName: 'B2.2 Evening Class',
-        amount: 400,
-        currency: 'EUR',
-        originalAmount: 10400000,
-        originalCurrency: 'VND',
-        paymentType: 'Partial Payment',
-        paymentMethod: 'cash',
-        status: 'pending',
-        notes: 'First installment payment',
-        createdAt: new Date('2024-02-14'),
-        updatedAt: new Date('2024-02-14'),
-        paymentDate: new Date('2024-02-14'),
-        createdBy: 'demo-user'
-    },
-    {
-        id: 'sample-3',
-        studentId: 'student-3',
-        studentName: 'Alex Johnson',
-        studentEmail: 'alex@example.com',
-        courseId: 'course-3',
-        courseName: 'C1.1 Intensive Course',
-        amount: 950,
-        currency: 'EUR',
-        originalAmount: 950,
-        originalCurrency: 'EUR',
-        paymentType: 'Full Course',
-        paymentMethod: 'credit_card',
-        status: 'completed',
-        notes: 'Online payment via credit card',
-        createdAt: new Date('2024-02-10'),
-        updatedAt: new Date('2024-02-10'),
-        paymentDate: new Date('2024-02-10'),
-        createdBy: 'demo-user'
-    },
-    {
-        id: 'sample-4',
-        studentId: 'student-4',
-        studentName: 'Sophie Chen',
-        studentEmail: 'sophie@example.com',
-        courseId: 'course-4',
-        courseName: 'A2.1 Weekend Class',
-        amount: 600,
-        currency: 'EUR',
-        originalAmount: 600,
-        originalCurrency: 'EUR',
-        paymentType: 'Deposit',
-        paymentMethod: 'paypal',
-        status: 'completed',
-        notes: 'Initial deposit payment',
-        createdAt: new Date('2024-02-08'),
-        updatedAt: new Date('2024-02-08'),
-        paymentDate: new Date('2024-02-08'),
-        createdBy: 'demo-user'
-    },
-    {
-        id: 'sample-5',
-        studentId: 'student-5',
-        studentName: 'David Wilson',
-        studentEmail: 'david@example.com',
-        courseId: 'course-5',
-        courseName: 'B1.2 Business German',
-        amount: 850,
-        currency: 'EUR',
-        originalAmount: 850,
-        originalCurrency: 'EUR',
-        paymentType: 'Full Course',
-        paymentMethod: 'bank_transfer',
-        status: 'pending',
-        notes: 'Waiting for bank transfer confirmation',
-        createdAt: new Date('2024-02-12'),
-        updatedAt: new Date('2024-02-12'),
-        paymentDate: new Date('2024-02-12'),
-        createdBy: 'demo-user'
-    }
-];
-
 /**
  * usePayments - Custom hook for managing payment data
  * Handles payment CRUD operations and financial statistics
@@ -156,20 +52,15 @@ export const usePayments = () => {
                     paymentDate: doc.data().paymentDate || doc.data().createdAt?.toDate?.() || new Date()
                 }));
                 
-                // If no payments from Firestore, use sample data for demonstration
-                if (paymentData.length === 0) {
-                    setPayments(SAMPLE_PAYMENTS);
-                } else {
-                    setPayments(paymentData);
-                }
-                
+                // Set payments directly from Firestore data (no fallback to sample data)
+                setPayments(paymentData);
                 setLoading(false);
                 setError(null);
             },
             (err) => {
                 console.error('Error fetching payments:', err);
-                // On error, still show sample data for demonstration
-                setPayments(SAMPLE_PAYMENTS);
+                // On error, set empty array instead of sample data
+                setPayments([]);
                 setError(err.message);
                 setLoading(false);
             }
@@ -344,6 +235,22 @@ export const usePayments = () => {
         }
     }, [payments, currentUser]);
 
+    // Get payments by enrollment
+    const getPaymentsByEnrollment = useCallback(async (enrollmentId) => {
+        if (!enrollmentId || !currentUser) return [];
+
+        try {
+            const enrollmentPayments = payments.filter(
+                payment => payment.enrollmentId === enrollmentId
+            );
+            
+            return enrollmentPayments;
+        } catch (error) {
+            console.error('Error getting enrollment payments:', error);
+            return [];
+        }
+    }, [payments, currentUser]);
+
     // Search payments
     const searchPayments = useCallback((searchQuery) => {
         if (!searchQuery || !currentUser) return payments;
@@ -413,6 +320,7 @@ export const usePayments = () => {
         // Query operations
         getPaymentsByStudent,
         getPaymentsByCourse,
+        getPaymentsByEnrollment,
         searchPayments,
 
         // Statistics

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, MessageCircle } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import DOMPurify from 'dompurify';
 
 const TaskCard = ({ task, isSelected, onSelect, channelId }) => {
     const { sourceMessageData, status, lastActivity, createdAt, sourceMessageId } = task;
@@ -78,7 +79,25 @@ const TaskCard = ({ task, isSelected, onSelect, channelId }) => {
                         )}
                     </div>
                     <div className="mt-1 text-gray-800 text-left line-clamp-2">
-                        {sourceMessageData.content}
+                        {sourceMessageData.content?.includes('<') && sourceMessageData.content?.includes('>') ? (
+                            <div
+                                dangerouslySetInnerHTML={{
+                                    __html: DOMPurify.sanitize(sourceMessageData.content, {
+                                        ALLOWED_TAGS: [
+                                            'p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 
+                                            'blockquote', 'pre', 'code', 'a', 'div', 'span', 'h1', 'h2', 
+                                            'h3', 'h4', 'h5', 'h6', 'style'
+                                        ],
+                                        ALLOWED_ATTR: [
+                                            'href', 'target', 'rel', 'style', 'class', 'title'
+                                        ],
+                                        ALLOW_DATA_ATTR: false
+                                    })
+                                }}
+                            />
+                        ) : (
+                            sourceMessageData.content
+                        )}
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                         {liveReplyCount > 0 && (

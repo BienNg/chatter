@@ -190,8 +190,14 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
                                     <div
                                         dangerouslySetInnerHTML={{
                                             __html: DOMPurify.sanitize(msg.content, {
-                                                ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a'],
-                                                ALLOWED_ATTR: ['href', 'target', 'rel'],
+                                                ALLOWED_TAGS: [
+                                                    'p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 
+                                                    'blockquote', 'pre', 'code', 'a', 'div', 'span', 'h1', 'h2', 
+                                                    'h3', 'h4', 'h5', 'h6', 'style'
+                                                ],
+                                                ALLOWED_ATTR: [
+                                                    'href', 'target', 'rel', 'style', 'class', 'title'
+                                                ],
                                                 ALLOW_DATA_ATTR: false
                                             })
                                         }}

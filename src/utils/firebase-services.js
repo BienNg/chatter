@@ -7,7 +7,8 @@ import {
   doc, 
   query, 
   orderBy,
-  serverTimestamp 
+  serverTimestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -23,6 +24,23 @@ export const studentServices = {
       studentId: doc.data().studentId || doc.id,
       createdAt: doc.data().createdAt?.toDate?.() || new Date()
     }));
+  },
+
+  // Get student by ID
+  getStudentById: async (studentId) => {
+    const docRef = doc(db, 'students', studentId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return {
+        id: docSnap.id,
+        ...docSnap.data(),
+        studentId: docSnap.data().studentId || docSnap.id,
+        createdAt: docSnap.data().createdAt?.toDate?.() || new Date()
+      };
+    } else {
+      throw new Error('Student not found');
+    }
   },
 
   // Add a new student

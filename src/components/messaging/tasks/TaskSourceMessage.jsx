@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExternalLink, Trash2 } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 const TaskSourceMessage = ({ sourceMessage, onJumpToMessage, onDeleteTask }) => {
     const formatTimestamp = (timestamp) => {
@@ -45,7 +46,25 @@ const TaskSourceMessage = ({ sourceMessage, onJumpToMessage, onDeleteTask }) => 
                             </span>
                         </div>
                         <div className="mt-1 text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere line-clamp-3 overflow-hidden">
-                            {sourceMessage.content}
+                            {sourceMessage.content?.includes('<') && sourceMessage.content?.includes('>') ? (
+                                <div
+                                    dangerouslySetInnerHTML={{
+                                        __html: DOMPurify.sanitize(sourceMessage.content, {
+                                            ALLOWED_TAGS: [
+                                                'p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 
+                                                'blockquote', 'pre', 'code', 'a', 'div', 'span', 'h1', 'h2', 
+                                                'h3', 'h4', 'h5', 'h6', 'style'
+                                            ],
+                                            ALLOWED_ATTR: [
+                                                'href', 'target', 'rel', 'style', 'class', 'title'
+                                            ],
+                                            ALLOW_DATA_ATTR: false
+                                        })
+                                    }}
+                                />
+                            ) : (
+                                sourceMessage.content
+                            )}
                         </div>
                     </div>
                 </div>

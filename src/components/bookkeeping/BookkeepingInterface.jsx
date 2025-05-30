@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePayments } from '../../hooks/usePayments';
 import { BookkeepingLayout } from './layout';
 import FinancialOverview from './FinancialOverview';
-import PaymentForm from './PaymentForm';
+import PaymentModal from '../shared/PaymentModal';
 import PaymentsList from './PaymentsList';
 import RevenueChart from './RevenueChart';
 import { Plus, Download } from 'lucide-react';
@@ -13,27 +15,44 @@ import { Plus, Download } from 'lucide-react';
  */
 const BookkeepingInterface = () => {
   const { currentUser, userProfile, logout } = useAuth();
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const { addPayment } = usePayments();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('EUR');
+  const params = useParams();
 
   const handleRecordPayment = () => {
-    setShowPaymentForm(true);
+    setShowPaymentModal(true);
   };
 
-  const handlePaymentFormClose = () => {
-    setShowPaymentForm(false);
+  const handlePaymentModalClose = () => {
+    setShowPaymentModal(false);
   };
 
-  const handlePaymentSubmit = (paymentData) => {
-    // Handle payment submission
-    console.log('Payment submitted:', paymentData);
-    setShowPaymentForm(false);
+  const handlePaymentSubmit = async (paymentData) => {
+    try {
+      // Submit payment to database using the usePayments hook
+      await addPayment(paymentData);
+      console.log('Payment recorded successfully:', paymentData);
+      
+      // Close modal after successful submission
+      setShowPaymentModal(false);
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      throw error; // Let the PaymentModal handle the error display
+    }
   };
 
   const handleExportData = () => {
     // Handle data export
     console.log('Exporting financial data...');
   };
+
+  useEffect(() => {
+    if (params.paymentId) {
+      // Handle payment details route
+      console.log('Payment details route accessed');
+    }
+  }, [params.paymentId]);
 
   return (
     <BookkeepingLayout
@@ -90,15 +109,16 @@ const BookkeepingInterface = () => {
         </div>
       </div>
 
-      {/* Payment Form Modal */}
-      {showPaymentForm && (
-        <PaymentForm
-          isOpen={showPaymentForm}
-          onClose={handlePaymentFormClose}
-          onSubmit={handlePaymentSubmit}
-          currency={selectedCurrency}
-        />
-      )}
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={handlePaymentModalClose}
+        onSubmit={handlePaymentSubmit}
+        currency={selectedCurrency}
+        title="Record Payment"
+        description="Add a new payment record to the financial system"
+        submitButtonText="Record Payment"
+      />
     </BookkeepingLayout>
   );
 };

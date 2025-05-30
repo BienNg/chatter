@@ -18,8 +18,10 @@ import {
   Building,
   Percent,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  ExternalLink
 } from 'lucide-react';
+import StudentDetailsModal from './StudentDetailsModal';
 
 /**
  * PaymentDetailsModal - Notion-style side peek modal for payment details
@@ -31,10 +33,14 @@ const PaymentDetailsModal = ({
   payment, 
   currency = 'EUR',
   onEdit = null,
-  onDelete = null 
+  onDelete = null,
+  onOpenStudentDetails = null,
+  onOpenCourseDetails = null 
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [selectedEnrollment, setSelectedEnrollment] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +64,55 @@ const PaymentDetailsModal = ({
     if (e.target === e.currentTarget) {
       handleClose();
     }
+  };
+
+  // Add handlers for opening student and course details
+  const handleStudentClick = () => {
+    if (!payment?.studentId) return;
+    
+    // Create an enrollment-like object for the StudentDetailsModal
+    const enrollmentData = {
+      studentId: payment.studentId,
+      studentName: payment.studentName,
+      studentEmail: payment.studentEmail,
+      studentPhone: payment.studentPhone
+    };
+    
+    if (onOpenStudentDetails) {
+      // If parent component provides a handler, use it
+      onOpenStudentDetails(enrollmentData);
+    } else {
+      // Otherwise, open our own modal
+      setSelectedEnrollment(enrollmentData);
+      setShowStudentModal(true);
+    }
+  };
+
+  const handleCourseClick = () => {
+    if (!payment?.courseId) return;
+    
+    // Create a course object
+    const courseData = {
+      id: payment.courseId,
+      courseName: payment.courseName,
+      level: payment.courseLevel,
+      // Add other course properties as needed
+    };
+    
+    if (onOpenCourseDetails) {
+      // If parent component provides a handler, use it
+      onOpenCourseDetails(courseData);
+    } else {
+      // For now, just log this - you could implement a course details modal
+      console.log('Opening course details for:', courseData);
+      // Could show a simple alert or toast notification
+      alert(`Course: ${courseData.courseName}\nLevel: ${courseData.level || 'Not specified'}`);
+    }
+  };
+
+  const handleCloseStudentModal = () => {
+    setShowStudentModal(false);
+    setSelectedEnrollment(null);
   };
 
   const formatCurrency = (amount, curr = currency) => {
@@ -257,12 +312,16 @@ const PaymentDetailsModal = ({
                     {/* Left Column */}
                     <div className="space-y-8">
                       {/* Student Information */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-6">
+                      <div 
+                        className="bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-indigo-200 transition-all duration-200 group"
+                        onClick={handleStudentClick}
+                      >
                         <div className="flex items-center space-x-3 mb-6">
-                          <div className="p-2 bg-blue-50 rounded-lg">
+                          <div className="p-2 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors duration-200">
                             <User className="w-5 h-5 text-blue-600" />
                           </div>
-                          <h3 className="text-lg font-semibold text-gray-900">Student Information</h3>
+                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors duration-200">Student Information</h3>
+                          <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                         </div>
                         
                         <div className="flex items-start space-x-4">
@@ -270,28 +329,35 @@ const PaymentDetailsModal = ({
                             {getUserInitials(payment.studentName)}
                           </div>
                           <div className="flex-1">
-                            <h4 className="text-lg font-medium text-gray-900">{payment.studentName}</h4>
+                            <h4 className="text-lg font-medium text-gray-900 group-hover:text-indigo-700 transition-colors duration-200">{payment.studentName}</h4>
                             <p className="text-sm text-gray-600 mt-1">{payment.studentEmail}</p>
                             {payment.studentPhone && (
                               <p className="text-sm text-gray-600">{payment.studentPhone}</p>
                             )}
+                            <p className="text-xs text-indigo-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              Click to view student details →
+                            </p>
                           </div>
                         </div>
                       </div>
 
                       {/* Course Information */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-6">
+                      <div 
+                        className="bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-green-200 transition-all duration-200 group"
+                        onClick={handleCourseClick}
+                      >
                         <div className="flex items-center space-x-3 mb-6">
-                          <div className="p-2 bg-green-50 rounded-lg">
+                          <div className="p-2 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors duration-200">
                             <GraduationCap className="w-5 h-5 text-green-600" />
                           </div>
-                          <h3 className="text-lg font-semibold text-gray-900">Course Details</h3>
+                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors duration-200">Course Details</h3>
+                          <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                         </div>
                         
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm font-medium text-gray-500">Course Name</label>
-                            <p className="text-base text-gray-900 mt-1">{payment.courseName}</p>
+                            <p className="text-base text-gray-900 mt-1 group-hover:text-green-700 transition-colors duration-200">{payment.courseName}</p>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-500">Payment Type</label>
@@ -299,6 +365,9 @@ const PaymentDetailsModal = ({
                               {payment.paymentType?.replace('_', ' ') || 'Full Payment'}
                             </p>
                           </div>
+                          <p className="text-xs text-green-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            Click to view course details →
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -433,42 +502,6 @@ const PaymentDetailsModal = ({
                   )}
                 </div>
               </div>
-
-              {/* Footer */}
-              <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">
-                    Transaction processed on {new Date(payment.createdAt).toLocaleDateString()}
-                  </p>
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={handleDownloadReceipt}
-                      className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors duration-200 flex items-center space-x-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Download Receipt</span>
-                    </button>
-                    {onEdit && (
-                      <button
-                        onClick={handleEditPayment}
-                        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 transition-colors duration-200 flex items-center space-x-2"
-                      >
-                        <Edit className="w-4 h-4" />
-                        <span>Edit Payment</span>
-                      </button>
-                    )}
-                    {onDelete && (
-                      <button
-                        onClick={handleDeletePayment}
-                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Delete Payment</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -516,6 +549,13 @@ const PaymentDetailsModal = ({
           </div>
         </div>
       )}
+
+      {/* Student Details Modal */}
+      <StudentDetailsModal
+        enrollment={selectedEnrollment}
+        isOpen={showStudentModal}
+        onClose={handleCloseStudentModal}
+      />
     </>
   );
 };

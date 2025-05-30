@@ -1,9 +1,12 @@
 import FirebaseCollectionSelector from './FirebaseCollectionSelector.jsx';
+import FirebaseMultiSelectSelector from './FirebaseMultiSelectSelector.jsx';
 
 export {
-  FirebaseCollectionSelector
+  FirebaseCollectionSelector,
+  FirebaseMultiSelectSelector
 };
 
 export default {
-  FirebaseCollectionSelector
+  FirebaseCollectionSelector,
+  FirebaseMultiSelectSelector
 }; 

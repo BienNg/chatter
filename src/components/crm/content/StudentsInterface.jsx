@@ -5,7 +5,9 @@ import { useStudents } from '../../../hooks/useStudents';
 import { useCountries } from '../../../hooks/useCountries';
 import { useCities } from '../../../hooks/useCities';
 import { usePlatforms } from '../../../hooks/usePlatforms';
+import { useCategories } from '../../../hooks/useCategories';
 import FirebaseCollectionSelector from '../../shared/FirebaseCollectionSelector.jsx';
+import { FirebaseMultiSelectSelector } from '../../shared/index.js';
 
 const StudentsInterface = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +21,7 @@ const StudentsInterface = () => {
   const { countries, addCountry } = useCountries();
   const { cities, addCity } = useCities();
   const { platforms, addPlatform } = usePlatforms();
+  const { categories, addCategory } = useCategories();
 
   // Auto-save function that saves changes when clicking outside
   const handleAutoSave = useCallback(async () => {
@@ -327,7 +330,15 @@ const StudentsInterface = () => {
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
-                  {/* Empty Category column */}
+                  <FirebaseMultiSelectSelector
+                    collectionName="categories"
+                    record={student}
+                    updateRecord={updateStudent}
+                    fieldName="categories"
+                    fieldDisplayName="Category"
+                    options={categories}
+                    addOption={addCategory}
+                  />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
                   {/* Empty Course/Service column */}

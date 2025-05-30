@@ -57,46 +57,17 @@ export const useTasks = (channelId) => {
         return () => unsubscribe();
     }, [channelId]);
 
-    // Listen for thread activity and update task lastActivity
-    useEffect(() => {
-        if (!channelId || tasks.length === 0) return;
-
-        const unsubscribers = [];
-
-        tasks.forEach(task => {
-            if (task.sourceMessageId) {
-                // Listen to replies on the source message
-                const repliesRef = collection(db, 'channels', channelId, 'messages', task.sourceMessageId, 'replies');
-                const repliesQuery = query(repliesRef, orderBy('createdAt', 'desc'));
-                
-                const unsubscribe = onSnapshot(repliesQuery, 
-                    (snapshot) => {
-                        if (!snapshot.empty) {
-                            // Get the latest reply
-                            const latestReply = snapshot.docs[0].data();
-                            
-                            // Update task lastActivity
-                            const taskRef = doc(db, 'channels', channelId, 'tasks', task.id);
-                            updateDoc(taskRef, {
-                                lastActivity: latestReply.createdAt || serverTimestamp()
-                            }).catch(err => {
-                                console.error('Error updating task lastActivity:', err);
-                            });
-                        }
-                    },
-                    (err) => {
-                        console.error('Error listening to thread replies for task:', task.id, err);
-                    }
-                );
-                
-                unsubscribers.push(unsubscribe);
-            }
-        });
-
-        return () => {
-            unsubscribers.forEach(unsubscribe => unsubscribe());
-        };
-    }, [channelId, tasks]);
+    // Helper function to update task lastActivity
+    const updateTaskLastActivity = async (taskId) => {
+        try {
+            const taskRef = doc(db, 'channels', channelId, 'tasks', taskId);
+            await updateDoc(taskRef, {
+                lastActivity: serverTimestamp()
+            });
+        } catch (err) {
+            console.error('Error updating task lastActivity:', err);
+        }
+    };
 
     const createTaskFromMessage = async (messageId, messageData) => {
         if (!currentUser || !channelId) {
@@ -239,6 +210,7 @@ export const useTasks = (channelId) => {
         createTaskFromMessage,
         updateTaskParticipants,
         markTaskComplete,
-        deleteTask
+        deleteTask,
+        updateTaskLastActivity
     };
 }; 

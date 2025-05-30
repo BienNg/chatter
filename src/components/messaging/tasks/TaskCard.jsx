@@ -1,32 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MessageCircle, Calendar, ArrowRight, CheckCircle, Circle } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../../../firebase';
 import DOMPurify from 'dompurify';
 
 const TaskCard = ({ task, isSelected, onSelect, channelId }) => {
     const { sourceMessageData, status, lastActivity, createdAt, sourceMessageId, participants } = task;
-    const [liveReplyCount, setLiveReplyCount] = useState(0);
-
-    // Get live reply count from the source message
-    useEffect(() => {
-        if (!channelId || !sourceMessageId) return;
-
-        const messageRef = doc(db, 'channels', channelId, 'messages', sourceMessageId);
-        const unsubscribe = onSnapshot(messageRef, 
-            (doc) => {
-                if (doc.exists()) {
-                    const messageData = doc.data();
-                    setLiveReplyCount(messageData.replyCount || 0);
-                }
-            },
-            (error) => {
-                console.error('Error fetching live reply count:', error);
-            }
-        );
-
-        return () => unsubscribe();
-    }, [channelId, sourceMessageId]);
+    
+    // Use reply count from task data instead of live query to reduce Firestore load
+    const liveReplyCount = sourceMessageData?.replyCount || 0;
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return '';

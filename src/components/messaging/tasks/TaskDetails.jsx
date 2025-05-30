@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import TaskThread from './TaskThread';
 import TaskComposer from './TaskComposer';
 import TaskDetailsEmpty from './TaskDetailsEmpty';
@@ -8,24 +8,48 @@ import { Calendar, Clock, Users, ExternalLink, Trash2, Check } from 'lucide-reac
 
 const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete, onJumpToMessage }) => {
     // Use real useTasks hook for task operations
-    const { deleteTask, markTaskComplete } = useTasks(channelId);
+    const { deleteTask, markTaskComplete, updateTaskLastActivity } = useTasks(channelId);
     
     // Use unified threading system - same as message threads
     const { sendReply } = useThreadReplies(channelId, task?.sourceMessageId);
+
+    // Add throttling to prevent rapid successive sends
+    const lastSendTimeRef = useRef(0);
+    const MIN_SEND_INTERVAL = 1000; // 1 second minimum between sends
+    const [isSending, setIsSending] = useState(false);
 
     if (!task) {
         return <TaskDetailsEmpty />;
     }
 
     const handleSendMessage = async (messageData) => {
-        if (!messageData.content.trim()) return;
+        if (!messageData.content.trim() || isSending) {
+            return;
+        }
+        
+        // Throttle rapid sends
+        const now = Date.now();
+        const timeSinceLastSend = now - lastSendTimeRef.current;
+        if (timeSinceLastSend < MIN_SEND_INTERVAL) {
+            return;
+        }
+        
+        setIsSending(true);
         
         try {
+            lastSendTimeRef.current = now;
+            
             // Use the same reply system as message threads
             await sendReply(messageData.content);
-            console.log('Reply added to unified thread:', task.sourceMessageId);
+            
+            // Update task last activity immediately
+            if (task?.id) {
+                await updateTaskLastActivity(task.id);
+            }
         } catch (error) {
             console.error('Failed to add reply to thread:', error);
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -39,7 +63,6 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete, onJumpToMess
         if (window.confirm('Are you sure you want to delete this task?')) {
             try {
                 await deleteTask(task.id);
-                console.log('Task deleted successfully');
             } catch (error) {
                 console.error('Failed to delete task:', error);
             }
@@ -150,6 +173,7 @@ const TaskDetails = ({ task, channelId, onTaskUpdate, onTaskDelete, onJumpToMess
                     placeholder="Add a comment..."
                     channelId={channelId}
                     threadId={task?.sourceMessageId}
+                    isLoading={isSending}
                 />
             </div>
         </div>

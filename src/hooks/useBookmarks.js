@@ -24,41 +24,16 @@ export const useBookmarks = () => {
     
     const { currentUser, userProfile } = useAuth();
 
-    // Load user's bookmarks on mount
+    // Temporarily disable real-time listener to reduce Firestore load
     useEffect(() => {
         if (!currentUser) {
             setBookmarks([]);
             return;
         }
 
-        setLoading(true);
-        
-        const bookmarksQuery = query(
-            collection(db, 'bookmarks'),
-            where('userId', '==', currentUser.uid),
-            orderBy('createdAt', 'desc'),
-            limit(500) // Reasonable limit for performance
-        );
-
-        const unsubscribe = onSnapshot(
-            bookmarksQuery,
-            (snapshot) => {
-                const bookmarkData = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setBookmarks(bookmarkData);
-                setLoading(false);
-                setError(null);
-            },
-            (err) => {
-                console.error('Error fetching bookmarks:', err);
-                setError(err.message);
-                setLoading(false);
-            }
-        );
-
-        return () => unsubscribe();
+        // Just set empty for now
+        setBookmarks([]);
+        setLoading(false);
     }, [currentUser]);
 
     // Add a new bookmark

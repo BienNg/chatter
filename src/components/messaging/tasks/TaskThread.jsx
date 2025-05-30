@@ -1,49 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../../../firebase';
+import React, { useEffect, useRef } from 'react';
 import TaskReply from './TaskReply';
-import { ExternalLink, Trash2, MessageSquare } from 'lucide-react';
+import { ExternalLink, MessageSquare } from 'lucide-react';
 import { useThreadReplies } from '../../../hooks/useThreadReplies';
 import DOMPurify from 'dompurify';
 
 const TaskThread = ({ taskId, sourceMessageId, channelId, sourceMessage, onJumpToMessage, onDeleteTask }) => {
-    const [replies, setReplies] = useState([]);
-    const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef(null);
     const previousReplyCountRef = useRef(0);
     const hasInitiallyScrolledRef = useRef(false);
 
-    // Real-time listener for message replies (unified threading system)
-    useEffect(() => {
-        if (!channelId || !sourceMessageId) {
-            setReplies([]);
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        
-        // Listen to replies on the source message
-        const repliesRef = collection(db, 'channels', channelId, 'messages', sourceMessageId, 'replies');
-        const repliesQuery = query(repliesRef, orderBy('createdAt', 'asc'));
-        
-        const unsubscribe = onSnapshot(repliesQuery, 
-            (snapshot) => {
-                const repliesData = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setReplies(repliesData);
-                setLoading(false);
-            },
-            (error) => {
-                console.error('Error fetching task thread replies:', error);
-                setLoading(false);
-            }
-        );
-
-        return () => unsubscribe();
-    }, [channelId, sourceMessageId]);
+    // Use the unified threading system via useThreadReplies hook
+    const { replies, loading, error } = useThreadReplies(channelId, sourceMessageId);
 
     // Auto-scroll to bottom when new replies are added or on initial load
     useEffect(() => {
@@ -153,6 +120,17 @@ const TaskThread = ({ taskId, sourceMessageId, channelId, sourceMessage, onJumpT
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto mb-2"></div>
                     <p className="text-sm text-gray-600">Loading conversation...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-sm text-red-600">Error loading conversation</p>
+                    <p className="text-xs text-gray-500 mt-1">{error}</p>
                 </div>
             </div>
         );

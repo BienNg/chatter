@@ -4,11 +4,10 @@ import {
     query, 
     where,
     orderBy, 
-    onSnapshot,
+    getDocs,
     deleteDoc,
     doc,
     getDoc,
-    getDocs,
     updateDoc,
     serverTimestamp,
     limit
@@ -24,8 +23,8 @@ export const useChannelFiles = (channelId) => {
     
     const { currentUser, userProfile } = useAuth();
 
-    // Load channel files on mount and when channelId changes
-    useEffect(() => {
+    // Use getDocs instead of onSnapshot to reduce Firestore load
+    const fetchChannelFiles = useCallback(async () => {
         if (!channelId) {
             setFiles([]);
             return;
@@ -33,48 +32,48 @@ export const useChannelFiles = (channelId) => {
 
         setLoading(true);
         
-        // Query files in the channel by looking at messages with attachments
-        const messagesQuery = query(
-            collection(db, 'channels', channelId, 'messages'),
-            where('attachments', '!=', null),
-            orderBy('createdAt', 'desc'),
-            limit(200) // Reasonable limit for performance
-        );
+        try {
+            // Query files in the channel by looking at messages with attachments
+            const messagesQuery = query(
+                collection(db, 'channels', channelId, 'messages'),
+                where('attachments', '!=', null),
+                orderBy('createdAt', 'desc'),
+                limit(200) // Reasonable limit for performance
+            );
 
-        const unsubscribe = onSnapshot(
-            messagesQuery,
-            (snapshot) => {
-                const allFiles = [];
-                
-                snapshot.docs.forEach((doc) => {
-                    const messageData = doc.data();
-                    if (messageData.attachments && Array.isArray(messageData.attachments)) {
-                        messageData.attachments.forEach((attachment, index) => {
-                            allFiles.push({
-                                id: `${doc.id}_${index}`, // Unique ID for each file
-                                messageId: doc.id,
-                                ...attachment,
-                                uploadedAt: messageData.createdAt,
-                                uploadedBy: messageData.author,
-                                channelId: channelId
-                            });
+            const snapshot = await getDocs(messagesQuery);
+            const allFiles = [];
+            
+            snapshot.docs.forEach((doc) => {
+                const messageData = doc.data();
+                if (messageData.attachments && Array.isArray(messageData.attachments)) {
+                    messageData.attachments.forEach((attachment, index) => {
+                        allFiles.push({
+                            id: `${doc.id}_${index}`, // Unique ID for each file
+                            messageId: doc.id,
+                            ...attachment,
+                            uploadedAt: messageData.createdAt,
+                            uploadedBy: messageData.author,
+                            channelId: channelId
                         });
-                    }
-                });
-                
-                setFiles(allFiles);
-                setLoading(false);
-                setError(null);
-            },
-            (err) => {
-                console.error('Error fetching channel files:', err);
-                setError(err.message);
-                setLoading(false);
-            }
-        );
-
-        return () => unsubscribe();
+                    });
+                }
+            });
+            
+            setFiles(allFiles);
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching channel files:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     }, [channelId]);
+
+    // Load channel files on mount and when channelId changes
+    useEffect(() => {
+        fetchChannelFiles();
+    }, [fetchChannelFiles]);
 
     // Get channel files (main function)
     const getChannelFiles = useCallback(async () => {

@@ -8,7 +8,8 @@ import {
     serverTimestamp,
     doc,
     updateDoc,
-    increment
+    increment,
+    limit
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,10 +30,11 @@ export const useThreadReplies = (channelId, messageId) => {
 
         setLoading(true);
         
-        // Query replies for this message thread
+        // Query replies for this message thread with a reasonable limit for performance
         const repliesQuery = query(
             collection(db, 'channels', channelId, 'messages', messageId, 'replies'),
-            orderBy('createdAt', 'asc')
+            orderBy('createdAt', 'asc'),
+            limit(100)
         );
 
         const unsubscribe = onSnapshot(
@@ -42,6 +44,7 @@ export const useThreadReplies = (channelId, messageId) => {
                     id: doc.id,
                     ...doc.data()
                 }));
+                
                 setReplies(replyData);
                 setLoading(false);
                 setError(null);
@@ -53,11 +56,15 @@ export const useThreadReplies = (channelId, messageId) => {
             }
         );
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+        };
     }, [channelId, messageId]);
 
     const sendReply = async (content) => {
-        if (!channelId || !messageId || !currentUser || !content?.trim()) return;
+        if (!channelId || !messageId || !currentUser || !content?.trim()) {
+            return;
+        }
 
         try {
             const replyData = {

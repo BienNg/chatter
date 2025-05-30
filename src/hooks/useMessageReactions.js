@@ -6,16 +6,15 @@ import {
   deleteDoc, 
   query, 
   where, 
-  onSnapshot, 
-  serverTimestamp,
-  getDocs
+  getDocs,
+  serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useMessageReactions = (channelId) => {
   const [reactions, setReactions] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Set to false to disable loading
   const { currentUser, userProfile } = useAuth();
 
   // Get current user data with proper fallbacks
@@ -30,44 +29,12 @@ export const useMessageReactions = (channelId) => {
     };
   }, [currentUser, userProfile]);
 
-  // Real-time listener for reactions in the channel
+  // Temporarily disable real-time listener to reduce Firestore load
+  // TODO: Re-enable after quota issues are resolved
   useEffect(() => {
-    if (!channelId || !currentUser) {
-      setReactions({});
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    
-    // Listen to all reactions in this channel
-    const reactionsRef = collection(db, 'channels', channelId, 'reactions');
-    
-    const unsubscribe = onSnapshot(
-      reactionsRef,
-      (snapshot) => {
-        const reactionsByMessage = {};
-        
-        snapshot.docs.forEach((doc) => {
-          const reaction = { id: doc.id, ...doc.data() };
-          const messageId = reaction.messageId;
-          
-          if (!reactionsByMessage[messageId]) {
-            reactionsByMessage[messageId] = [];
-          }
-          reactionsByMessage[messageId].push(reaction);
-        });
-        
-        setReactions(reactionsByMessage);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error listening to reactions:', error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+    // Just set empty reactions and loading false
+    setReactions({});
+    setLoading(false);
   }, [channelId, currentUser]);
 
   // Add a reaction to a message

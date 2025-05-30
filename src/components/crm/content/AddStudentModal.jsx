@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { X, User, Mail, Phone, MapPin, GraduationCap, MessageSquare } from 'lucide-react';
+import { X, User, Mail, Phone, MapPin, GraduationCap, MessageSquare, AlertCircle } from 'lucide-react';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
 import OptionSettingsModal from './OptionSettingsModal';
 import { useFunnelSteps } from '../../../hooks/useFunnelSteps';
-import { useCourseInterests } from '../../../hooks/useCourseInterests';
 import { usePlatforms } from '../../../hooks/usePlatforms';
 import { useCountries } from '../../../hooks/useCountries';
 import { useCities } from '../../../hooks/useCities';
@@ -16,8 +15,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     phone: '',
     location: '',
     city: '',
-    category: [],
-    interest: [],
+    categories: [],
     platform: [],
     courses: [],
     notes: ''
@@ -25,11 +23,11 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [settingsModal, setSettingsModal] = useState({ isOpen: false, type: '', title: '' });
 
   // Database hooks for dynamic options
   const { funnelSteps: categories, funnelStepsWithIds: categoriesWithIds, addFunnelStep: addCategory, updateFunnelStep: updateCategory, deleteFunnelStep: deleteCategory } = useFunnelSteps();
-  const { courseInterests, addCourseInterest } = useCourseInterests();
   const { platforms, addPlatform } = usePlatforms();
   const { countries, addCountry } = useCountries();
   const { cities, addCity } = useCities();
@@ -47,6 +45,11 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
         [field]: ''
       }));
     }
+    
+    // Clear submit error when user makes changes
+    if (submitError) {
+      setSubmitError('');
+    }
   };
 
   const handleAddNewOption = async (optionType, newOption) => {
@@ -56,9 +59,6 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
       switch (optionType) {
         case 'funnelSteps':
           await addCategory(newOption);
-          break;
-        case 'courseInterests':
-          await addCourseInterest(newOption);
           break;
         case 'platforms':
           await addPlatform(newOption);
@@ -134,8 +134,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
       newErrors.location = 'Location is required';
     }
 
-    // City is now optional - no validation needed
-    // Course Interest and Platform are now optional - no validation needed
+    // City and Platform are now optional - no validation needed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -149,6 +148,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     }
 
     setIsSubmitting(true);
+    setSubmitError(''); // Clear any previous submit errors
     
     try {
       // Generate avatar initials
@@ -161,23 +161,13 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
       const avatarColors = ['#3B82F6', '#10B981', '#8B5CF6', '#EC4899', '#F59E0B', '#EF4444', '#F97316', '#14B8A6'];
       const avatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
 
-      // Convert category to uppercase for consistency
-      const categoryMap = {
-        'Lead': 'LEAD',
-        'Contacted': 'CONTACTED',
-        'Interested': 'INTERESTED',
-        'Paid': 'PAID',
-        'Enrolled': 'ENROLLED'
-      };
-
       const newStudent = {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         location: formData.location,
         city: formData.city,
-        category: formData.category.map(step => categoryMap[step] || step.toUpperCase()).join(', '),
-        interest: formData.interest.join(', '),
+        categories: formData.categories,
         platform: formData.platform.join(', '),
         courses: [],
         notes: formData.notes.trim(),
@@ -194,8 +184,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
         phone: '',
         location: '',
         city: '',
-        category: [],
-        interest: [],
+        categories: [],
         platform: [],
         courses: [],
         notes: ''
@@ -204,7 +193,22 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
       onClose();
     } catch (error) {
       console.error('Error creating student:', error);
-      // You might want to show an error message to the user here
+      
+      // Handle specific error cases
+      if (error.message && error.message.toLowerCase().includes('email already exists')) {
+        setErrors(prev => ({
+          ...prev,
+          email: 'This email address is already registered. Please use a different email.'
+        }));
+      } else if (error.message && error.message.toLowerCase().includes('email')) {
+        setErrors(prev => ({
+          ...prev,
+          email: error.message
+        }));
+      } else {
+        // Show general error message
+        setSubmitError(error.message || 'Failed to create student. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -242,6 +246,14 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-140px)]">
             <div className="p-6 space-y-8">
+              {/* Submit Error Message */}
+              {submitError && (
+                <div className="flex items-center space-x-2 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-sm text-red-700">{submitError}</span>
+                </div>
+              )}
+
               {/* Personal Information */}
               <div className="space-y-6">
                 <div className="flex items-center space-x-2">
@@ -307,8 +319,8 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                   <div>
                     <MultiSelect
                       label="Category"
-                      value={formData.category}
-                      onChange={(value) => handleInputChange('category', value)}
+                      value={formData.categories}
+                      onChange={(value) => handleInputChange('categories', value)}
                       options={categories}
                       placeholder="Select categories"
                       allowAddNew={true}
@@ -365,30 +377,16 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                   <h3 className="text-lg font-medium text-gray-900">Course Information</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <MultiSelect
-                      label="Course Interest"
-                      value={formData.interest}
-                      onChange={(value) => handleInputChange('interest', value)}
-                      options={courseInterests}
-                      placeholder="Search and select courses..."
-                      allowAddNew={true}
-                      onAddNew={(newOption) => handleAddNewOption('courseInterests', newOption)}
-                    />
-                  </div>
-
-                  <div>
-                    <MultiSelect
-                      label="Platform"
-                      value={formData.platform}
-                      onChange={(value) => handleInputChange('platform', value)}
-                      options={platforms}
-                      placeholder="Search and select platforms..."
-                      allowAddNew={true}
-                      onAddNew={(newOption) => handleAddNewOption('platforms', newOption)}
-                    />
-                  </div>
+                <div>
+                  <MultiSelect
+                    label="Platform"
+                    value={formData.platform}
+                    onChange={(value) => handleInputChange('platform', value)}
+                    options={platforms}
+                    placeholder="Search and select platforms..."
+                    allowAddNew={true}
+                    onAddNew={(newOption) => handleAddNewOption('platforms', newOption)}
+                  />
                 </div>
               </div>
 

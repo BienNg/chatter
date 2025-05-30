@@ -1,16 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  deleteDoc, 
-  updateDoc, 
-  doc, 
-  query, 
-  orderBy,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { studentServices } from '../utils/firebase-services';
 
 // Helper function to generate next sequential student ID
 const generateNextStudentId = (existingStudents) => {
@@ -39,21 +28,9 @@ export function useStudents() {
     try {
       setLoading(true);
       setError(null);
-      const q = query(collection(db, 'students'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const studentsData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          // Ensure studentId exists for enrollment compatibility
-          studentId: data.studentId || doc.id,
-          createdAt: data.createdAt?.toDate?.() || new Date()
-        };
-      });
+      const studentsData = await studentServices.getStudents();
       setStudents(studentsData);
     } catch (err) {
-      console.error('Error fetching students:', err);
       setError('Failed to fetch students');
     } finally {
       setLoading(false);
@@ -74,7 +51,10 @@ export function useStudents() {
           student => student.email.toLowerCase() === studentData.email.toLowerCase()
         );
         if (existingStudent) {
-          throw new Error('A student with this email already exists');
+          // Don't set global error state for validation errors
+          const validationError = new Error('A student with this email already exists');
+          validationError.isValidationError = true;
+          throw validationError;
         }
       }
 
@@ -84,16 +64,14 @@ export function useStudents() {
       const newStudent = {
         ...studentData,
         studentId, // Use the generated sequential ID
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
       };
 
-      const docRef = await addDoc(collection(db, 'students'), newStudent);
+      const docId = await studentServices.addStudent(newStudent);
       
       // Create the student object for local state
       const studentWithId = {
         ...newStudent,
-        id: docRef.id,
+        id: docId,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -101,34 +79,21 @@ export function useStudents() {
       // Add the new student to local state immediately for better UX
       setStudents(prev => [studentWithId, ...prev]);
       
-      return docRef.id;
+      return docId;
     } catch (err) {
-      console.error('Error adding student:', err);
-      setError(err.message || 'Failed to add student');
+      // Only set global error state for non-validation errors
+      if (!err.isValidationError) {
+        setError(err.message || 'Failed to add student');
+      }
       throw err;
     }
   };
 
   const updateStudent = async (studentId, updates) => {
     try {
-      console.log('===== UPDATE STUDENT FUNCTION CALLED =====');
-      console.log('Student ID:', studentId);
-      console.log('Updates:', updates);
-      
       setError(null);
       
-      const updateData = {
-        ...updates,
-        updatedAt: serverTimestamp()
-      };
-      
-      console.log('Final update data with timestamp:', updateData);
-      console.log('Calling Firebase updateDoc...');
-
-      await updateDoc(doc(db, 'students', studentId), updateData);
-      
-      console.log('Firebase updateDoc successful!');
-      console.log('Updating local state...');
+      await studentServices.updateStudent(studentId, updates);
       
       // Update local state
       setStudents(prev => prev.map(student => 
@@ -136,12 +101,7 @@ export function useStudents() {
           ? { ...student, ...updates, updatedAt: new Date() }
           : student
       ));
-      
-      console.log('Local state updated successfully');
-      console.log('===== UPDATE STUDENT FUNCTION COMPLETED =====');
     } catch (err) {
-      console.error('Error updating student:', err);
-      console.error('Error details:', err.code, err.message);
       setError('Failed to update student');
       throw err;
     }
@@ -150,12 +110,11 @@ export function useStudents() {
   const deleteStudent = async (studentId) => {
     try {
       setError(null);
-      await deleteDoc(doc(db, 'students', studentId));
+      await studentServices.deleteStudent(studentId);
       
       // Remove from local state
       setStudents(prev => prev.filter(student => student.id !== studentId));
     } catch (err) {
-      console.error('Error deleting student:', err);
       setError('Failed to delete student');
       throw err;
     }

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Search, Download, Plus, Trash2, AlertTriangle, ChevronDown } from 'lucide-react';
 import AddStudentModal from './AddStudentModal';
+import StudentDetailsModal from './StudentDetailsModal';
 import { useStudents } from '../../../hooks/useStudents';
 import { useCountries } from '../../../hooks/useCountries';
 import { useCities } from '../../../hooks/useCities';
@@ -15,6 +16,8 @@ const StudentsInterface = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [editingCell, setEditingCell] = useState({ studentId: null, field: null });
   const [editValue, setEditValue] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   // Database hooks
   const { students, loading, error, addStudent, deleteStudent, updateStudent } = useStudents();
@@ -87,8 +90,8 @@ const StudentsInterface = () => {
   // Filtered students - simplified to only search by name, email, and studentId
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
-      const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.studentId?.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesSearch;
@@ -101,10 +104,13 @@ const StudentsInterface = () => {
       console.log('Student added successfully');
     } catch (error) {
       console.error('Error adding student:', error);
+      // Re-throw the error so it can be caught by the modal
+      throw error;
     }
   };
 
-  const handleDeleteClick = (studentId) => {
+  const handleDeleteClick = (e, studentId) => {
+    e.stopPropagation(); // Prevent row click
     setDeleteConfirm(studentId);
   };
 
@@ -123,7 +129,8 @@ const StudentsInterface = () => {
     setDeleteConfirm(null);
   };
 
-  const handleEditStart = (studentId, field, currentValue) => {
+  const handleEditStart = (e, studentId, field, currentValue) => {
+    e.stopPropagation(); // Prevent row click
     setEditingCell({ studentId, field });
     setEditValue(currentValue || '');
   };
@@ -131,6 +138,11 @@ const StudentsInterface = () => {
   const handleEditCancel = () => {
     setEditingCell({ studentId: null, field: null });
     setEditValue('');
+  };
+
+  const handleRowClick = (student) => {
+    setSelectedStudent(student);
+    setDetailsModalOpen(true);
   };
 
   // Inline editable text component
@@ -177,6 +189,7 @@ const StudentsInterface = () => {
             if (e.key === 'Escape') handleEditCancel();
           }}
           placeholder={customPlaceholder}
+          onClick={(e) => e.stopPropagation()} // Prevent row click
         />
       );
     }
@@ -189,7 +202,7 @@ const StudentsInterface = () => {
         className={`text-sm cursor-pointer hover:bg-gray-100 hover:underline transition-all block ${
           isPlaceholder ? 'text-gray-400 italic' : 'text-gray-900'
         }`}
-        onClick={() => handleEditStart(student.id, field, value)}
+        onClick={(e) => handleEditStart(e, student.id, field, value)}
         title="Click to edit"
         style={{ padding: '0', margin: '0' }}
       >
@@ -282,7 +295,11 @@ const StudentsInterface = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredStudents.map((student) => (
-              <tr key={student.id} className="hover:bg-gray-50 h-20">
+              <tr 
+                key={student.id} 
+                className="hover:bg-gray-50 h-20 cursor-pointer transition-colors"
+                onClick={() => handleRowClick(student)}
+              >
                 <td className="px-6 py-4 whitespace-nowrap w-64 h-20">
                   <div className="flex items-center h-full">
                     <div 
@@ -307,7 +324,7 @@ const StudentsInterface = () => {
                     <div className="text-sm text-gray-900">{renderInlineEditableText(student, 'phone', student.phone)}</div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
                   <FirebaseCollectionSelector
                     collectionName="countries"
                     record={student}
@@ -318,7 +335,7 @@ const StudentsInterface = () => {
                     addOption={addCountry}
                   />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
                   <FirebaseCollectionSelector
                     collectionName="cities"
                     record={student}
@@ -329,7 +346,7 @@ const StudentsInterface = () => {
                     addOption={addCity}
                   />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
                   <FirebaseMultiSelectSelector
                     collectionName="categories"
                     record={student}
@@ -346,7 +363,7 @@ const StudentsInterface = () => {
                 <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
                   {/* Empty Payments column */}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
                   <FirebaseCollectionSelector
                     collectionName="platforms"
                     record={student}
@@ -363,7 +380,7 @@ const StudentsInterface = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium w-20 h-20">
                   <div className="flex items-center justify-start h-full">
                   <button 
-                    onClick={() => handleDeleteClick(student.id)}
+                    onClick={(e) => handleDeleteClick(e, student.id)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Delete student"
                   >
@@ -411,6 +428,22 @@ const StudentsInterface = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddStudent}
+      />
+
+      {/* Student Details Modal */}
+      <StudentDetailsModal
+        student={selectedStudent}
+        isOpen={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        updateStudent={updateStudent}
+        countries={countries}
+        addCountry={addCountry}
+        cities={cities}
+        addCity={addCity}
+        platforms={platforms}
+        addPlatform={addPlatform}
+        categories={categories}
+        addCategory={addCategory}
       />
 
       {/* Delete Confirmation Modal */}

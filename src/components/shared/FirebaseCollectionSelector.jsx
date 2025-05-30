@@ -34,7 +34,7 @@ const FirebaseCollectionSelector = ({
   fieldDisplayName = 'item',
   options = [],
   addOption,
-  addNewLabel = `+ New ${fieldDisplayName}...`,
+  addNewLabel = `New ${fieldDisplayName}...`,
   searchPlaceholder = `Search ${fieldDisplayName.toLowerCase()}s...`,
   noResultsText = `No ${fieldDisplayName.toLowerCase()}s found`,
   placeholder = `Select ${fieldDisplayName.toLowerCase()}`

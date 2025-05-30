@@ -90,67 +90,58 @@ const TaskThread = ({ taskId, sourceMessageId, channelId, sourceMessage, onJumpT
     };
 
     const SourceMessageComponent = () => (
-        <div className="relative">
-            {/* Source message indicator */}
-            <div className="flex items-center mb-2">
-                <MessageSquare className="w-4 h-4 text-indigo-600 mr-2" />
-                <span className="text-sm font-medium text-indigo-600">Source Message</span>
+        <div className="relative pb-3 mb-3 border-b border-gray-200">
+            {/* Source message header */}
+            <div className="flex items-center mb-3">
+                <div className="flex items-center">
+                    <MessageSquare className="w-4 h-4 text-indigo-600 mr-1.5" />
+                    <span className="text-sm font-medium text-indigo-600">Source Message</span>
+                </div>
                 <button 
-                    onClick={onDeleteTask}
-                    className="ml-auto p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors"
-                    title="Delete task"
+                    onClick={onJumpToMessage}
+                    className="ml-auto mr-2 p-1 rounded hover:bg-indigo-50 text-indigo-500 hover:text-indigo-600 transition-colors"
+                    title="Jump to original message"
                 >
-                    <Trash2 className="w-4 h-4" />
+                    <ExternalLink className="w-4 h-4" />
                 </button>
             </div>
             
-            {/* Source message content with special styling */}
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4">
-                <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
-                        {sourceMessage?.sender?.displayName?.charAt(0) || 
-                         sourceMessage?.sender?.email?.charAt(0) || 'U'}
-                    </div>
-                    <div className="ml-3 flex-1">
-                        <div className="flex items-center">
-                            <span className="font-medium text-gray-900">
-                                {sourceMessage?.sender?.displayName || 'Unknown User'}
-                            </span>
-                            <span className="ml-2 text-xs text-gray-500">
-                                {formatTimestamp(sourceMessage?.timestamp)}
-                            </span>
-                        </div>
-                        <div className="mt-1 text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
-                            {sourceMessage?.content?.includes('<') && sourceMessage?.content?.includes('>') ? (
-                                <div
-                                    dangerouslySetInnerHTML={{
-                                        __html: DOMPurify.sanitize(sourceMessage.content, {
-                                            ALLOWED_TAGS: [
-                                                'p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 
-                                                'blockquote', 'pre', 'code', 'a', 'div', 'span', 'h1', 'h2', 
-                                                'h3', 'h4', 'h5', 'h6', 'style'
-                                            ],
-                                            ALLOWED_ATTR: [
-                                                'href', 'target', 'rel', 'style', 'class', 'title'
-                                            ],
-                                            ALLOW_DATA_ATTR: false
-                                        })
-                                    }}
-                                />
-                            ) : (
-                                sourceMessage?.content
-                            )}
-                        </div>
-                    </div>
+            {/* Source message content */}
+            <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
+                    {sourceMessage?.sender?.displayName?.charAt(0) || 
+                     sourceMessage?.sender?.email?.charAt(0) || 'U'}
                 </div>
-                <div className="mt-3 pt-3 border-t border-indigo-100">
-                    <button 
-                        onClick={onJumpToMessage}
-                        className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
-                    >
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        Jump to message
-                    </button>
+                <div className="ml-3 flex-1">
+                    <div className="flex items-center">
+                        <span className="font-medium text-gray-900">
+                            {sourceMessage?.sender?.displayName || 'Unknown User'}
+                        </span>
+                        <span className="ml-2 text-xs text-gray-500">
+                            {formatTimestamp(sourceMessage?.timestamp)}
+                        </span>
+                    </div>
+                    <div className="mt-1 text-gray-800 text-left break-words whitespace-pre-wrap overflow-wrap-anywhere">
+                        {sourceMessage?.content?.includes('<') && sourceMessage?.content?.includes('>') ? (
+                            <div
+                                dangerouslySetInnerHTML={{
+                                    __html: DOMPurify.sanitize(sourceMessage.content, {
+                                        ALLOWED_TAGS: [
+                                            'p', 'br', 'strong', 'em', 'u', 'strike', 'ul', 'ol', 'li', 
+                                            'blockquote', 'pre', 'code', 'a', 'div', 'span', 'h1', 'h2', 
+                                            'h3', 'h4', 'h5', 'h6', 'style'
+                                        ],
+                                        ALLOWED_ATTR: [
+                                            'href', 'target', 'rel', 'style', 'class', 'title'
+                                        ],
+                                        ALLOW_DATA_ATTR: false
+                                    })
+                                }}
+                            />
+                        ) : (
+                            sourceMessage?.content
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -169,13 +160,13 @@ const TaskThread = ({ taskId, sourceMessageId, channelId, sourceMessage, onJumpT
 
     return (
         <div className="h-full flex flex-col min-h-0 overflow-hidden">
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
                 {/* Source message at the top of the scrollable area */}
                 {sourceMessage && <SourceMessageComponent />}
                 
                 {/* Replies */}
                 {replies.length === 0 ? (
-                    <div className="text-center py-8">
+                    <div className="text-center py-6">
                         <p className="text-gray-500 text-sm">No comments yet. Start the conversation!</p>
                     </div>
                 ) : (

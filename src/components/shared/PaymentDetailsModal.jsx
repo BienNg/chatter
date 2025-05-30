@@ -278,7 +278,7 @@ const PaymentDetailsModal = ({
               <div className="flex-1 overflow-y-auto">
                 <div className="p-8 space-y-8">
                   
-                  {/* Payment Amount & Status - Full Width */}
+                  {/* Payment Amount & Date - Full Width */}
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
@@ -290,7 +290,16 @@ const PaymentDetailsModal = ({
                           <p className="text-sm text-gray-600">Total transaction value</p>
                         </div>
                       </div>
-                      {getStatusBadge(payment.status)}
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-700">Payment Date</div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {new Date(payment.paymentDate || payment.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      </div>
                     </div>
                     <div className="flex items-baseline space-x-2">
                       <span className="text-3xl font-bold text-gray-900">
@@ -340,24 +349,27 @@ const PaymentDetailsModal = ({
                           </div>
                         </div>
                       </div>
+                    </div>
 
+                    {/* Right Column */}
+                    <div className="space-y-8">
                       {/* Course Information */}
                       <div 
-                        className="bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-green-200 transition-all duration-200 group"
+                        className="bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-purple-200 transition-all duration-200 group"
                         onClick={handleCourseClick}
                       >
                         <div className="flex items-center space-x-3 mb-6">
-                          <div className="p-2 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors duration-200">
-                            <GraduationCap className="w-5 h-5 text-green-600" />
+                          <div className="p-2 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors duration-200">
+                            <GraduationCap className="w-5 h-5 text-purple-600" />
                           </div>
-                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors duration-200">Course Details</h3>
+                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors duration-200">Course Details</h3>
                           <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                         </div>
                         
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm font-medium text-gray-500">Course Name</label>
-                            <p className="text-base text-gray-900 mt-1 group-hover:text-green-700 transition-colors duration-200">{payment.courseName}</p>
+                            <p className="text-base text-gray-900 mt-1 group-hover:text-purple-700 transition-colors duration-200">{payment.courseName}</p>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-500">Payment Type</label>
@@ -365,106 +377,11 @@ const PaymentDetailsModal = ({
                               {payment.paymentType?.replace('_', ' ') || 'Full Payment'}
                             </p>
                           </div>
-                          <p className="text-xs text-green-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <p className="text-xs text-purple-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             Click to view course details →
                           </p>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Right Column */}
-                    <div className="space-y-8">
-                      {/* Transaction Timeline */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-6">
-                        <div className="flex items-center space-x-3 mb-6">
-                          <div className="p-2 bg-yellow-50 rounded-lg">
-                            <Calendar className="w-5 h-5 text-yellow-600" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900">Transaction Timeline</h3>
-                        </div>
-                        
-                        <div className="space-y-4">
-                          <div className="flex items-center space-x-4">
-                            {getStatusIcon(payment.status)}
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                Payment {payment.status || 'processed'}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {new Date(payment.paymentDate || payment.createdAt).toLocaleDateString('en-US', {
-                                  weekday: 'long',
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {payment.createdAt !== payment.updatedAt && (
-                            <div className="flex items-center space-x-4">
-                              <Clock className="w-5 h-5 text-gray-400" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">Last updated</p>
-                                <p className="text-sm text-gray-600">
-                                  {new Date(payment.updatedAt).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Payment Account & Discounts */}
-                      {(payment.accountName || payment.discountNames?.length > 0) && (
-                        <div className="bg-white rounded-xl border border-gray-200 p-6">
-                          <div className="flex items-center space-x-3 mb-6">
-                            <div className="p-2 bg-purple-50 rounded-lg">
-                              <Building className="w-5 h-5 text-purple-600" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-900">Payment Details</h3>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            {payment.accountName && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-500">Payment Account</label>
-                                <p className="text-base text-gray-900 mt-1">{payment.accountName}</p>
-                                {payment.accountType && (
-                                  <p className="text-sm text-gray-600 capitalize">{payment.accountType}</p>
-                                )}
-                              </div>
-                            )}
-                            
-                            {payment.discountNames?.length > 0 && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-500">Applied Discounts</label>
-                                <div className="mt-2 space-y-2">
-                                  {payment.discountNames.map((discountName, index) => (
-                                    <div key={index} className="flex items-center space-x-2">
-                                      <Percent className="w-4 h-4 text-green-600" />
-                                      <span className="text-sm text-gray-900">{discountName}</span>
-                                      {payment.discountValues?.[index] && (
-                                        <span className="text-sm text-green-600 font-medium">
-                                          -{payment.discountValues[index]}%
-                                        </span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
 

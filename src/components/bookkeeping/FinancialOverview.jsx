@@ -1,23 +1,25 @@
 import React from 'react';
-import { TrendingUp, Clock, RefreshCw } from 'lucide-react';
+import { TrendingUp, Clock, RefreshCw, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { usePayments } from '../../hooks/usePayments';
+import { useExchangeRates } from '../../hooks/useExchangeRates';
 
 /**
  * FinancialOverview - Displays key financial metrics in card format
  * Shows total revenue, monthly revenue, pending payments, and exchange rates
  */
 const FinancialOverview = ({ currency = 'EUR' }) => {
-  const { payments, loading, getFinancialStats } = usePayments();
+  const { loading: paymentsLoading, getFinancialStats } = usePayments();
+  const { 
+    loading: ratesLoading, 
+    error: ratesError,
+    refreshRates,
+    getExchangeRateDisplay,
+    getUpdateTimeDisplay,
+    isStale
+  } = useExchangeRates(currency);
   
   // Get financial statistics
   const stats = getFinancialStats(currency);
-  
-  // Exchange rate data (in a real app, this would come from an API)
-  const exchangeRates = {
-    'EUR': { 'VND': 26000, 'USD': 1.08 },
-    'VND': { 'EUR': 0.000038, 'USD': 0.000041 },
-    'USD': { 'EUR': 0.93, 'VND': 24300 }
-  };
 
   const formatCurrency = (amount, curr = currency) => {
     const formatters = {
@@ -29,17 +31,19 @@ const FinancialOverview = ({ currency = 'EUR' }) => {
     return formatters[curr]?.format(amount) || `${curr} ${amount.toLocaleString()}`;
   };
 
-  const getExchangeRateDisplay = () => {
-    if (currency === 'EUR') {
-      return `1 EUR = ${exchangeRates.EUR.VND.toLocaleString()} VND`;
-    } else if (currency === 'VND') {
-      return `1 VND = ${exchangeRates.VND.EUR} EUR`;
-    } else {
-      return `1 USD = ${exchangeRates.USD.EUR} EUR`;
+  // Determine target currency for exchange rate display
+  const getTargetCurrency = () => {
+    switch (currency) {
+      case 'EUR': return 'VND';
+      case 'VND': return 'EUR';
+      case 'USD': return 'EUR';
+      default: return 'USD';
     }
   };
 
-  if (loading) {
+  const targetCurrency = getTargetCurrency();
+
+  if (paymentsLoading) {
     return (
       <div className="grid grid-cols-4 gap-6 p-6">
         {[...Array(4)].map((_, index) => (
@@ -109,17 +113,48 @@ const FinancialOverview = ({ currency = 'EUR' }) => {
       {/* Exchange Rate */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-500">Exchange Rate</h3>
-          <span className="text-blue-500">
-            <RefreshCw className="h-5 w-5" />
-          </span>
+          <h3 className="text-sm font-medium text-gray-500 flex items-center">
+            Exchange Rate
+            {ratesError && (
+              <AlertTriangle className="h-3 w-3 text-red-500 ml-1" title={`Error: ${ratesError}`} />
+            )}
+            {isStale && (
+              <WifiOff className="h-3 w-3 text-yellow-500 ml-1" title="Using cached data" />
+            )}
+          </h3>
+          <button 
+            onClick={refreshRates}
+            disabled={ratesLoading}
+            className={`transition-colors ${ratesLoading ? 'text-gray-400' : 'text-blue-500 hover:text-blue-600'}`}
+            title="Refresh exchange rates"
+          >
+            <RefreshCw className={`h-5 w-5 ${ratesLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <div className="flex items-baseline">
-          <span className="text-lg font-bold text-gray-900">
-            {getExchangeRateDisplay()}
-          </span>
+          {ratesLoading ? (
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-32"></div>
+            </div>
+          ) : (
+            <span className="text-lg font-bold text-gray-900">
+              {getExchangeRateDisplay(currency, targetCurrency)}
+            </span>
+          )}
         </div>
-        <div className="text-xs text-gray-500 mt-1">Updated 5 mins ago</div>
+        <div className={`text-xs mt-1 flex items-center ${ratesError ? 'text-red-500' : isStale ? 'text-yellow-600' : 'text-gray-500'}`}>
+          {ratesError ? (
+            <>
+              <WifiOff className="h-3 w-3 mr-1" />
+              Failed to update
+            </>
+          ) : (
+            <>
+              <Wifi className="h-3 w-3 mr-1" />
+              {getUpdateTimeDisplay()}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

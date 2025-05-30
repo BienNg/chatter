@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePayments } from '../../hooks/usePayments';
-import { Eye, Search, Filter, Trash2, AlertTriangle, MoreVertical, Edit, MessageSquare } from 'lucide-react';
+import { Eye, Search, Filter, Trash2, AlertTriangle, Edit, MessageSquare } from 'lucide-react';
 import PaymentDetailsModal from '../shared/PaymentDetailsModal';
 import SendToChatModal from './SendToChatModal';
+import { ActionsDropdown } from '../shared';
 
 /**
  * PaymentsList - Displays recent payments in a table format
@@ -19,8 +20,6 @@ const PaymentsList = ({ currency = 'EUR' }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
-  const [dropdownPosition, setDropdownPosition] = useState('bottom');
   const [showSendToChatModal, setShowSendToChatModal] = useState(false);
   const [paymentToShare, setPaymentToShare] = useState(null);
 
@@ -191,61 +190,6 @@ const PaymentsList = ({ currency = 'EUR' }) => {
     setShowSendToChatModal(false);
     setPaymentToShare(null);
   };
-
-  const handleDropdownToggle = (paymentId, e) => {
-    e.stopPropagation(); // Prevent row click
-    
-    if (openDropdownId === paymentId) {
-      setOpenDropdownId(null);
-      return;
-    }
-    
-    // Calculate position based on button position
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const dropdownHeight = 200; // Approximate dropdown height
-    
-    // If there's not enough space below, position above
-    const shouldPositionAbove = rect.bottom + dropdownHeight > viewportHeight;
-    setDropdownPosition(shouldPositionAbove ? 'top' : 'bottom');
-    
-    setOpenDropdownId(paymentId);
-  };
-
-  const handleDropdownAction = (action, payment, e) => {
-    e.stopPropagation(); // Prevent row click
-    setOpenDropdownId(null); // Close dropdown
-    
-    switch (action) {
-      case 'view':
-        handleViewReceipt(payment.id);
-        break;
-      case 'edit':
-        handleEditPayment(payment);
-        break;
-      case 'delete':
-        handleDeletePayment(payment, e);
-        break;
-      case 'sendToChat':
-        handleSendToChat(payment);
-        break;
-      default:
-        break;
-    }
-  };
-
-  // Close dropdown when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = () => {
-      setOpenDropdownId(null);
-    };
-
-    if (openDropdownId) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [openDropdownId]);
 
   if (loading) {
     return (
@@ -430,67 +374,45 @@ const PaymentsList = ({ currency = 'EUR' }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="relative">
-                      <button
-                        onClick={(e) => handleDropdownToggle(payment.id, e)}
-                        className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-all duration-150"
-                        disabled={deletingPaymentId === payment.id}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                      
-                      {/* Dropdown Menu */}
-                      {openDropdownId === payment.id && (
-                        <div className={`absolute right-0 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
-                          dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
-                        }`}>
-                          <div className="py-1">
-                            <button
-                              onClick={(e) => handleDropdownAction('view', payment, e)}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                              disabled={deletingPaymentId === payment.id}
-                            >
-                              <Eye className="h-4 w-4 mr-3" />
-                              View Details
-                            </button>
-                            <button
-                              onClick={(e) => handleDropdownAction('edit', payment, e)}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                              disabled={deletingPaymentId === payment.id}
-                            >
-                              <Edit className="h-4 w-4 mr-3" />
-                              Edit Payment
-                            </button>
-                            <button
-                              onClick={(e) => handleDropdownAction('sendToChat', payment, e)}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                              disabled={deletingPaymentId === payment.id}
-                            >
-                              <MessageSquare className="h-4 w-4 mr-3" />
-                              Send to Chat
-                            </button>
-                            <div className="border-t border-gray-100"></div>
-                            <button
-                              onClick={(e) => handleDropdownAction('delete', payment, e)}
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
-                              disabled={deletingPaymentId === payment.id}
-                            >
-                              {deletingPaymentId === payment.id ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-3"></div>
-                                  Deleting...
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="h-4 w-4 mr-3" />
-                                  Delete Payment
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <ActionsDropdown
+                      itemId={payment.id}
+                      item={payment}
+                      disabled={deletingPaymentId === payment.id}
+                      actions={[
+                        {
+                          key: 'view',
+                          label: 'View Details',
+                          icon: Eye,
+                          onClick: (payment) => handleViewReceipt(payment.id),
+                          disabled: deletingPaymentId === payment.id
+                        },
+                        {
+                          key: 'edit',
+                          label: 'Edit Payment',
+                          icon: Edit,
+                          onClick: (payment) => handleEditPayment(payment),
+                          disabled: deletingPaymentId === payment.id
+                        },
+                        {
+                          key: 'sendToChat',
+                          label: 'Send to Chat',
+                          icon: MessageSquare,
+                          onClick: (payment) => handleSendToChat(payment),
+                          disabled: deletingPaymentId === payment.id
+                        },
+                        {
+                          key: 'delete',
+                          label: 'Delete Payment',
+                          icon: Trash2,
+                          onClick: (payment, e) => handleDeletePayment(payment, e),
+                          disabled: deletingPaymentId === payment.id,
+                          loading: deletingPaymentId === payment.id,
+                          loadingLabel: 'Deleting...',
+                          isDanger: true,
+                          separator: true
+                        }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))

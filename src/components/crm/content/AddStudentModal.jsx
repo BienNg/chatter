@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, User, Mail, Phone, MapPin, GraduationCap, MessageSquare } from 'lucide-react';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
+import OptionSettingsModal from './OptionSettingsModal';
 import { useFunnelSteps } from '../../../hooks/useFunnelSteps';
 import { useCourseInterests } from '../../../hooks/useCourseInterests';
 import { usePlatforms } from '../../../hooks/usePlatforms';
@@ -15,7 +16,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     phone: '',
     location: '',
     city: '',
-    funnelStep: '',
+    category: [],
     interest: [],
     platform: [],
     courses: [],
@@ -24,9 +25,10 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [settingsModal, setSettingsModal] = useState({ isOpen: false, type: '', title: '' });
 
   // Database hooks for dynamic options
-  const { funnelSteps, addFunnelStep } = useFunnelSteps();
+  const { funnelSteps: categories, funnelStepsWithIds: categoriesWithIds, addFunnelStep: addCategory, updateFunnelStep: updateCategory, deleteFunnelStep: deleteCategory } = useFunnelSteps();
   const { courseInterests, addCourseInterest } = useCourseInterests();
   const { platforms, addPlatform } = usePlatforms();
   const { countries, addCountry } = useCountries();
@@ -53,7 +55,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     try {
       switch (optionType) {
         case 'funnelSteps':
-          await addFunnelStep(newOption);
+          await addCategory(newOption);
           break;
         case 'courseInterests':
           await addCourseInterest(newOption);
@@ -73,6 +75,46 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     } catch (error) {
       console.error('Error adding new option:', error);
       // You might want to show a toast notification here
+    }
+  };
+
+  const handleOpenSettings = (type, title) => {
+    setSettingsModal({ isOpen: true, type, title });
+  };
+
+  const handleCloseSettings = () => {
+    setSettingsModal({ isOpen: false, type: '', title: '' });
+  };
+
+  const handleUpdateOption = async (id, newValue) => {
+    try {
+      switch (settingsModal.type) {
+        case 'categories':
+          await updateCategory(id, newValue);
+          break;
+        // Add other cases as needed
+        default:
+          console.warn('Unknown settings type:', settingsModal.type);
+      }
+    } catch (error) {
+      console.error('Error updating option:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteOption = async (id) => {
+    try {
+      switch (settingsModal.type) {
+        case 'categories':
+          await deleteCategory(id);
+          break;
+        // Add other cases as needed
+        default:
+          console.warn('Unknown settings type:', settingsModal.type);
+      }
+    } catch (error) {
+      console.error('Error deleting option:', error);
+      throw error;
     }
   };
 
@@ -109,9 +151,6 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
     setIsSubmitting(true);
     
     try {
-      // Generate student ID
-      const studentId = `STU${String(Date.now()).slice(-3).padStart(3, '0')}`;
-      
       // Generate avatar initials
       const nameParts = formData.name.trim().split(' ');
       const avatar = nameParts.length > 1 
@@ -122,8 +161,8 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
       const avatarColors = ['#3B82F6', '#10B981', '#8B5CF6', '#EC4899', '#F59E0B', '#EF4444', '#F97316', '#14B8A6'];
       const avatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
 
-      // Convert funnel step to uppercase for consistency
-      const funnelStepMap = {
+      // Convert category to uppercase for consistency
+      const categoryMap = {
         'Lead': 'LEAD',
         'Contacted': 'CONTACTED',
         'Interested': 'INTERESTED',
@@ -132,15 +171,14 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
       };
 
       const newStudent = {
-        studentId,
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         location: formData.location,
         city: formData.city,
-        funnelStep: funnelStepMap[formData.funnelStep] || formData.funnelStep.toUpperCase(),
-        interest: formData.interest.join(', '), // Convert array to string for display
-        platform: formData.platform.join(', '), // Convert array to string for display
+        category: formData.category.map(step => categoryMap[step] || step.toUpperCase()).join(', '),
+        interest: formData.interest.join(', '),
+        platform: formData.platform.join(', '),
         courses: [],
         notes: formData.notes.trim(),
         avatar,
@@ -156,7 +194,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
         phone: '',
         location: '',
         city: '',
-        funnelStep: '',
+        category: [],
         interest: [],
         platform: [],
         courses: [],
@@ -267,15 +305,16 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
                   </div>
 
                   <div>
-                    <CustomSelect
-                      label="Funnel Step"
-                      value={formData.funnelStep}
-                      onChange={(value) => handleInputChange('funnelStep', value)}
-                      options={funnelSteps}
-                      placeholder="Select funnel step"
+                    <MultiSelect
+                      label="Category"
+                      value={formData.category}
+                      onChange={(value) => handleInputChange('category', value)}
+                      options={categories}
+                      placeholder="Select categories"
                       allowAddNew={true}
                       onAddNew={(newOption) => handleAddNewOption('funnelSteps', newOption)}
-                      addNewLabel="New Funnel Step..."
+                      addNewLabel="New Category..."
+                      onOpenSettings={() => handleOpenSettings('categories', 'Categories')}
                     />
                   </div>
                 </div>
@@ -395,6 +434,16 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit }) => {
           </form>
         </div>
       </div>
+
+      {/* Option Settings Modal */}
+      <OptionSettingsModal
+        isOpen={settingsModal.isOpen}
+        onClose={handleCloseSettings}
+        title={settingsModal.title}
+        options={settingsModal.type === 'categories' ? categoriesWithIds : []}
+        onUpdate={handleUpdateOption}
+        onDelete={handleDeleteOption}
+      />
     </div>
   );
 };

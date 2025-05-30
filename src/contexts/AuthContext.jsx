@@ -11,6 +11,7 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { seedAccounts } from '../utils/seedAccounts';
+import { seedDiscounts } from '../utils/seedDiscounts';
 
 const AuthContext = createContext({});
 
@@ -77,8 +78,9 @@ export const AuthProvider = ({ children }) => {
                 // Seed accounts collection if needed
                 try {
                     await seedAccounts();
+                    await seedDiscounts();
                 } catch (error) {
-                    console.error('Error seeding accounts:', error);
+                    console.error('Error seeding collections:', error);
                 }
             } else {
                 setCurrentUser(null);

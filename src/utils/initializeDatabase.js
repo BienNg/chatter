@@ -3,7 +3,7 @@ import { db } from '../firebase';
 
 // Default data for all collections
 const defaultData = {
-  funnelSteps: [
+  categories: [
     'Lead',
     'Contacted', 
     'Interested',
@@ -87,13 +87,13 @@ const defaultData = {
 // Sample students data
 const sampleStudents = [
   {
-    studentId: 'STU001',
+    studentId: 'STU00001',
     name: 'Nguyen Thi Mai',
     email: 'mai.nguyen@email.com',
     phone: '+84 901 234 567',
     location: 'Vietnam',
     city: 'Ho Chi Minh City',
-    funnelStep: 'ENROLLED',
+    category: 'ENROLLED',
     interest: 'A1.1 Online, Conversation Practice',
     platform: 'Facebook, WhatsApp',
     courses: [],
@@ -102,13 +102,13 @@ const sampleStudents = [
     avatarColor: '#3B82F6'
   },
   {
-    studentId: 'STU002',
+    studentId: 'STU00002',
     name: 'Le Van Duc',
     email: 'duc.le@email.com',
     phone: '+84 912 345 678',
     location: 'Vietnam',
     city: 'Hanoi',
-    funnelStep: 'INTERESTED',
+    category: 'INTERESTED',
     interest: 'A2.1 Offline',
     platform: 'Zalo',
     courses: [],
@@ -117,13 +117,13 @@ const sampleStudents = [
     avatarColor: '#10B981'
   },
   {
-    studentId: 'STU003',
+    studentId: 'STU00003',
     name: 'Pham Hoang An',
     email: 'an.pham@email.com',
     phone: '+84 923 456 789',
     location: 'Vietnam',
     city: 'Da Nang',
-    funnelStep: 'PAID',
+    category: 'PAID',
     interest: 'B1.1 Online, Business German',
     platform: 'WhatsApp, Website',
     courses: [],
@@ -132,13 +132,13 @@ const sampleStudents = [
     avatarColor: '#8B5CF6'
   },
   {
-    studentId: 'STU004',
+    studentId: 'STU00004',
     name: 'Tran Linh Chi',
     email: 'chi.tran@email.com',
     phone: '+84 934 567 890',
     location: 'Germany',
     city: 'Berlin',
-    funnelStep: 'CONTACTED',
+    category: 'CONTACTED',
     interest: 'A1.1 Online',
     platform: 'Instagram',
     courses: [],
@@ -147,13 +147,13 @@ const sampleStudents = [
     avatarColor: '#EC4899'
   },
   {
-    studentId: 'STU005',
+    studentId: 'STU00005',
     name: 'Vo Thanh Minh',
     email: 'minh.vo@email.com',
     phone: '+84 945 678 901',
     location: 'Vietnam',
     city: 'Ho Chi Minh City',
-    funnelStep: 'LEAD',
+    category: 'LEAD',
     interest: 'A1.2 Offline',
     platform: 'Facebook',
     courses: [],
@@ -231,7 +231,7 @@ export const initializeDatabase = async () => {
 export const resetDatabase = async () => {
   console.log('⚠️  Resetting database...');
   
-  const collections = ['funnelSteps', 'courseInterests', 'platforms', 'countries', 'cities', 'students'];
+  const collections = ['categories', 'courseInterests', 'platforms', 'countries', 'cities', 'students'];
   
   for (const collectionName of collections) {
     try {

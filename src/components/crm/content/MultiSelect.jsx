@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, ChevronDown, Plus } from 'lucide-react';
+import { X, ChevronDown, Plus, MoreHorizontal } from 'lucide-react';
 
 const MultiSelect = ({ 
   value = [], 
@@ -10,7 +10,8 @@ const MultiSelect = ({
   error,
   required = false,
   allowAddNew = false,
-  onAddNew
+  onAddNew,
+  onOpenSettings
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,9 +100,24 @@ const MultiSelect = ({
   return (
     <div className="relative" ref={dropdownRef}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            {label} {required && <span className="text-red-500">*</span>}
+          </label>
+          {onOpenSettings && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenSettings();
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              title="Manage options"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       )}
       
       {/* Input Field with Tags */}

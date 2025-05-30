@@ -1,63 +1,469 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Filter, Download, Plus, MessageSquare } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { Search, Download, Plus, Trash2, AlertTriangle, ChevronDown } from 'lucide-react';
 import AddStudentModal from './AddStudentModal';
 import { useStudents } from '../../../hooks/useStudents';
-import { useFunnelSteps } from '../../../hooks/useFunnelSteps';
-import { useCourseInterests } from '../../../hooks/useCourseInterests';
-import { usePlatforms } from '../../../hooks/usePlatforms';
 import { useCountries } from '../../../hooks/useCountries';
-import { useEnrollments } from '../../../hooks/useEnrollments';
+import { useCities } from '../../../hooks/useCities';
+
+// Country Selector Component
+const CountrySelector = ({ student, updateStudent, countries, addCountry }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    // Auto-hide success message after 2 seconds
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
+
+  const filteredCountries = countries.filter(country => 
+    country.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = async (country) => {
+    try {
+      setIsLoading(true);
+      
+      const updates = {
+        location: country
+      };
+      
+      try {
+        await updateStudent(student.id, updates);
+      } catch (err) {
+        throw err;
+      }
+      
+      setShowSuccess(true);
+      setIsOpen(false);
+      setSearchTerm('');
+    } catch (error) {
+      console.error('Error updating country:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddNew = async () => {
+    if (searchTerm.trim()) {
+      try {
+        setIsLoading(true);
+        
+        // First add the country to the database
+        await addCountry(searchTerm.trim());
+        
+        // Use the same pattern as the email editing
+        const updates = {
+          location: searchTerm.trim()
+        };
+        
+        // Call updateStudent with the updates object
+        await updateStudent(student.id, updates);
+        
+        setShowSuccess(true);
+        setIsOpen(false);
+        setSearchTerm('');
+    } catch (error) {
+        console.error('Error adding new country:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const displayValue = student.location || 'Select country';
+  const isPlaceholder = !student.location;
+
+      return (
+    <>
+      <div className="relative w-full" ref={dropdownRef}>
+        <div
+          onClick={() => {
+            if (!isLoading) {
+              setIsOpen(!isOpen);
+            }
+          }}
+          className={`w-full py-2 cursor-pointer flex items-center justify-between transition-colors ${
+            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : 'hover:bg-gray-50'
+          } ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
+        >
+          <span className={`text-sm ${isPlaceholder ? 'text-gray-400' : 'text-gray-900'}`}>
+            {isLoading ? 'Saving...' : displayValue}
+      </span>
+          {isLoading ? (
+            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          ) : showSuccess ? (
+            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          )}
+        </div>
+      </div>
+
+      {isOpen && (
+        <div 
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          style={{
+            top: dropdownRef.current?.getBoundingClientRect().bottom + window.scrollY + 4 || 0,
+            left: dropdownRef.current?.getBoundingClientRect().left + window.scrollX || 0,
+            width: dropdownRef.current?.getBoundingClientRect().width || 'auto',
+            minWidth: '200px'
+          }}
+        >
+          {/* Search Input */}
+          <div className="p-2 border-b border-gray-100">
+          <input
+            type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search countries..."
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            autoFocus
+            />
+          </div>
+
+          {/* Country Options */}
+          <div className="py-1">
+            {filteredCountries.length > 0 ? (
+              filteredCountries.map((country, index) => (
+              <div
+                key={index}
+                onClick={(event) => {
+                    event.stopPropagation(); // Stop event from bubbling up
+                    handleSelect(country);
+                }}
+                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-900 transition-colors"
+                  data-country={country}
+                >
+                  {country}
+              </div>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500">
+                No countries found
+              </div>
+            )}
+          </div>
+
+          {/* Add New Country */}
+          {searchTerm.trim() && !countries.some(country => 
+            country.toLowerCase() === searchTerm.trim().toLowerCase()
+          ) && (
+            <div className="border-t border-gray-100">
+              <div
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleAddNew();
+                }}
+                className="px-3 py-2 hover:bg-indigo-50 cursor-pointer text-indigo-600 transition-colors flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  + New Country...
+                </span>
+                </div>
+              </div>
+            )}
+          </div>
+      )}
+    </>
+  );
+};
+
+// City Selector Component
+const CitySelector = ({ student, updateStudent, cities, addCity }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    // Auto-hide success message after 2 seconds
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
+
+  const filteredCities = cities.filter(city => 
+    city.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = async (city) => {
+    try {
+      setIsLoading(true);
+      
+      const updates = {
+        city: city
+      };
+      
+      try {
+        await updateStudent(student.id, updates);
+      } catch (err) {
+        throw err;
+      }
+      
+      setShowSuccess(true);
+      setIsOpen(false);
+      setSearchTerm('');
+    } catch (error) {
+      console.error('Error updating city:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddNew = async () => {
+    if (searchTerm.trim()) {
+      try {
+        setIsLoading(true);
+        
+        // First add the city to the database
+        await addCity(searchTerm.trim());
+        
+        // Use the same pattern as the email editing
+        const updates = {
+          city: searchTerm.trim()
+        };
+        
+        // Call updateStudent with the updates object
+        await updateStudent(student.id, updates);
+        
+        setShowSuccess(true);
+        setIsOpen(false);
+        setSearchTerm('');
+      } catch (error) {
+        console.error('Error adding new city:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const displayValue = student.city || 'Select city';
+  const isPlaceholder = !student.city;
+      
+      return (
+    <>
+      <div className="relative w-full" ref={dropdownRef}>
+        <div
+                onClick={() => {
+            if (!isLoading) {
+              setIsOpen(!isOpen);
+            }
+          }}
+          className={`w-full py-2 cursor-pointer flex items-center justify-between transition-colors ${
+            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : 'hover:bg-gray-50'
+          } ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
+        >
+          <span className={`text-sm ${isPlaceholder ? 'text-gray-400' : 'text-gray-900'}`}>
+            {isLoading ? 'Saving...' : displayValue}
+          </span>
+          {isLoading ? (
+            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          ) : showSuccess ? (
+            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            )}
+          </div>
+        </div>
+
+      {isOpen && (
+        <div 
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          style={{
+            top: dropdownRef.current?.getBoundingClientRect().bottom + window.scrollY + 4 || 0,
+            left: dropdownRef.current?.getBoundingClientRect().left + window.scrollX || 0,
+            width: dropdownRef.current?.getBoundingClientRect().width || 'auto',
+            minWidth: '200px'
+          }}
+        >
+          {/* Search Input */}
+          <div className="p-2 border-b border-gray-100">
+          <input
+            type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search cities..."
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            autoFocus
+            />
+                </div>
+
+          {/* City Options */}
+          <div className="py-1">
+            {filteredCities.length > 0 ? (
+              filteredCities.map((city, index) => (
+              <div
+                key={index}
+                onClick={(event) => {
+                    event.stopPropagation(); // Stop event from bubbling up
+                    handleSelect(city);
+                }}
+                onMouseDown={(event) => {
+                    event.stopPropagation();
+                }}
+                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-900 transition-colors"
+                  data-city={city}
+                >
+                  {city}
+              </div>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500">
+                No cities found
+              </div>
+            )}
+          </div>
+
+          {/* Add New City */}
+          {searchTerm.trim() && !cities.some(city => 
+            city.toLowerCase() === searchTerm.trim().toLowerCase()
+          ) && (
+            <div className="border-t border-gray-100">
+              <div
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleAddNew();
+                }}
+                className="px-3 py-2 hover:bg-indigo-50 cursor-pointer text-indigo-600 transition-colors flex items-center space-x-2"
+                data-action="add-new-city"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  + New City...
+      </span>
+                </div>
+              </div>
+            )}
+          </div>
+      )}
+    </>
+  );
+};
 
 const StudentsInterface = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    funnelStep: 'All Steps',
-    courseInterest: 'All Courses',
-    platform: 'All Platforms',
-    location: 'All Countries'
-  });
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [editingCell, setEditingCell] = useState({ studentId: null, field: null });
+  const [editValue, setEditValue] = useState('');
 
   // Database hooks
-  const { students, loading, error, addStudent } = useStudents();
-  const { funnelSteps } = useFunnelSteps();
-  const { courseInterests } = useCourseInterests();
-  const { platforms } = usePlatforms();
-  const { countries } = useCountries();
-  const { getStudentEnrollments } = useEnrollments();
+  const { students, loading, error, addStudent, deleteStudent, updateStudent } = useStudents();
+  const { countries, addCountry } = useCountries();
+  const { cities, addCity } = useCities();
 
-  // Filter options
-  const filterOptions = {
-    funnelStep: ['All Steps', ...funnelSteps],
-    courseInterest: ['All Courses', ...courseInterests],
-    platform: ['All Platforms', ...platforms],
-    location: ['All Countries', ...countries]
-  };
+  // Auto-save function that saves changes when clicking outside
+  const handleAutoSave = useCallback(async () => {
+    if (!editingCell.studentId || !editingCell.field) return;
+    
+    // Only save if the value has actually changed
+    const student = students.find(s => s.id === editingCell.studentId);
+    const currentValue = student?.[editingCell.field] || '';
+    const newValue = editValue.trim();
+    
+    // Validation for name field
+    if (editingCell.field === 'name') {
+      if (newValue.length < 2) {
+        // Silently restore previous value and exit edit mode
+        setEditingCell({ studentId: null, field: null });
+        setEditValue('');
+        return;
+      }
+    }
+    
+    if (currentValue !== newValue) {
+      try {
+        const updates = {
+          [editingCell.field]: newValue
+        };
+        
+        // If updating name, also update the avatar text
+        if (editingCell.field === 'name') {
+          const avatarText = newValue.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+          updates.avatar = avatarText;
+        }
+        
+        await updateStudent(editingCell.studentId, updates);
+      } catch (error) {
+        console.error('Error updating student:', error);
+      }
+    }
+    
+    setEditingCell({ studentId: null, field: null });
+    setEditValue('');
+  }, [editingCell.studentId, editingCell.field, editValue, students, updateStudent]);
 
-  // Filtered students
+  // Handle click outside to auto-save
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (editingCell.studentId && editingCell.field) {
+        // Check if the click is outside the current editing input
+        const clickedElement = event.target;
+        const isInputClick = clickedElement.tagName === 'INPUT' && 
+                            clickedElement.dataset.studentId === editingCell.studentId &&
+                            clickedElement.dataset.field === editingCell.field;
+        
+        if (!isInputClick) {
+          handleAutoSave();
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [editingCell.studentId, editingCell.field, handleAutoSave]);
+
+  // Filtered students - simplified to only search by name, email, and studentId
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
       const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.studentId?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesFunnelStep = filters.funnelStep === 'All Steps' || student.funnelStep === filters.funnelStep;
-      const matchesCourse = filters.courseInterest === 'All Courses' || 
-                           student.interest?.includes(filters.courseInterest);
-      const matchesPlatform = filters.platform === 'All Platforms' || 
-                             student.platform?.includes(filters.platform);
-      const matchesLocation = filters.location === 'All Countries' || student.location === filters.location;
-
-      return matchesSearch && matchesFunnelStep && matchesCourse && matchesPlatform && matchesLocation;
+      return matchesSearch;
     });
-  }, [students, searchTerm, filters]);
-
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
-  };
+  }, [students, searchTerm]);
 
   const handleAddStudent = async (newStudent) => {
     try {
@@ -65,66 +471,100 @@ const StudentsInterface = () => {
       console.log('Student added successfully');
     } catch (error) {
       console.error('Error adding student:', error);
-      // You might want to show an error toast here
     }
   };
 
-  const getFunnelStepStyle = (step) => {
-    const styles = {
-      'ENROLLED': 'bg-green-100 text-green-800',
-      'INTERESTED': 'bg-blue-100 text-blue-800',
-      'PAID': 'bg-green-100 text-green-800',
-      'CONTACTED': 'bg-yellow-100 text-yellow-800',
-      'LEAD': 'bg-blue-100 text-blue-800'
-    };
-    return styles[step] || 'bg-gray-100 text-gray-800';
+  const handleDeleteClick = (studentId) => {
+    setDeleteConfirm(studentId);
   };
 
-  const getPlatformStyle = (platform) => {
-    const styles = {
-      'Facebook': 'bg-blue-50 text-blue-700',
-      'Zalo': 'bg-blue-50 text-blue-700',
-      'WhatsApp': 'bg-green-50 text-green-700',
-      'Instagram': 'bg-pink-50 text-pink-700'
-    };
-    return styles[platform] || 'bg-gray-50 text-gray-700';
-  };
-
-  const renderCourses = (student) => {
-    // Get enrollments for this student using the new enrollment system
-    const enrollments = getStudentEnrollments(student.studentId || student.id);
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
     
-    if (!enrollments || enrollments.length === 0) {
-      return <span className="text-gray-400 text-sm">No enrollments</span>;
+    try {
+      await deleteStudent(deleteConfirm);
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting student:', error);
     }
+  };
 
-    if (enrollments.length === 1) {
-      const enrollment = enrollments[0];
+  const handleDeleteCancel = () => {
+    setDeleteConfirm(null);
+  };
+
+  const handleEditStart = (studentId, field, currentValue) => {
+    setEditingCell({ studentId, field });
+    setEditValue(currentValue || '');
+  };
+
+  const handleEditCancel = () => {
+    setEditingCell({ studentId: null, field: null });
+    setEditValue('');
+  };
+
+  // Inline editable text component
+  const renderInlineEditableText = (student, field, value, placeholder = "Add value") => {
+    const isEditing = editingCell.studentId === student.id && editingCell.field === field;
+    
+    // Custom placeholders based on field type
+    let customPlaceholder = placeholder;
+    if (!value) {
+      switch (field) {
+        case 'email':
+          customPlaceholder = 'Add email';
+          break;
+        case 'phone':
+          customPlaceholder = 'Add phone';
+          break;
+        case 'name':
+          customPlaceholder = 'Enter name';
+          break;
+        default:
+          customPlaceholder = placeholder;
+      }
+    }
+    
+    if (isEditing) {
       return (
-        <div className="flex flex-col space-y-1">
-          <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-indigo-50 text-indigo-700 w-fit">
-            {enrollment.courseName || enrollment.className || 'Course'}
-          </span>
-          <span className="text-xs text-gray-500">
-            {enrollment.status === 'active' ? 'Active' : enrollment.status}
-            {enrollment.progress && ` • ${enrollment.progress}%`}
-          </span>
-        </div>
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          className="text-sm text-gray-900 bg-transparent border-b-2 border-indigo-500 outline-none focus:border-indigo-600 min-w-0 max-w-full"
+          style={{ 
+            textDecoration: 'underline', 
+            textDecorationColor: '#6366f1',
+            width: '100%',
+            padding: '0',
+            margin: '0'
+          }}
+          autoFocus
+          data-student-id={student.id}
+          data-field={field}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleAutoSave();
+            if (e.key === 'Escape') handleEditCancel();
+          }}
+          placeholder={customPlaceholder}
+        />
       );
     }
-
+    
+    const displayValue = value || customPlaceholder;
+    const isPlaceholder = !value;
+    
     return (
-      <div className="flex flex-col space-y-1">
-        <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-indigo-50 text-indigo-700 w-fit">
-          {enrollments[0].courseName || enrollments[0].className || 'Course'}
-        </span>
-        <span className="text-xs text-gray-500">
-          +{enrollments.length - 1} more courses
-        </span>
-        <span className="text-xs text-gray-500">
-          {enrollments.filter(e => e.status === 'active').length} active
-        </span>
-      </div>
+      <span
+        className={`text-sm cursor-pointer hover:bg-gray-100 hover:underline transition-all block ${
+          isPlaceholder ? 'text-gray-400 italic' : 'text-gray-900'
+        }`}
+        onClick={() => handleEditStart(student.id, field, value)}
+        title="Click to edit"
+        style={{ padding: '0', margin: '0' }}
+      >
+        {displayValue}
+      </span>
     );
   };
 
@@ -193,123 +633,91 @@ const StudentsInterface = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
-        <div className="flex items-center space-x-4">
-          <Filter className="w-4 h-4 text-gray-500" />
-          
-          {/* Funnel Step Filter */}
-          <select
-            value={filters.funnelStep}
-            onChange={(e) => handleFilterChange('funnelStep', e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            {filterOptions.funnelStep.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-
-          {/* Course Interest Filter */}
-          <select
-            value={filters.courseInterest}
-            onChange={(e) => handleFilterChange('courseInterest', e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            {filterOptions.courseInterest.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-
-          {/* Platform Filter */}
-          <select
-            value={filters.platform}
-            onChange={(e) => handleFilterChange('platform', e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            {filterOptions.platform.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-
-          {/* Location Filter */}
-          <select
-            value={filters.location}
-            onChange={(e) => handleFilterChange('location', e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            {filterOptions.location.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full">
+        <table className="w-full table-fixed">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funnel Step</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollments</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">Student</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">Contact</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Country</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">City</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Category</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Course/Service</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Payments</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Platform</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Notes</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredStudents.map((student) => (
-              <tr key={student.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
+              <tr key={student.id} className="hover:bg-gray-50 h-20">
+                <td className="px-6 py-4 whitespace-nowrap w-64 h-20">
+                  <div className="flex items-center h-full">
                     <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
                       style={{ 
-                        backgroundColor: typeof student.avatarColor === 'object' 
-                          ? undefined 
-                          : student.avatarColor,
-                        background: typeof student.avatarColor === 'object' 
-                          ? student.avatarColor.background 
-                          : undefined
+                        backgroundColor: student.avatarColor || '#6B7280'
                       }}
                     >
                       {student.avatar}
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                      <div className="text-sm text-gray-500">{student.studentId}</div>
+                    <div className="ml-4 min-w-0 flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        {renderInlineEditableText(student, 'name', student.name)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">{student.studentId}</div>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{student.email}</div>
-                  <div className="text-sm text-gray-500">{student.phone}</div>
+                <td className="px-6 py-4 whitespace-nowrap w-56 h-20">
+                  <div className="space-y-1 flex flex-col justify-center h-full">
+                    <div className="text-sm text-gray-900">{renderInlineEditableText(student, 'email', student.email)}</div>
+                    <div className="text-sm text-gray-900">{renderInlineEditableText(student, 'phone', student.phone)}</div>
+                  </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{student.location}</div>
-                  {student.city && <div className="text-sm text-gray-500">{student.city}</div>}
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                  <CountrySelector 
+                    student={student} 
+                    updateStudent={updateStudent} 
+                    countries={countries} 
+                    addCountry={addCountry} 
+                  />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getFunnelStepStyle(student.funnelStep)}`}>
-                    {student.funnelStep}
-                  </span>
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                  <CitySelector 
+                    student={student} 
+                    updateStudent={updateStudent} 
+                    cities={cities} 
+                    addCity={addCity} 
+                  />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{student.interest}</div>
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                  {/* Empty Category column */}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${getPlatformStyle(student.platform)}`}>
-                    {student.platform}
-                  </span>
+                <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
+                  {/* Empty Course/Service column */}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {renderCourses(student)}
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                  {/* Empty Payments column */}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                  <button className="text-red-600 hover:text-red-900">Delete</button>
+                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                  {/* Empty Platform column */}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
+                  {/* Empty Notes column */}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium w-20 h-20">
+                  <div className="flex items-center justify-start h-full">
+                  <button 
+                    onClick={() => handleDeleteClick(student.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete student"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -319,7 +727,7 @@ const StudentsInterface = () => {
         {filteredStudents.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500">
-              {searchTerm || Object.values(filters).some(f => f !== 'All Steps' && f !== 'All Courses' && f !== 'All Platforms' && f !== 'All Countries') 
+              {searchTerm 
                 ? 'No students match your search criteria.' 
                 : 'No students found. Add your first student to get started.'}
             </div>
@@ -352,6 +760,47 @@ const StudentsInterface = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddStudent}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
+              <div className="p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Delete Student</h3>
+                    <p className="text-sm text-gray-500">This action cannot be undone</p>
+                  </div>
+                </div>
+                
+                <p className="text-gray-700 mb-6">
+                  Are you sure you want to delete this student? All associated data will be permanently removed.
+                </p>
+                
+                <div className="flex items-center justify-end space-x-3">
+                  <button
+                    onClick={handleDeleteCancel}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Delete Student
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

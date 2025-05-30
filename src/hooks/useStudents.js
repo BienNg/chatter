@@ -12,6 +12,24 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// Helper function to generate next sequential student ID
+const generateNextStudentId = (existingStudents) => {
+  // Extract all existing student IDs that match the STU format
+  const studentNumbers = existingStudents
+    .filter(student => student.studentId && student.studentId.startsWith('STU'))
+    .map(student => {
+      const match = student.studentId.match(/STU(\d+)/);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter(num => !isNaN(num));
+  
+  // Find the highest number and add 1
+  const nextNumber = studentNumbers.length > 0 ? Math.max(...studentNumbers) + 1 : 1;
+  
+  // Format as STU with 5 digits (padded with zeros)
+  return `STU${nextNumber.toString().padStart(5, '0')}`;
+};
+
 export function useStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,31 +78,25 @@ export function useStudents() {
         }
       }
 
+      // Generate sequential student ID
+      const studentId = generateNextStudentId(students);
+
       const newStudent = {
         ...studentData,
-        // Ensure we have a studentId field for enrollment compatibility
-        // If not provided, we'll use the document ID after creation
+        studentId, // Use the generated sequential ID
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
       const docRef = await addDoc(collection(db, 'students'), newStudent);
       
-      // Update the document with the studentId field set to the document ID
-      // This ensures compatibility with the enrollment system
+      // Create the student object for local state
       const studentWithId = {
         ...newStudent,
         id: docRef.id,
-        studentId: docRef.id, // Use document ID as studentId for consistency
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      
-      // Update the document in Firestore to include the studentId field
-      await updateDoc(doc(db, 'students', docRef.id), { 
-        studentId: docRef.id,
-        updatedAt: serverTimestamp()
-      });
       
       // Add the new student to local state immediately for better UX
       setStudents(prev => [studentWithId, ...prev]);
@@ -99,14 +111,24 @@ export function useStudents() {
 
   const updateStudent = async (studentId, updates) => {
     try {
+      console.log('===== UPDATE STUDENT FUNCTION CALLED =====');
+      console.log('Student ID:', studentId);
+      console.log('Updates:', updates);
+      
       setError(null);
       
       const updateData = {
         ...updates,
         updatedAt: serverTimestamp()
       };
+      
+      console.log('Final update data with timestamp:', updateData);
+      console.log('Calling Firebase updateDoc...');
 
       await updateDoc(doc(db, 'students', studentId), updateData);
+      
+      console.log('Firebase updateDoc successful!');
+      console.log('Updating local state...');
       
       // Update local state
       setStudents(prev => prev.map(student => 
@@ -114,8 +136,12 @@ export function useStudents() {
           ? { ...student, ...updates, updatedAt: new Date() }
           : student
       ));
+      
+      console.log('Local state updated successfully');
+      console.log('===== UPDATE STUDENT FUNCTION COMPLETED =====');
     } catch (err) {
       console.error('Error updating student:', err);
+      console.error('Error details:', err.code, err.message);
       setError('Failed to update student');
       throw err;
     }

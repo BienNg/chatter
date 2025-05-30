@@ -152,7 +152,10 @@ const PaymentAccountSelector = ({
             {/* Account Icon */}
             <div 
               className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: getAccountIconColor(selectedAccount.type).background }}
+              style={{ 
+                background: selectedAccount.avatarUrl ? '#ffffff' : getAccountIconColor(selectedAccount.type).background,
+                border: selectedAccount.avatarUrl ? '1px solid #e5e7eb' : 'none'
+              }}
             >
               {selectedAccount.avatarUrl ? (
                 <img
@@ -242,7 +245,10 @@ const PaymentAccountSelector = ({
                       {/* Account Icon */}
                       <div 
                         className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ background: iconColor.background }}
+                        style={{ 
+                          background: account.avatarUrl ? '#ffffff' : iconColor.background,
+                          border: account.avatarUrl ? '1px solid #e5e7eb' : 'none'
+                        }}
                       >
                         {account.avatarUrl ? (
                           <img

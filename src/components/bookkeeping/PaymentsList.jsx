@@ -20,6 +20,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
   const [deletingPaymentId, setDeletingPaymentId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState('bottom');
   const [showSendToChatModal, setShowSendToChatModal] = useState(false);
   const [paymentToShare, setPaymentToShare] = useState(null);
 
@@ -193,7 +194,23 @@ const PaymentsList = ({ currency = 'EUR' }) => {
 
   const handleDropdownToggle = (paymentId, e) => {
     e.stopPropagation(); // Prevent row click
-    setOpenDropdownId(openDropdownId === paymentId ? null : paymentId);
+    
+    if (openDropdownId === paymentId) {
+      setOpenDropdownId(null);
+      return;
+    }
+    
+    // Calculate position based on button position
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const dropdownHeight = 200; // Approximate dropdown height
+    
+    // If there's not enough space below, position above
+    const shouldPositionAbove = rect.bottom + dropdownHeight > viewportHeight;
+    setDropdownPosition(shouldPositionAbove ? 'top' : 'bottom');
+    
+    setOpenDropdownId(paymentId);
   };
 
   const handleDropdownAction = (action, payment, e) => {
@@ -290,7 +307,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm">
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -424,7 +441,9 @@ const PaymentsList = ({ currency = 'EUR' }) => {
                       
                       {/* Dropdown Menu */}
                       {openDropdownId === payment.id && (
-                        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        <div className={`absolute right-0 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
+                          dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+                        }`}>
                           <div className="py-1">
                             <button
                               onClick={(e) => handleDropdownAction('view', payment, e)}

@@ -4,382 +4,8 @@ import AddStudentModal from './AddStudentModal';
 import { useStudents } from '../../../hooks/useStudents';
 import { useCountries } from '../../../hooks/useCountries';
 import { useCities } from '../../../hooks/useCities';
-
-// Country Selector Component
-const CountrySelector = ({ student, updateStudent, countries, addCountry }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const dropdownRef = useRef(null);
-  
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    // Auto-hide success message after 2 seconds
-    if (showSuccess) {
-      const timer = setTimeout(() => {
-        setShowSuccess(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccess]);
-
-  const filteredCountries = countries.filter(country => 
-    country.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleSelect = async (country) => {
-    try {
-      setIsLoading(true);
-      
-      const updates = {
-        location: country
-      };
-      
-      try {
-        await updateStudent(student.id, updates);
-      } catch (err) {
-        throw err;
-      }
-      
-      setShowSuccess(true);
-      setIsOpen(false);
-      setSearchTerm('');
-    } catch (error) {
-      console.error('Error updating country:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddNew = async () => {
-    if (searchTerm.trim()) {
-      try {
-        setIsLoading(true);
-        
-        // First add the country to the database
-        await addCountry(searchTerm.trim());
-        
-        // Use the same pattern as the email editing
-        const updates = {
-          location: searchTerm.trim()
-        };
-        
-        // Call updateStudent with the updates object
-        await updateStudent(student.id, updates);
-        
-        setShowSuccess(true);
-        setIsOpen(false);
-        setSearchTerm('');
-    } catch (error) {
-        console.error('Error adding new country:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const displayValue = student.location || 'Select country';
-  const isPlaceholder = !student.location;
-
-      return (
-    <>
-      <div className="relative w-full" ref={dropdownRef}>
-        <div
-          onClick={() => {
-            if (!isLoading) {
-              setIsOpen(!isOpen);
-            }
-          }}
-          className={`w-full py-2 cursor-pointer flex items-center justify-between transition-colors ${
-            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : 'hover:bg-gray-50'
-          } ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
-        >
-          <span className={`text-sm ${isPlaceholder ? 'text-gray-400' : 'text-gray-900'}`}>
-            {isLoading ? 'Saving...' : displayValue}
-      </span>
-          {isLoading ? (
-            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          ) : showSuccess ? (
-            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-          )}
-        </div>
-      </div>
-
-      {isOpen && (
-        <div 
-          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
-          style={{
-            top: dropdownRef.current?.getBoundingClientRect().bottom + window.scrollY + 4 || 0,
-            left: dropdownRef.current?.getBoundingClientRect().left + window.scrollX || 0,
-            width: dropdownRef.current?.getBoundingClientRect().width || 'auto',
-            minWidth: '200px'
-          }}
-        >
-          {/* Search Input */}
-          <div className="p-2 border-b border-gray-100">
-          <input
-            type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search countries..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            autoFocus
-            />
-          </div>
-
-          {/* Country Options */}
-          <div className="py-1">
-            {filteredCountries.length > 0 ? (
-              filteredCountries.map((country, index) => (
-              <div
-                key={index}
-                onClick={(event) => {
-                    event.stopPropagation(); // Stop event from bubbling up
-                    handleSelect(country);
-                }}
-                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-900 transition-colors"
-                  data-country={country}
-                >
-                  {country}
-              </div>
-              ))
-            ) : (
-              <div className="px-3 py-2 text-sm text-gray-500">
-                No countries found
-              </div>
-            )}
-          </div>
-
-          {/* Add New Country */}
-          {searchTerm.trim() && !countries.some(country => 
-            country.toLowerCase() === searchTerm.trim().toLowerCase()
-          ) && (
-            <div className="border-t border-gray-100">
-              <div
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleAddNew();
-                }}
-                className="px-3 py-2 hover:bg-indigo-50 cursor-pointer text-indigo-600 transition-colors flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  + New Country...
-                </span>
-                </div>
-              </div>
-            )}
-          </div>
-      )}
-    </>
-  );
-};
-
-// City Selector Component
-const CitySelector = ({ student, updateStudent, cities, addCity }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const dropdownRef = useRef(null);
-  
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    // Auto-hide success message after 2 seconds
-    if (showSuccess) {
-      const timer = setTimeout(() => {
-        setShowSuccess(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccess]);
-
-  const filteredCities = cities.filter(city => 
-    city.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleSelect = async (city) => {
-    try {
-      setIsLoading(true);
-      
-      const updates = {
-        city: city
-      };
-      
-      try {
-        await updateStudent(student.id, updates);
-      } catch (err) {
-        throw err;
-      }
-      
-      setShowSuccess(true);
-      setIsOpen(false);
-      setSearchTerm('');
-    } catch (error) {
-      console.error('Error updating city:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddNew = async () => {
-    if (searchTerm.trim()) {
-      try {
-        setIsLoading(true);
-        
-        // First add the city to the database
-        await addCity(searchTerm.trim());
-        
-        // Use the same pattern as the email editing
-        const updates = {
-          city: searchTerm.trim()
-        };
-        
-        // Call updateStudent with the updates object
-        await updateStudent(student.id, updates);
-        
-        setShowSuccess(true);
-        setIsOpen(false);
-        setSearchTerm('');
-      } catch (error) {
-        console.error('Error adding new city:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const displayValue = student.city || 'Select city';
-  const isPlaceholder = !student.city;
-      
-      return (
-    <>
-      <div className="relative w-full" ref={dropdownRef}>
-        <div
-                onClick={() => {
-            if (!isLoading) {
-              setIsOpen(!isOpen);
-            }
-          }}
-          className={`w-full py-2 cursor-pointer flex items-center justify-between transition-colors ${
-            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : 'hover:bg-gray-50'
-          } ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
-        >
-          <span className={`text-sm ${isPlaceholder ? 'text-gray-400' : 'text-gray-900'}`}>
-            {isLoading ? 'Saving...' : displayValue}
-          </span>
-          {isLoading ? (
-            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          ) : showSuccess ? (
-            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            )}
-          </div>
-        </div>
-
-      {isOpen && (
-        <div 
-          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
-          style={{
-            top: dropdownRef.current?.getBoundingClientRect().bottom + window.scrollY + 4 || 0,
-            left: dropdownRef.current?.getBoundingClientRect().left + window.scrollX || 0,
-            width: dropdownRef.current?.getBoundingClientRect().width || 'auto',
-            minWidth: '200px'
-          }}
-        >
-          {/* Search Input */}
-          <div className="p-2 border-b border-gray-100">
-          <input
-            type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search cities..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            autoFocus
-            />
-                </div>
-
-          {/* City Options */}
-          <div className="py-1">
-            {filteredCities.length > 0 ? (
-              filteredCities.map((city, index) => (
-              <div
-                key={index}
-                onClick={(event) => {
-                    event.stopPropagation(); // Stop event from bubbling up
-                    handleSelect(city);
-                }}
-                onMouseDown={(event) => {
-                    event.stopPropagation();
-                }}
-                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-900 transition-colors"
-                  data-city={city}
-                >
-                  {city}
-              </div>
-              ))
-            ) : (
-              <div className="px-3 py-2 text-sm text-gray-500">
-                No cities found
-              </div>
-            )}
-          </div>
-
-          {/* Add New City */}
-          {searchTerm.trim() && !cities.some(city => 
-            city.toLowerCase() === searchTerm.trim().toLowerCase()
-          ) && (
-            <div className="border-t border-gray-100">
-              <div
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleAddNew();
-                }}
-                className="px-3 py-2 hover:bg-indigo-50 cursor-pointer text-indigo-600 transition-colors flex items-center space-x-2"
-                data-action="add-new-city"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  + New City...
-      </span>
-                </div>
-              </div>
-            )}
-          </div>
-      )}
-    </>
-  );
-};
+import { usePlatforms } from '../../../hooks/usePlatforms';
+import FirebaseCollectionSelector from '../../shared/FirebaseCollectionSelector.jsx';
 
 const StudentsInterface = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -392,6 +18,7 @@ const StudentsInterface = () => {
   const { students, loading, error, addStudent, deleteStudent, updateStudent } = useStudents();
   const { countries, addCountry } = useCountries();
   const { cities, addCity } = useCities();
+  const { platforms, addPlatform } = usePlatforms();
 
   // Auto-save function that saves changes when clicking outside
   const handleAutoSave = useCallback(async () => {
@@ -411,7 +38,7 @@ const StudentsInterface = () => {
         return;
       }
     }
-    
+
     if (currentValue !== newValue) {
       try {
         const updates = {
@@ -443,7 +70,7 @@ const StudentsInterface = () => {
         const isInputClick = clickedElement.tagName === 'INPUT' && 
                             clickedElement.dataset.studentId === editingCell.studentId &&
                             clickedElement.dataset.field === editingCell.field;
-        
+    
         if (!isInputClick) {
           handleAutoSave();
         }
@@ -678,19 +305,25 @@ const StudentsInterface = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
-                  <CountrySelector 
-                    student={student} 
-                    updateStudent={updateStudent} 
-                    countries={countries} 
-                    addCountry={addCountry} 
+                  <FirebaseCollectionSelector
+                    collectionName="countries"
+                    record={student}
+                    updateRecord={updateStudent}
+                    fieldName="location"
+                    fieldDisplayName="Country"
+                    options={countries}
+                    addOption={addCountry}
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
-                  <CitySelector 
-                    student={student} 
-                    updateStudent={updateStudent} 
-                    cities={cities} 
-                    addCity={addCity} 
+                  <FirebaseCollectionSelector
+                    collectionName="cities"
+                    record={student}
+                    updateRecord={updateStudent}
+                    fieldName="city"
+                    fieldDisplayName="City"
+                    options={cities}
+                    addOption={addCity}
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
@@ -703,7 +336,15 @@ const StudentsInterface = () => {
                   {/* Empty Payments column */}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
-                  {/* Empty Platform column */}
+                  <FirebaseCollectionSelector
+                    collectionName="platforms"
+                    record={student}
+                    updateRecord={updateStudent}
+                    fieldName="platform"
+                    fieldDisplayName="Platform"
+                    options={platforms}
+                    addOption={addPlatform}
+                  />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
                   {/* Empty Notes column */}

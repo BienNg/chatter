@@ -57,17 +57,20 @@ export const ChannelSidebar = ({
         </div>
       </div>
 
-      {/* Channel List */}
+      {/* Scrollable Content Area - Contains both channels and direct messages */}
       <div className="flex-1 overflow-y-auto px-2">
         <ChannelList
           channels={filteredChannels}
           activeChannelId={activeChannelId}
           onChannelSelect={onChannelSelect}
         />
+        
+        {/* Direct Messages - Now inside scrollable area */}
+        <DirectMessages 
+          onChannelSelect={onChannelSelect}
+          activeChannelId={activeChannelId}
+        />
       </div>
-
-      {/* Direct Messages */}
-      <DirectMessages />
 
       {/* Resize Handle */}
       <ResizeHandle 

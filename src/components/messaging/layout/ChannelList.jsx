@@ -13,8 +13,14 @@ import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navig
 /**
  * ChannelList - Organized channel display with grouping
  * Handles channel grouping by type and visual organization
+ * Excludes DM channels which are handled by DirectMessages component
  */
 export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
+  // Filter out DM channels - they're handled by DirectMessages component
+  const regularChannels = channels.filter(channel => 
+    !channel.isDM && channel.type !== 'direct-message'
+  );
+
   // Channel type metadata
   const typeMetadata = {
     'general': { label: 'General', icon: Hash, color: 'text-indigo-300' },
@@ -27,7 +33,7 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
   };
 
   // Group channels by type
-  const groupedChannels = channels.reduce((groups, channel) => {
+  const groupedChannels = regularChannels.reduce((groups, channel) => {
     const type = channel.type || 'general';
     if (!groups[type]) {
       groups[type] = [];

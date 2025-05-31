@@ -5,6 +5,7 @@ import { MessageComposition } from '../composition';
 import { ThreadView } from '../thread';
 import ChannelToolbar from '../ChannelToolbar';
 import ErrorBoundary from '../ErrorBoundary';
+import { useDirectMessages } from '../../../hooks/useDirectMessages';
 
 /**
  * MessagesTab - Messages tab content component
@@ -38,6 +39,24 @@ export const MessagesTab = ({
   // Channel info
   activeChannel
 }) => {
+  const { isDMChannel, getOtherParticipant } = useDirectMessages();
+
+  // Get appropriate placeholder text
+  const getPlaceholderText = () => {
+    if (!activeChannel) return 'Type a message...';
+    
+    if (isDMChannel(activeChannel)) {
+      const otherParticipant = getOtherParticipant(activeChannel);
+      if (otherParticipant) {
+        const displayName = otherParticipant.displayName || otherParticipant.fullName || otherParticipant.email?.split('@')[0] || 'Unknown User';
+        return `Message ${displayName}`;
+      }
+      return 'Send a direct message...';
+    }
+    
+    return `Message #${activeChannel.name}`;
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Channel Toolbar */}
@@ -90,7 +109,7 @@ export const MessagesTab = ({
               <MessageComposition 
                 onSendMessage={onSendMessage} 
                 channelId={channelId}
-                placeholder={activeChannel ? `Message #${activeChannel.name}` : 'Type a message...'}
+                placeholder={getPlaceholderText()}
               />
             </ErrorBoundary>
           </div>

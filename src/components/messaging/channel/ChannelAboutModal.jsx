@@ -1,12 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Bell, Search, UserPlus, MoreHorizontal, Loader2 } from 'lucide-react';
+import { 
+    X, 
+    Star, 
+    Bell, 
+    Search, 
+    UserPlus, 
+    MoreHorizontal, 
+    Loader2, 
+    Trash2,
+    Hash,
+    Users,
+    Settings,
+    Crown,
+    Shield,
+    Copy,
+    ChevronDown,
+    Edit3,
+    Calendar,
+    Globe,
+    Lock,
+    AlertCircle,
+    Check
+} from 'lucide-react';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { useChannelManagement } from '../../../hooks/useChannelManagement';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChannelClassSync } from '../../../hooks/useChannelClassSync';
+import { canDeleteChannel as canDeleteChannelUtil } from '../../../utils/roleUtils';
+import DeleteChannelModal from './DeleteChannelModal';
 
-const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
+const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDeleted }) => {
     const [activeTab, setActiveTab] = useState('about');
     const [searchQuery, setSearchQuery] = useState('');
     const [allUsers, setAllUsers] = useState([]);
@@ -18,32 +42,44 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
     const [selectedType, setSelectedType] = useState(channel?.type || 'general');
     const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const [updating, setUpdating] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [copiedChannelId, setCopiedChannelId] = useState(false);
+    const [editingName, setEditingName] = useState(false);
+    const [editingTopic, setEditingTopic] = useState(false);
+    const [editingDescription, setEditingDescription] = useState(false);
+    const [tempChannelName, setTempChannelName] = useState(channel?.name || '');
+    const [tempTopic, setTempTopic] = useState(channel?.topic || '');
+    const [tempDescription, setTempDescription] = useState(channel?.description || '');
 
     const { userProfile } = useAuth();
     const {
         loading,
         addMemberToChannel,
         removeMemberFromChannel,
-        getAllUsers
+        getAllUsers,
+        deleteChannel
     } = useChannelManagement();
 
     const { handleChannelTypeChange } = useChannelClassSync();
 
-    // Channel types - same as CreateChannel for consistency
+    // Channel types with enhanced metadata
     const channelTypes = [
-        { id: 'general', name: 'General' },
-        { id: 'class', name: 'Class' },
-        { id: 'import', name: 'Import' },
-        { id: 'social-media', name: 'Social Media' },
-        { id: 'management', name: 'Management' },
-        { id: 'customer-support', name: 'Customer Support' },
-        { id: 'bookkeeping', name: 'Bookkeeping' }
+        { id: 'general', name: 'General', icon: Hash, description: 'General discussions and announcements' },
+        { id: 'class', name: 'Class', icon: Users, description: 'Educational content and class management' },
+        { id: 'import', name: 'Import', icon: Globe, description: 'External content and integrations' },
+        { id: 'social-media', name: 'Social Media', icon: Globe, description: 'Social media management and content' },
+        { id: 'management', name: 'Management', icon: Settings, description: 'Administrative and management tasks' },
+        { id: 'customer-support', name: 'Customer Support', icon: Users, description: 'Customer service and support' },
+        { id: 'bookkeeping', name: 'Bookkeeping', icon: Settings, description: 'Financial records and accounting' }
     ];
 
     useEffect(() => {
         if (isOpen) {
             loadUsers();
             setSelectedType(channel?.type || 'general');
+            setTempChannelName(channel?.name || '');
+            setTempTopic(channel?.topic || '');
+            setTempDescription(channel?.description || '');
         }
     }, [isOpen, channel]);
 
@@ -65,9 +101,14 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
         }
     };
 
-    const handleCopyChannelId = () => {
-        navigator.clipboard.writeText(channel.id);
-        // TODO: Show a toast notification
+    const handleCopyChannelId = async () => {
+        try {
+            await navigator.clipboard.writeText(channel.id);
+            setCopiedChannelId(true);
+            setTimeout(() => setCopiedChannelId(false), 2000);
+        } catch (error) {
+            console.error('Failed to copy channel ID:', error);
+        }
     };
 
     const handleUpdateChannelType = async () => {
@@ -199,135 +240,224 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
         return true;
     };
 
+    const handleDeleteChannel = async () => {
+        try {
+            await deleteChannel(channel.id, channel.name);
+            setShowDeleteModal(false);
+            onClose();
+            // Notify parent component that channel was deleted
+            if (onChannelDeleted) {
+                onChannelDeleted(channel.id);
+            }
+        } catch (error) {
+            // Error will be handled by the DeleteChannelModal
+            throw error;
+        }
+    };
+
+    // Check if current user can delete the channel
+    const canDeleteChannel = () => {
+        if (!userProfile || !channel) return false;
+        
+        // Channel creator can always delete
+        if (channel.createdBy === userProfile.id) return true;
+        
+        // Channel admins can delete
+        if (channel.admins?.includes(userProfile.id)) return true;
+        
+        // Use role-based permissions
+        if (canDeleteChannelUtil(userProfile.roles)) return true;
+        
+        return false;
+    };
+
+    const getCurrentChannelType = () => {
+        return channelTypes.find(t => t.id === (channel.type || 'general')) || channelTypes[0];
+    };
+
+    const formatCreatedDate = (timestamp) => {
+        if (!timestamp) return 'Unknown date';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    };
+
     const renderMembersTab = () => (
-        <div className="space-y-4">
-            {/* Search and Add Members */}
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Search members..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
+        <div className="space-y-6">
+            {/* Enhanced Search and Add Members Section */}
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search members by name or email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm"
+                        />
+                    </div>
+                    {canManageMembers() && (
+                        <button 
+                            onClick={() => setShowAddMemberModal(true)}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 disabled:opacity-50 shadow-sm hover:shadow-md font-medium"
+                        >
+                            {loading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <UserPlus className="h-4 w-4" />
+                            )}
+                            <span className="text-sm">Add Members</span>
+                        </button>
+                    )}
                 </div>
-                {canManageMembers() && (
-                    <button 
-                        onClick={() => setShowAddMemberModal(true)}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                    >
-                        {loading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <UserPlus className="h-4 w-4" />
-                        )}
-                        <span className="text-sm font-medium">Add</span>
-                    </button>
-                )}
+                
+                {/* Member count and stats */}
+                <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        {channelMembers.length} member{channelMembers.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Crown className="h-4 w-4 text-yellow-500" />
+                        {channelMembers.filter(m => isChannelCreator(m.id)).length} creator
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Shield className="h-4 w-4 text-purple-500" />
+                        {channelMembers.filter(m => m.roles?.some(role => role.name === 'admin')).length} admin{channelMembers.filter(m => m.roles?.some(role => role.name === 'admin')).length !== 1 ? 's' : ''}
+                    </span>
+                </div>
             </div>
 
-            {/* Members List */}
-            <div className="space-y-2">
+            {/* Enhanced Members List */}
+            <div className="space-y-3">
                 {filteredMembers.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className={`relative w-10 h-10 ${getUserColor(member.id)} rounded-full flex items-center justify-center text-white font-medium`}>
-                                {getUserInitials(member)}
-                                <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.id)}`} />
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-medium text-gray-900">
-                                        {member.displayName || member.email}
-                                    </h3>
-                                    {isChannelCreator(member.id) && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-                                            Creator
-                                        </span>
-                                    )}
-                                    {member.roles?.some(role => role.name === 'admin') && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                                            Admin
-                                        </span>
-                                    )}
+                    <div key={member.id} className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <div className={`w-12 h-12 ${getUserColor(member.id)} rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-sm`}>
+                                        {getUserInitials(member)}
+                                    </div>
+                                    <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(member.id)} shadow-sm`} />
                                 </div>
-                                <p className="text-xs text-gray-500">{getLastSeen(member.id)}</p>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="text-base font-semibold text-gray-900">
+                                            {member.displayName || member.email}
+                                        </h3>
+                                        {isChannelCreator(member.id) && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
+                                                <Crown className="h-3 w-3" />
+                                                Creator
+                                            </span>
+                                        )}
+                                        {member.roles?.some(role => role.name === 'admin') && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-medium">
+                                                <Shield className="h-3 w-3" />
+                                                Admin
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                                        <span>{member.email}</span>
+                                        <span>•</span>
+                                        <span className="flex items-center gap-1">
+                                            <div className={`w-2 h-2 rounded-full ${getStatusColor(member.id)}`} />
+                                            {getLastSeen(member.id)}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
+                            {canManageMembers() && !isChannelCreator(member.id) && (
+                                <button 
+                                    onClick={() => handleRemoveMember(member.id)}
+                                    disabled={loading}
+                                    className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+                                    title="Remove member"
+                                >
+                                    <MoreHorizontal className="h-5 w-5" />
+                                </button>
+                            )}
                         </div>
-                        {canManageMembers() && !isChannelCreator(member.id) && (
-                            <button 
-                                onClick={() => handleRemoveMember(member.id)}
-                                disabled={loading}
-                                className="text-gray-400 hover:text-red-600 disabled:opacity-50"
-                            >
-                                <MoreHorizontal className="h-5 w-5" />
-                            </button>
-                        )}
                     </div>
                 ))}
             </div>
 
-            {/* Add Members Modal */}
+            {/* Enhanced Add Members Modal */}
             {showAddMemberModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg w-full max-w-md max-h-[500px] flex flex-col">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="text-lg font-semibold">Add Members</h3>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-lg max-h-[600px] flex flex-col shadow-2xl">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                            <div>
+                                <h3 className="text-xl font-semibold text-gray-900">Add Members</h3>
+                                <p className="text-sm text-gray-500 mt-1">Select users to add to #{channel.name}</p>
+                            </div>
                             <button 
                                 onClick={() => {
                                     setShowAddMemberModal(false);
                                     setSelectedUsersToAdd([]);
                                 }}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             >
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto p-4">
-                            <div className="space-y-2">
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className="space-y-3">
                                 {filteredAvailableUsers.map((user) => (
-                                    <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                                    <label key={user.id} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-colors">
                                         <input
                                             type="checkbox"
                                             checked={selectedUsersToAdd.includes(user.id)}
                                             onChange={() => toggleUserSelection(user.id)}
-                                            className="h-4 w-4 text-indigo-600 rounded"
+                                            className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                                         />
-                                        <div className={`w-8 h-8 ${getUserColor(user.id)} rounded-full flex items-center justify-center text-white text-sm font-medium`}>
+                                        <div className={`w-10 h-10 ${getUserColor(user.id)} rounded-full flex items-center justify-center text-white text-sm font-semibold`}>
                                             {getUserInitials(user)}
                                         </div>
-                                        <div>
+                                        <div className="flex-1">
                                             <p className="text-sm font-medium text-gray-900">
                                                 {user.displayName || user.email}
                                             </p>
                                             <p className="text-xs text-gray-500">{user.email}</p>
                                         </div>
-                                    </div>
+                                    </label>
                                 ))}
+                                {filteredAvailableUsers.length === 0 && (
+                                    <div className="text-center py-8">
+                                        <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                        <p className="text-gray-500">No available users to add</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         
-                        <div className="flex justify-end gap-2 p-4 border-t">
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
                             <button
                                 onClick={() => {
                                     setShowAddMemberModal(false);
                                     setSelectedUsersToAdd([]);
                                 }}
-                                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleBulkAddMembers}
                                 disabled={selectedUsersToAdd.length === 0 || loading}
-                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm"
+                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium transition-colors shadow-sm"
                             >
                                 {loading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Adding...
+                                    </div>
                                 ) : (
                                     `Add ${selectedUsersToAdd.length} member${selectedUsersToAdd.length !== 1 ? 's' : ''}`
                                 )}
@@ -340,13 +470,28 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
     );
 
     const renderTabsTab = () => (
-        <div className="space-y-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Available Tabs</h3>
-                <div className="space-y-2">
+        <div className="space-y-6">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Channel Features</h3>
+                <p className="text-sm text-gray-600 mb-4">Configure which features are available in this channel</p>
+                <div className="space-y-4">
                     {['Messages', 'Tasks', 'Wiki'].map((tab) => (
-                        <div key={tab} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                            <span className="text-sm text-gray-900">{tab}</span>
+                        <div key={tab} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                    {tab === 'Messages' && <Hash className="h-4 w-4 text-indigo-600" />}
+                                    {tab === 'Tasks' && <Check className="h-4 w-4 text-indigo-600" />}
+                                    {tab === 'Wiki' && <Globe className="h-4 w-4 text-indigo-600" />}
+                                </div>
+                                <div>
+                                    <span className="text-sm font-medium text-gray-900">{tab}</span>
+                                    <p className="text-xs text-gray-500">
+                                        {tab === 'Messages' && 'Real-time messaging and conversations'}
+                                        {tab === 'Tasks' && 'Task management and tracking'}
+                                        {tab === 'Wiki' && 'Knowledge base and documentation'}
+                                    </p>
+                                </div>
+                            </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" className="sr-only peer" defaultChecked />
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -359,202 +504,359 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
     );
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-xl h-[600px] flex flex-col">
-                {/* Header - Fixed */}
-                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
-                    <div className="flex items-center space-x-3">
-                        <h2 className="text-xl font-semibold text-gray-900">#{channel.name}</h2>
-                        <button className="text-gray-400 hover:text-yellow-500 transition-colors">
-                            <Star className="h-5 w-5" />
-                        </button>
-                        <div className="relative">
-                            <button className="flex items-center space-x-1 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 rounded-md px-3 py-1 hover:border-gray-300 transition-colors">
-                                <Bell className="h-4 w-4" />
-                                <span>Get Notifications for @ Mentions</span>
-                                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-4xl h-[700px] flex flex-col shadow-2xl">
+                {/* Enhanced Header */}
+                <div className="flex-shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-t-2xl">
+                    <div className="flex items-center justify-between p-6">
+                        <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                                <Hash className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold">#{channel.name}</h2>
+                                <p className="text-indigo-100 text-sm">{getCurrentChannelType().description}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <button className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
+                                <Star className="h-5 w-5" />
+                            </button>
+                            <div className="relative">
+                                <button className="flex items-center space-x-2 text-sm bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg px-3 py-2 transition-colors">
+                                    <Bell className="h-4 w-4" />
+                                    <span>Notifications</span>
+                                    <ChevronDown className="h-4 w-4" />
+                                </button>
+                            </div>
+                            <button 
+                                onClick={onClose} 
+                                className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                            >
+                                <X className="h-5 w-5" />
                             </button>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <X className="h-5 w-5" />
-                    </button>
                 </div>
 
-                {/* Tabs - Fixed */}
-                <div className="flex-shrink-0 flex border-b border-gray-200">
-                    <button
-                        onClick={() => setActiveTab('about')}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            activeTab === 'about'
-                                ? 'text-indigo-600 border-indigo-600'
-                                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                    >
-                        About
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('members')}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            activeTab === 'members'
-                                ? 'text-indigo-600 border-indigo-600'
-                                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                    >
-                        Members {channelMembers.length}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('tabs')}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            activeTab === 'tabs'
-                                ? 'text-indigo-600 border-indigo-600'
-                                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                    >
-                        Tabs
-                    </button>
+                {/* Enhanced Tabs */}
+                <div className="flex-shrink-0 flex border-b border-gray-200 bg-gray-50">
+                    {[
+                        { id: 'about', label: 'About', icon: Settings },
+                        { id: 'members', label: `Members (${channelMembers.length})`, icon: Users },
+                        { id: 'tabs', label: 'Features', icon: Globe }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
+                                activeTab === tab.id
+                                    ? 'text-indigo-600 border-indigo-600 bg-white'
+                                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                            }`}
+                        >
+                            {React.createElement(tab.icon, { className: "h-4 w-4" })}
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto">
+                {/* Enhanced Content */}
+                <div className="flex-1 overflow-y-auto bg-gray-50">
                     <div className="p-6">
                         {activeTab === 'about' && (
                             <div className="space-y-6">
-                                {/* Channel Name */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-sm font-medium text-gray-900">Channel name</h3>
-                                        <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Edit</button>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
-                                        <p className="text-sm text-gray-900">#{channel.name}</p>
-                                    </div>
-                                </div>
-
-                                {/* Channel Type */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-sm font-medium text-gray-900">Channel Type</h3>
-                                        {!editingType ? (
+                                {/* Channel Overview Card */}
+                                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Channel Information</h3>
+                                    
+                                    {/* Channel Name */}
+                                    <div className="mb-6">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="text-sm font-medium text-gray-700">Channel name</label>
                                             <button 
-                                                onClick={() => setEditingType(true)}
-                                                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                                                onClick={() => setEditingName(!editingName)}
+                                                className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors font-medium"
                                             >
-                                                Edit
+                                                {editingName ? 'Cancel' : 'Edit'}
                                             </button>
+                                        </div>
+                                        {editingName ? (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={tempChannelName}
+                                                    onChange={(e) => setTempChannelName(e.target.value)}
+                                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                    placeholder="Enter channel name"
+                                                />
+                                                <button className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                                                    Save
+                                                </button>
+                                            </div>
                                         ) : (
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={handleCancelTypeEdit}
-                                                    disabled={updating}
-                                                    className="text-sm text-gray-600 hover:text-gray-700 transition-colors disabled:opacity-50"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={handleUpdateChannelType}
-                                                    disabled={updating}
-                                                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
-                                                >
-                                                    {updating ? 'Saving...' : 'Save'}
-                                                </button>
+                                            <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                                <Hash className="h-5 w-5 text-gray-400" />
+                                                <span className="text-gray-900 font-medium">{channel.name}</span>
                                             </div>
                                         )}
                                     </div>
-                                    {!editingType ? (
-                                        <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
-                                            <p className="text-sm text-gray-900">
-                                                {channelTypes.find(t => t.id === (channel.type || 'general'))?.name || 'General'}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="relative">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                                                disabled={updating}
-                                                className="w-full px-4 py-2 text-left border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:opacity-50"
-                                            >
-                                                <span className="text-sm text-gray-900">
-                                                    {channelTypes.find(t => t.id === selectedType)?.name || 'Select type'}
-                                                </span>
-                                            </button>
-                                            
-                                            {showTypeDropdown && (
-                                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                                                    {channelTypes.map((type) => (
-                                                        <button
-                                                            key={type.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setSelectedType(type.id);
-                                                                setShowTypeDropdown(false);
-                                                            }}
-                                                            className="w-full px-4 py-2 text-left hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
-                                                        >
-                                                            <span className="text-sm text-gray-900">{type.name}</span>
-                                                        </button>
-                                                    ))}
+
+                                    {/* Channel Type */}
+                                    <div className="mb-6">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="text-sm font-medium text-gray-700">Channel Type</label>
+                                            {!editingType ? (
+                                                <button 
+                                                    onClick={() => setEditingType(true)}
+                                                    className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors font-medium"
+                                                >
+                                                    Edit
+                                                </button>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={handleCancelTypeEdit}
+                                                        disabled={updating}
+                                                        className="text-sm text-gray-600 hover:text-gray-700 transition-colors disabled:opacity-50"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={handleUpdateChannelType}
+                                                        disabled={updating}
+                                                        className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors disabled:opacity-50 font-medium"
+                                                    >
+                                                        {updating ? 'Saving...' : 'Save'}
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
+                                        {!editingType ? (
+                                            <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                                {React.createElement(getCurrentChannelType().icon, { className: "h-5 w-5 text-indigo-600" })}
+                                                <div>
+                                                    <span className="text-gray-900 font-medium">{getCurrentChannelType().name}</span>
+                                                    <p className="text-sm text-gray-500">{getCurrentChannelType().description}</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                                                    disabled={updating}
+                                                    className="w-full flex items-center justify-between px-4 py-3 text-left border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:opacity-50 hover:border-gray-400 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        {channelTypes.find(t => t.id === selectedType)?.icon && 
+                                                            React.createElement(channelTypes.find(t => t.id === selectedType).icon, { className: "h-5 w-5 text-indigo-600" })
+                                                        }
+                                                        <span className="text-gray-900 font-medium">
+                                                            {channelTypes.find(t => t.id === selectedType)?.name || 'Select type'}
+                                                        </span>
+                                                    </div>
+                                                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                                                </button>
+                                                
+                                                {showTypeDropdown && (
+                                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                        {channelTypes.map((type) => (
+                                                            <button
+                                                                key={type.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedType(type.id);
+                                                                    setShowTypeDropdown(false);
+                                                                }}
+                                                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                                                            >
+                                                                {React.createElement(type.icon, { className: "h-5 w-5 text-indigo-600" })}
+                                                                <div>
+                                                                    <span className="text-gray-900 font-medium">{type.name}</span>
+                                                                    <p className="text-sm text-gray-500">{type.description}</p>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Topic */}
+                                    <div className="mb-6">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="text-sm font-medium text-gray-700">Topic</label>
+                                            <button 
+                                                onClick={() => setEditingTopic(!editingTopic)}
+                                                className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors font-medium"
+                                            >
+                                                {editingTopic ? 'Cancel' : 'Edit'}
+                                            </button>
+                                        </div>
+                                        {editingTopic ? (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={tempTopic}
+                                                    onChange={(e) => setTempTopic(e.target.value)}
+                                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                    placeholder="Add a topic for this channel"
+                                                />
+                                                <button className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                                                    Save
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                                <p className="text-gray-500 text-sm">
+                                                    {channel.topic || 'Add a topic to help others understand what this channel is for'}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="text-sm font-medium text-gray-700">Description</label>
+                                            <button 
+                                                onClick={() => setEditingDescription(!editingDescription)}
+                                                className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors font-medium"
+                                            >
+                                                {editingDescription ? 'Cancel' : 'Edit'}
+                                            </button>
+                                        </div>
+                                        {editingDescription ? (
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    value={tempDescription}
+                                                    onChange={(e) => setTempDescription(e.target.value)}
+                                                    rows={3}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                                                    placeholder="Add a description for this channel"
+                                                />
+                                                <div className="flex justify-end">
+                                                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                                                        Save
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                                <p className="text-gray-500 text-sm">
+                                                    {channel.description || 'Add a description to provide more context about this channel'}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Channel Metadata Card */}
+                                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Channel Details</h3>
+                                    
+                                    {/* Created by */}
+                                    <div className="mb-6">
+                                        <label className="text-sm font-medium text-gray-700 mb-3 block">Created by</label>
+                                        <div className="flex items-center bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                            <div className="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-4">
+                                                {channel.createdBy?.charAt(0) || 'U'}
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-900 font-medium">Bien Ng</span>
+                                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                    <Calendar className="h-4 w-4" />
+                                                    <span>Created on {formatCreatedDate(channel.createdAt)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Channel Privacy */}
+                                    <div className="mb-6">
+                                        <label className="text-sm font-medium text-gray-700 mb-3 block">Privacy</label>
+                                        <div className="flex items-center bg-gray-50 rounded-lg p-4">
+                                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                                {channel.private ? <Lock className="h-5 w-5 text-green-600" /> : <Globe className="h-5 w-5 text-green-600" />}
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-900 font-medium">
+                                                    {channel.private ? 'Private Channel' : 'Public Channel'}
+                                                </span>
+                                                <p className="text-sm text-gray-500">
+                                                    {channel.private 
+                                                        ? 'Only invited members can see and join this channel'
+                                                        : 'Anyone in the workspace can see and join this channel'
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Channel ID */}
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-3 block">Channel ID</label>
+                                        <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-4">
+                                            <code className="flex-1 text-sm text-gray-600 font-mono">{channel.id}</code>
+                                            <button 
+                                                onClick={handleCopyChannelId}
+                                                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                                                title="Copy channel ID"
+                                            >
+                                                {copiedChannelId ? (
+                                                    <>
+                                                        <Check className="h-4 w-4 text-green-600" />
+                                                        <span className="text-green-600">Copied!</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy className="h-4 w-4" />
+                                                        <span>Copy</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Actions Card */}
+                                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+                                    
+                                    {/* Leave Channel */}
+                                    <button className="w-full flex items-center justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 text-sm font-medium py-3 rounded-lg transition-colors border border-red-200 hover:border-red-300 mb-4">
+                                        <X className="h-4 w-4" />
+                                        Leave channel
+                                    </button>
+
+                                    {/* Delete Channel - Only for creators/admins */}
+                                    {canDeleteChannel() && (
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                            <div className="flex items-start gap-3 mb-3">
+                                                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-red-900">Danger Zone</h4>
+                                                    <p className="text-sm text-red-700 mt-1">
+                                                        Permanently delete this channel and all its messages. This action cannot be undone.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowDeleteModal(true)}
+                                                disabled={loading}
+                                                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm font-medium shadow-sm"
+                                            >
+                                                {loading ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
+                                                Delete Channel
+                                            </button>
+                                        </div>
                                     )}
-                                </div>
-
-                                {/* Topic */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-sm font-medium text-gray-900">Topic</h3>
-                                        <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Edit</button>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
-                                        <p className="text-sm text-gray-500">Add a topic</p>
-                                    </div>
-                                </div>
-
-                                {/* Description */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-sm font-medium text-gray-900">Description</h3>
-                                        <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Edit</button>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
-                                        <p className="text-sm text-gray-500">Add a description</p>
-                                    </div>
-                                </div>
-
-                                {/* Created by */}
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-900 mb-2">Created by</h3>
-                                    <div className="flex items-center bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
-                                        <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3">
-                                            {channel.createdBy?.charAt(0) || 'U'}
-                                        </div>
-                                        <div>
-                                            <span className="text-sm text-gray-900">Bien Ng</span>
-                                            <span className="text-sm text-gray-500 ml-2">on August 16, 2023</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Leave Channel Button */}
-                                <button className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-sm font-medium py-2 rounded-lg transition-colors">
-                                    Leave channel
-                                </button>
-
-                                {/* Channel ID */}
-                                <div className="pt-4 mt-4 border-t border-gray-200">
-                                    <p className="text-xs text-gray-500 flex items-center">
-                                        Channel ID: {channel.id}
-                                        <button 
-                                            onClick={handleCopyChannelId}
-                                            className="ml-1 text-gray-400 hover:text-gray-600 transition-colors"
-                                        >
-                                            📋
-                                        </button>
-                                    </p>
                                 </div>
                             </div>
                         )}
@@ -563,6 +865,15 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Channel Modal */}
+            <DeleteChannelModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                channel={channel}
+                onConfirm={handleDeleteChannel}
+                loading={loading}
+            />
         </div>
     );
 };

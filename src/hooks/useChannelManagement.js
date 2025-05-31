@@ -1,6 +1,6 @@
 // src/hooks/useChannelManagement.js (Updated with notifications and caching)
 import { useState, useRef, useCallback } from 'react';
-import { doc, updateDoc, arrayUnion, arrayRemove, collection, query, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, collection, query, getDocs, addDoc, serverTimestamp, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export const useChannelManagement = () => {
@@ -13,13 +13,17 @@ export const useChannelManagement = () => {
         try {
             await addDoc(collection(db, 'notifications'), {
                 userId,
-                type, // 'channel_added', 'channel_removed'
+                type, // 'channel_added', 'channel_removed', 'channel_deleted'
                 title: type === 'channel_added' 
                     ? `Added to #${channelName}` 
-                    : `Removed from #${channelName}`,
+                    : type === 'channel_removed'
+                    ? `Removed from #${channelName}`
+                    : `Channel #${channelName} deleted`,
                 message: type === 'channel_added'
                     ? `You've been added to the ${channelName} channel`
-                    : `You've been removed from the ${channelName} channel`,
+                    : type === 'channel_removed'
+                    ? `You've been removed from the ${channelName} channel`
+                    : `The ${channelName} channel has been deleted`,
                 channelId,
                 channelName,
                 read: false,
@@ -135,12 +139,61 @@ export const useChannelManagement = () => {
         }
     };
 
+    const deleteChannel = async (channelId, channelName = '') => {
+        try {
+            setLoading(true);
+            
+            // Get channel data first to notify members
+            const channelRef = doc(db, 'channels', channelId);
+            const channelDoc = await getDoc(channelRef);
+            
+            if (!channelDoc.exists()) {
+                throw new Error('Channel not found');
+            }
+
+            const channel = channelDoc.data();
+
+            // Create a batch for atomic operations
+            const batch = writeBatch(db);
+
+            // Delete all messages in the channel
+            const messagesQuery = query(collection(db, 'channels', channelId, 'messages'));
+            const messagesSnapshot = await getDocs(messagesQuery);
+            
+            messagesSnapshot.docs.forEach((messageDoc) => {
+                batch.delete(messageDoc.ref);
+            });
+
+            // Delete the channel document
+            batch.delete(channelRef);
+
+            // Commit the batch
+            await batch.commit();
+
+            // Send notifications to all members
+            if (channel.members && channel.members.length > 0) {
+                const notificationPromises = channel.members.map((userId) =>
+                    sendNotification(userId, 'channel_deleted', channelId, channelName)
+                );
+                await Promise.all(notificationPromises);
+            }
+
+            return { success: true, channelId };
+        } catch (error) {
+            console.error('Error deleting channel:', error);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return {
         loading,
         addMemberToChannel,
         removeMemberFromChannel,
         bulkAddMembers,
         bulkRemoveMembers,
-        getAllUsers
+        getAllUsers,
+        deleteChannel
     };
 };

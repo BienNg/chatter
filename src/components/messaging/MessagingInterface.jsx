@@ -194,6 +194,24 @@ const MessagingInterface = () => {
     setShowChannelAbout(false);
   };
 
+  const handleChannelDeleted = (deletedChannelId) => {
+    setShowChannelAbout(false);
+    
+    // If the deleted channel is the current channel, navigate to another channel
+    if (deletedChannelId === channelId) {
+      // Find the first available channel that's not the deleted one
+      const remainingChannels = channels.filter(ch => ch.id !== deletedChannelId);
+      
+      if (remainingChannels.length > 0) {
+        // Navigate to the first remaining channel
+        navigate(`/channels/${remainingChannels[0].id}/messages`);
+      } else {
+        // No channels left, navigate to root
+        navigate('/');
+      }
+    }
+  };
+
   const handleChannelClick = () => {
     setShowChannelAbout(true);
   };
@@ -339,6 +357,7 @@ const MessagingInterface = () => {
           onClose={() => setShowChannelAbout(false)}
           channel={activeChannel}
           onUpdate={handleChannelUpdate}
+          onChannelDeleted={handleChannelDeleted}
         />
       )}
     </>

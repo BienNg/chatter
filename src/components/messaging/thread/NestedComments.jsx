@@ -67,12 +67,10 @@ const NestedComments = ({ channelId, threadId }) => {
 
 
 
-  const handleSendReply = (messageData) => {
+  const handleSendReply = async (messageData) => {
     if (messageData.content.trim()) {
-      // Handle sending the reply here
-      console.log('Sending reply:', messageData.content);
-      
-      // Clear draft after sending is handled by MessageComposition
+      // TODO: Implement actual reply functionality
+      console.log('Reply would be sent:', messageData.content);
     }
   };
 

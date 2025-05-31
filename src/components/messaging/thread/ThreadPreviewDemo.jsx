@@ -75,7 +75,8 @@ const ThreadPreviewDemo = () => {
     ];
 
     const handleOpenThread = (messageId) => {
-        console.log('Opening thread for message:', messageId);
+        // TODO: Implement thread opening functionality
+        console.log('Would open thread for message:', messageId);
     };
 
     return (

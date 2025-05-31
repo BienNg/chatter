@@ -203,18 +203,20 @@ const MessageComposition = ({
         setError('');
         
         try {
-            // Send the message
-            await onSendMessage?.(messageData);
-            console.log('Message sent successfully');
-        } catch (err) {
-            console.error('Send message error:', err);
-            setError(err?.message || 'Failed to send message');
+            setIsSending(true);
+            await onSendMessage(messageData);
             
-            // Restore the message and files if send failed (except in edit mode)
-            if (mode !== 'edit') {
-                setMessage(currentMessage);
-                setAttachedFiles(currentFiles);
-            }
+            // Clear the message after successful send
+            setMessage('');
+            setAttachedFiles([]);
+            
+            // Clear the draft
+            clearDraft();
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            // Don't clear the message on error so user can retry
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -562,8 +564,6 @@ const MessageComposition = ({
                     )}
                 </div>
 
-
-
                 {/* Error Message */}
                 {error && (
                     <div className="px-3 py-2 border-t border-red-200 bg-red-50">
@@ -671,8 +671,6 @@ const MessageComposition = ({
                     />
                 )}
             </div>
-
-
 
             {/* Edit History Indicator */}
             {mode === 'edit' && editMessage?.editedAt && (

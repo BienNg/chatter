@@ -4,7 +4,7 @@ import TaskListEmpty from './TaskListEmpty';
 
 const TaskList = ({ tasks, selectedTask, onTaskSelect, channelId }) => {
     if (!tasks || tasks.length === 0) {
-        return <TaskListEmpty onCreateTask={() => console.log('Create task clicked')} />;
+        return <TaskListEmpty onCreateTask={() => {/* TODO: Implement create task */}} />;
     }
 
     return (

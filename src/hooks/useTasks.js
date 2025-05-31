@@ -10,7 +10,8 @@ import {
     orderBy, 
     serverTimestamp,
     getDoc,
-    writeBatch
+    writeBatch,
+    setDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -130,14 +131,10 @@ export const useTasks = (channelId) => {
             
             await batch.commit();
             
-            console.log('Task created successfully:', taskRef.id);
-            setLoading(false);
-            return taskRef.id;
-        } catch (err) {
-            console.error('Error creating task:', err);
-            setError(err);
-            setLoading(false);
-            throw err;
+            return { success: true, taskId: taskRef.id };
+        } catch (error) {
+            console.error('Error creating task:', error);
+            throw error;
         }
     };
 

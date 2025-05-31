@@ -39,73 +39,58 @@ export const useMessageReactions = (channelId) => {
 
   // Add a reaction to a message
   const addReaction = useCallback(async (messageId, emoji) => {
-    if (!channelId || !currentUser || !messageId || !emoji) {
-      console.warn('Missing required parameters for addReaction');
-      return;
-    }
-
-    const userData = getCurrentUserData();
-    if (!userData) {
-      console.warn('No user data available');
-      return;
-    }
+    if (!currentUser || !messageId || !emoji) return;
 
     try {
       // Check if user already reacted with this emoji
-      const messageReactions = reactions[messageId] || [];
-      const existingReaction = messageReactions.find(
-        r => r.userId === currentUser.uid && r.emoji === emoji
-      );
-      
-      if (existingReaction) {
-        console.log('User already reacted with this emoji');
-        return;
+      const existingReaction = await getDocs(query(
+        collection(db, 'channels', channelId, 'messages', messageId, 'reactions'),
+        where('userId', '==', currentUser.uid),
+        where('emoji', '==', emoji)
+      ));
+
+      if (!existingReaction.empty) {
+        return; // User already reacted with this emoji
       }
 
-      // Add reaction to Firestore
-      const reactionsRef = collection(db, 'channels', channelId, 'reactions');
-      await addDoc(reactionsRef, {
-        messageId,
-        emoji,
+      // Add new reaction
+      await addDoc(collection(db, 'channels', channelId, 'messages', messageId, 'reactions'), {
         userId: currentUser.uid,
-        user: userData,
+        user: getCurrentUserData(),
+        emoji,
         createdAt: serverTimestamp()
       });
 
     } catch (error) {
       console.error('Error adding reaction:', error);
-      throw error;
     }
-  }, [channelId, currentUser, reactions, getCurrentUserData]);
+  }, [channelId, currentUser, getCurrentUserData]);
 
   // Remove a reaction from a message
   const removeReaction = useCallback(async (messageId, emoji) => {
-    if (!channelId || !currentUser || !messageId || !emoji) {
-      console.warn('Missing required parameters for removeReaction');
-      return;
-    }
+    if (!currentUser || !messageId || !emoji) return;
 
     try {
-      // Find the user's reaction with this emoji
-      const messageReactions = reactions[messageId] || [];
-      const reactionToRemove = messageReactions.find(
-        r => r.userId === currentUser.uid && r.emoji === emoji
+      // Find and remove the user's reaction
+      const reactionQuery = query(
+        collection(db, 'channels', channelId, 'messages', messageId, 'reactions'),
+        where('userId', '==', currentUser.uid),
+        where('emoji', '==', emoji)
       );
       
-      if (!reactionToRemove) {
-        console.log('No reaction found to remove');
-        return;
+      const snapshot = await getDocs(reactionQuery);
+      
+      if (snapshot.empty) {
+        return; // No reaction found to remove
       }
 
-      // Remove reaction from Firestore
-      const reactionRef = doc(db, 'channels', channelId, 'reactions', reactionToRemove.id);
-      await deleteDoc(reactionRef);
+      // Delete the reaction document
+      await deleteDoc(snapshot.docs[0].ref);
 
     } catch (error) {
       console.error('Error removing reaction:', error);
-      throw error;
     }
-  }, [channelId, currentUser, reactions]);
+  }, [channelId, currentUser]);
 
   // Toggle a reaction (add if not present, remove if present)
   const toggleReaction = useCallback(async (messageId, emoji) => {

@@ -185,68 +185,29 @@ export const useClasses = (channelId = null) => {
     };
 
     // Get class by channel ID
-    const getClassByChannelId = useCallback(async (channelId) => {
-        console.log('useClasses - getClassByChannelId called with:', channelId);
-        
+    const getClassByChannelId = async (channelId) => {
         if (!channelId) {
-            console.log('useClasses - No channelId provided');
             return null;
         }
-        
+
         try {
-            console.log('useClasses - Querying classes collection for channelId:', channelId);
+            const classesRef = collection(db, 'classes');
+            const q = query(classesRef, where('channelId', '==', channelId));
             
-            const classQuery = query(
-                collection(db, 'classes'),
-                where('channelId', '==', channelId)
-            );
-            
-            console.log('useClasses - Executing query...');
-            const snapshot = await getDocs(classQuery);
-            
-            console.log('useClasses - Query completed. Found', snapshot.docs.length, 'documents');
+            const snapshot = await getDocs(q);
             
             if (!snapshot.empty) {
                 const classDoc = snapshot.docs[0];
-                const classData = {
-                    id: classDoc.id,
-                    ...classDoc.data(),
-                    createdAt: classDoc.data().createdAt?.toDate?.() || new Date(),
-                    updatedAt: classDoc.data().updatedAt?.toDate?.() || new Date()
-                };
-                
-                console.log('useClasses - Found class:', classData);
+                const classData = { id: classDoc.id, ...classDoc.data() };
                 return classData;
-            } else {
-                console.log('useClasses - No class found for channelId:', channelId);
-                
-                // Let's also try to list all classes to see what's in the collection
-                console.log('useClasses - Listing all classes for debugging...');
-                const allClassesQuery = query(collection(db, 'classes'));
-                const allSnapshot = await getDocs(allClassesQuery);
-                
-                console.log('useClasses - Total classes in collection:', allSnapshot.docs.length);
-                allSnapshot.docs.forEach((doc, index) => {
-                    const data = doc.data();
-                    console.log(`useClasses - Class ${index + 1}:`, {
-                        id: doc.id,
-                        channelId: data.channelId,
-                        className: data.className
-                    });
-                });
-                
-                return null;
             }
-        } catch (err) {
-            console.error('useClasses - Error getting class by channel ID:', err);
-            console.error('useClasses - Error details:', {
-                code: err.code,
-                message: err.message,
-                stack: err.stack
-            });
+
+            return null;
+        } catch (error) {
+            console.error('Error fetching class by channelId:', error);
             return null;
         }
-    }, []);
+    };
 
     // Query classes by various filters
     const queryClasses = async (filters = {}) => {

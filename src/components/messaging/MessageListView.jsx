@@ -48,9 +48,16 @@ const MessageListView = ({
     const [pinnedMessages, setPinnedMessages] = useState([]);
     const [reactionModal, setReactionModal] = useState({ isOpen: false, messageId: null, reactions: [] });
     const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+    const [isFirstChannelLoad, setIsFirstChannelLoad] = useState(true);
+    const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+    const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const previousMessageCountRef = useRef(0);
+    const previousLatestMessageIdRef = useRef(null);
     const messageRefs = useRef({});
+    const previousChannelIdRef = useRef(null);
+    const scrollPositionBeforeLoadRef = useRef(null);
     
     // Tasks functionality
     const { createTaskFromMessage } = useTasks(channelId);
@@ -63,8 +70,84 @@ const MessageListView = ({
         currentUser 
     } = useMessageReactions(channelId);
 
-    // Add debug log for props
-    console.log('MessageListView props:', { messages, loading, onOpenThread, channelId });
+    // Function to check if user is scrolled to bottom
+    const checkIfScrolledToBottom = () => {
+        if (!messagesContainerRef.current) {
+            return false;
+        }
+        
+        const container = messagesContainerRef.current;
+        const threshold = 20; // More strict threshold - pixels from bottom to consider "at bottom"
+        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        const isAtBottom = distanceFromBottom <= threshold;
+        
+        return isAtBottom;
+    };
+
+    // Handle scroll events to track if user is at bottom
+    const handleScroll = () => {
+        const isAtBottom = checkIfScrolledToBottom();
+        setIsScrolledToBottom(isAtBottom);
+    };
+
+    // Custom load more messages handler that preserves scroll position
+    const handleLoadMoreMessages = async () => {
+        if (!messagesContainerRef.current || loadingMore) return;
+
+        const container = messagesContainerRef.current;
+        
+        // Set flag to indicate we're loading older messages
+        setIsLoadingOlderMessages(true);
+        
+        // Capture current scroll position and container height
+        scrollPositionBeforeLoadRef.current = {
+            scrollTop: container.scrollTop,
+            scrollHeight: container.scrollHeight,
+            clientHeight: container.clientHeight
+        };
+
+        try {
+            // Call the original loadMoreMessages function
+            await loadMoreMessages();
+        } catch (error) {
+            console.error('Error loading more messages:', error);
+        } finally {
+            // Reset the flag after a short delay to ensure DOM updates are complete
+            setTimeout(() => {
+                setIsLoadingOlderMessages(false);
+            }, 200);
+        }
+    };
+
+    // Effect to restore scroll position after new messages are loaded
+    useEffect(() => {
+        if (scrollPositionBeforeLoadRef.current && messagesContainerRef.current && !loadingMore) {
+            const container = messagesContainerRef.current;
+            const savedPosition = scrollPositionBeforeLoadRef.current;
+            
+            // Calculate the height difference (new content added above)
+            const heightDifference = container.scrollHeight - savedPosition.scrollHeight;
+            
+            // Restore scroll position by adding the height difference
+            const newScrollTop = savedPosition.scrollTop + heightDifference;
+            
+            // Apply the new scroll position
+            container.scrollTop = newScrollTop;
+            
+            // Clear the saved position
+            scrollPositionBeforeLoadRef.current = null;
+        }
+    }, [messages.length, loadingMore]); // Trigger when messages change and loading is complete
+
+    // Track channel changes to determine first load
+    useEffect(() => {
+        if (channelId !== previousChannelIdRef.current) {
+            setIsFirstChannelLoad(true);
+            setIsScrolledToBottom(true); // Reset to bottom for new channel
+            setIsLoadingOlderMessages(false); // Reset loading state for new channel
+            previousChannelIdRef.current = channelId;
+        }
+    }, [channelId]);
 
     // Load pinned messages when channel changes
     useEffect(() => {
@@ -80,19 +163,69 @@ const MessageListView = ({
         }
     }, [messages, channelId, getPinnedMessages]);
 
-    // Auto-scroll to bottom only when new messages are added (not when existing messages are updated)
+    // Check scroll position when messages first load
     useEffect(() => {
+        if (messages.length > 0 && !loading && messagesContainerRef.current) {
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+                const isAtBottom = checkIfScrolledToBottom();
+                setIsScrolledToBottom(isAtBottom);
+            }, 100);
+        }
+    }, [messages.length, loading]);
+
+    // Auto-scroll to bottom when new messages are added or on first channel load
+    useEffect(() => {
+        // Skip auto-scroll if we're currently loading older messages
+        if (isLoadingOlderMessages) {
+            return;
+        }
+
         const currentMessageCount = messages.length;
-        const previousMessageCount = previousMessageCountRef.current;
         
-        // Only scroll if we have more messages than before (new message added)
-        if (currentMessageCount > previousMessageCount && currentMessageCount > 0) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Get the latest message ID to detect actual new messages
+        const latestMessageId = messages.length > 0 ? messages[messages.length - 1]?.id : null;
+        
+        // Immediate scroll to bottom on first channel load (no animation for faster UX)
+        if (isFirstChannelLoad && currentMessageCount > 0 && !loading) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+            setIsFirstChannelLoad(false);
+            setIsScrolledToBottom(true);
+            previousLatestMessageIdRef.current = latestMessageId;
+        }
+        // Auto-scroll when new messages are added - check both count AND latest message ID
+        // Only trigger if the latest message ID has changed (indicating a new message at the end)
+        else if (
+            latestMessageId && 
+            latestMessageId !== previousLatestMessageIdRef.current && 
+            currentMessageCount > 0 && 
+            !isFirstChannelLoad &&
+            !loading
+        ) {
+            // Small delay to ensure DOM is updated with new message
+            setTimeout(() => {
+                // Check current scroll position in real-time (don't rely only on stored state)
+                const currentlyAtBottom = checkIfScrolledToBottom();
+                
+                // Check if the newest message is from the current user
+                const newestMessage = messages[messages.length - 1];
+                const isOwnMessage = newestMessage && currentUser && 
+                    (newestMessage.author?.id === currentUser.id || 
+                     newestMessage.author?.email === currentUser.email);
+                
+                // Scroll to bottom if user was already at bottom OR if it's their own message
+                // Use real-time check as primary, stored state as fallback
+                if (currentlyAtBottom || isScrolledToBottom || isOwnMessage) {
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    setIsScrolledToBottom(true);
+                }
+            }, 100); // Small delay to ensure message is in DOM
         }
         
-        // Update the ref with current count
+        // Update the refs with current values
         previousMessageCountRef.current = currentMessageCount;
-    }, [messages]);
+        previousLatestMessageIdRef.current = latestMessageId;
+    }, [messages, loading, isFirstChannelLoad, isScrolledToBottom, currentUser, isLoadingOlderMessages]);
 
     // Scroll to specific message when scrollToMessageId changes
     useEffect(() => {
@@ -102,6 +235,12 @@ const MessageListView = ({
                 behavior: 'smooth', 
                 block: 'center' 
             });
+            
+            // Update scroll position state after scrolling to specific message
+            setTimeout(() => {
+                const isAtBottom = checkIfScrolledToBottom();
+                setIsScrolledToBottom(isAtBottom);
+            }, 500); // Wait for scroll animation to complete
             
             // Highlight the message temporarily
             setHighlightedMessageId(scrollToMessageId);
@@ -114,7 +253,6 @@ const MessageListView = ({
             return () => clearTimeout(timer);
         } else if (scrollToMessageId) {
             // Message not found in current view - could be an older message not loaded
-            console.warn(`Message ${scrollToMessageId} not found in current message list`);
         }
     }, [scrollToMessageId, messages]); // Added messages dependency to retry when messages update
 
@@ -134,7 +272,6 @@ const MessageListView = ({
     };
 
     const handleThreadClick = (messageId) => {
-        console.log('Thread click handler called with messageId:', messageId);
         onOpenThread?.(messageId);
     };
 
@@ -152,12 +289,10 @@ const MessageListView = ({
     };
 
     const handleShareMessage = (messageId) => {
-        console.log('Sharing message:', messageId);
         // TODO: Implement share functionality
     };
 
     const handleBookmarkMessage = (messageId) => {
-        console.log('Bookmarking message:', messageId);
         // TODO: Implement bookmark functionality
     };
 
@@ -167,7 +302,6 @@ const MessageListView = ({
 
         // Check if user can edit this message
         if (!isWithinEditWindow(message)) {
-            console.error('Message can no longer be edited (15 minute window expired)');
             return;
         }
 
@@ -181,7 +315,6 @@ const MessageListView = ({
             await editMessage(editingMessage.id, messageData.content);
             setEditingMessage(null);
         } catch (error) {
-            console.error('Failed to edit message:', error);
             throw error; // Let the editor component handle the error
         }
     };
@@ -197,7 +330,6 @@ const MessageListView = ({
         // Check if user can delete this message
         const hasPermission = await canDeleteMessage(message);
         if (!hasPermission) {
-            console.error('No permission to delete this message');
             return;
         }
 
@@ -228,7 +360,6 @@ const MessageListView = ({
                 });
             }
         } catch (error) {
-            console.error('Failed to delete message:', error);
             // Keep modal open to show error
         }
     };
@@ -241,7 +372,6 @@ const MessageListView = ({
         try {
             await undoDeleteMessage(undoToast.messageId);
         } catch (error) {
-            console.error('Failed to undo delete:', error);
             throw error; // Let the toast component handle the error
         }
     };
@@ -265,12 +395,10 @@ const MessageListView = ({
                 }
             }
         } catch (error) {
-            console.error('Failed to toggle pin message:', error);
         }
     };
 
     const handleReportMessage = (messageId) => {
-        console.log('Reporting message:', messageId);
         // TODO: Implement report functionality
     };
 
@@ -278,20 +406,16 @@ const MessageListView = ({
         try {
             const message = messages.find(m => m.id === messageId);
             if (!message) {
-                console.error('Message not found:', messageId);
                 return;
             }
 
             // Check if message is already a task
             if (message.isTask) {
-                console.log('Message is already a task');
                 return;
             }
 
             await createTaskFromMessage(messageId, message);
-            console.log('Task created successfully from message:', messageId);
         } catch (error) {
-            console.error('Failed to create task from message:', error);
         }
     };
 
@@ -315,12 +439,12 @@ const MessageListView = ({
     return (
         <div className="flex flex-col bg-white h-full">
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef} onScroll={handleScroll}>
                 {/* Load More Messages Button */}
                 {hasMoreMessages && (
                     <div className="flex justify-center mb-4">
                         <button
-                            onClick={loadMoreMessages}
+                            onClick={handleLoadMoreMessages}
                             disabled={loadingMore}
                             className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >

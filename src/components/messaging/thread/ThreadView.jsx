@@ -9,18 +9,11 @@ import { useMessageReactions } from '../../../hooks/useMessageReactions';
 import DOMPurify from 'dompurify';
 
 const ThreadView = ({ message, isOpen, onClose, channelId }) => {
+    const { threadReplies, repliesLoading, sendReply } = useThreadReplies(channelId, message?.id);
+    const [replyContent, setReplyContent] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const [reactionModal, setReactionModal] = useState({ isOpen: false, messageId: null, reactions: [] });
     
-    // Add debug log for props
-    console.log('ThreadView props:', { message, isOpen, onClose, channelId });
-    
-    const { 
-        replies: threadReplies, 
-        loading: repliesLoading, 
-        sendReply, 
-        participants: replyParticipants 
-    } = useThreadReplies(channelId, message?.id);
-
     // Message reactions functionality
     const { 
         getMessageReactions, 
@@ -28,11 +21,6 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
         removeReaction, 
         currentUser 
     } = useMessageReactions(channelId);
-
-    // Add effect to log state changes
-    useEffect(() => {
-        console.log('ThreadView state:', { threadReplies, repliesLoading });
-    }, [threadReplies, repliesLoading]);
 
     const handleSendReply = async (messageData) => {
         if (messageData.content.trim()) {
@@ -59,8 +47,6 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
         setReactionModal({ isOpen: false, messageId: null, reactions: [] });
     };
 
-
-
     // Extract participants from message and replies
     const getThreadParticipants = () => {
         const participantMap = new Map();
@@ -71,8 +57,8 @@ const ThreadView = ({ message, isOpen, onClose, channelId }) => {
         }
         
         // Add reply participants
-        replyParticipants.forEach(participant => {
-            participantMap.set(participant.id || participant.email, participant);
+        threadReplies.forEach(reply => {
+            participantMap.set(reply.id || reply.email, reply);
         });
         
         return Array.from(participantMap.values());

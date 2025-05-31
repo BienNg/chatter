@@ -75,8 +75,7 @@ const MessageHoverActions = ({
 
     const handleCopyMessage = () => {
         navigator.clipboard.writeText(messageContent);
-        console.log('Copied message to clipboard');
-        setShowMoreActions(false);
+        // TODO: Show toast notification
     };
 
     // Quick reaction emojis for hover (most common ones)

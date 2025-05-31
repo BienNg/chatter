@@ -40,16 +40,18 @@ export const useMessages = (channelId) => {
             return;
         }
 
+        // Reset state for new channel
+        setMessages([]);
         setLoading(true);
         setHasMoreMessages(true);
         setLoadingMore(false);
         
-        // Query messages in channel, ordered by timestamp
-        // OPTIMIZATION: Reduced limit from 100 to 25 to minimize Firestore reads
+        // Query messages in channel, ordered by timestamp (DESC to get latest messages)
+        // OPTIMIZATION: Reduced limit from 25 to 10 to minimize Firestore reads
         const messagesQuery = query(
             collection(db, 'channels', channelId, 'messages'),
-            orderBy('createdAt', 'asc'),
-            limit(25) // Reduced for performance and quota management
+            orderBy('createdAt', 'desc'), // Changed to desc to get latest messages
+            limit(10) // Reduced for performance and quota management
         );
 
         const unsubscribe = onSnapshot(
@@ -59,12 +61,51 @@ export const useMessages = (channelId) => {
                     id: doc.id,
                     ...doc.data()
                 }));
-                setMessages(messageData);
+                
+                // Reverse to get chronological order (oldest first)
+                const newMessages = messageData.reverse();
+                
+                if (newMessages.length === 0) {
+                    setMessages([]);
+                    setLoading(false);
+                    setError(null);
+                    return;
+                }
+
+                setMessages(prevMessages => {
+                    // If this is the first load, replace all messages
+                    if (prevMessages.length === 0) {
+                        return newMessages;
+                    }
+
+                    // For subsequent updates, we need to be more careful
+                    // The issue is that Firestore only returns the latest 10 messages
+                    // So we need to preserve older messages that were previously loaded
+                    
+                    // Find truly new messages (not in our current list)
+                    const existingMessageIds = new Set(prevMessages.map(msg => msg.id));
+                    const trulyNewMessages = newMessages.filter(msg => !existingMessageIds.has(msg.id));
+                    
+                    // Update existing messages (for edits, deletions, etc.)
+                    const updatedPrevMessages = prevMessages.map(prevMsg => {
+                        const updatedMsg = newMessages.find(newMsg => newMsg.id === prevMsg.id);
+                        return updatedMsg || prevMsg; // Keep original if not found in new data
+                    });
+                    
+                    // Only append truly new messages
+                    if (trulyNewMessages.length > 0) {
+                        return [...updatedPrevMessages, ...trulyNewMessages];
+                    }
+                    
+                    // If no new messages, just return updated existing messages
+                    return updatedPrevMessages;
+                });
+
                 setLoading(false);
                 setError(null);
                 
                 // Check if we have fewer messages than limit (means no more to load)
-                if (messageData.length < 25) {
+                if (messageData.length < 10) {
                     setHasMoreMessages(false);
                 }
             },
@@ -82,7 +123,9 @@ export const useMessages = (channelId) => {
     }, [channelId]);
 
     const sendMessage = async (content, attachments = []) => {
-        if (!channelId || !currentUser || !content?.trim()) return;
+        if (!channelId || !currentUser || !content?.trim()) {
+            return;
+        }
 
         try {
             const messageData = {
@@ -175,7 +218,8 @@ export const useMessages = (channelId) => {
                 if (attachment.storageRef) {
                     return deleteObject(ref(storage, attachment.storageRef));
                 }
-            });
+                return null; // Return null for attachments without storageRef
+            }).filter(promise => promise !== null); // Filter out null values
             
             await Promise.allSettled(deletePromises);
         } catch (error) {
@@ -512,7 +556,7 @@ export const useMessages = (channelId) => {
                 collection(db, 'channels', channelId, 'messages'),
                 orderBy('createdAt', 'desc'),
                 where('createdAt', '<', oldestMessage.createdAt),
-                limit(25)
+                limit(10)
             );
 
             const snapshot = await getDocs(moreMessagesQuery);
@@ -531,7 +575,7 @@ export const useMessages = (channelId) => {
             setMessages(prev => [...moreMessages.reverse(), ...prev]);
             
             // Check if we've reached the beginning
-            if (snapshot.docs.length < 25) {
+            if (snapshot.docs.length < 10) {
                 setHasMoreMessages(false);
             }
 

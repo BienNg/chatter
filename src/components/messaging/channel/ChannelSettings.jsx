@@ -24,25 +24,14 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
         getAllUsers
     } = useChannelManagement();
 
-    const canManage = canManageChannelMembers(userProfile?.roles, channel, userProfile?.id);
-    const isManager = hasManagementRole(userProfile?.roles);
-    
-    console.log('ChannelSettings permissions:', {
-        userProfile,
-        channel,
-        canManage,
-        isManager,
-        isCreator: channel.createdBy === userProfile?.id,
-        isChannelAdmin: channel.admins?.includes(userProfile?.id)
-    });
+    // Check user permissions
+    const isChannelAdmin = channel.admins?.includes(userProfile?.id);
+    const isChannelModerator = channel.moderators?.includes(userProfile?.id);
+    const isChannelCreator = channel.createdBy === userProfile?.id;
+    const canManageChannel = isChannelAdmin || isChannelModerator || isChannelCreator;
 
     useEffect(() => {
-        if (isOpen) {
-            console.log('ChannelSettings opened with channel:', channel);
-            console.log('Channel members:', channel.members);
-            
-
-            
+        if (isOpen && channel) {
             loadAllUsers();
         }
     }, [isOpen, channel]);
@@ -216,7 +205,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                 </div>
                             )}
                             {/* Member Management Controls */}
-                            {!canManage && (
+                            {!canManageChannel && (
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                     <p className="text-yellow-700 text-sm">
                                         You don't have permission to manage members in this channel. 
@@ -224,7 +213,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                     </p>
                                 </div>
                             )}
-                            {canManage && (
+                            {canManageChannel && (
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-4">
                                         <button
@@ -309,7 +298,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                                     )}
                                                 </div>
                                             </div>
-                                            {canManage && !bulkMode && user.id !== channel.createdBy && (
+                                            {canManageChannel && !bulkMode && user.id !== channel.createdBy && (
                                                 <button
                                                     onClick={() => handleRemoveMember(user.id)}
                                                     disabled={loading}
@@ -330,7 +319,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                             </div>
 
                             {/* Available Users to Add */}
-                            {canManage && (
+                            {canManageChannel && (
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-900 mb-4">
                                         Add Members ({availableUsers.length} available)
@@ -398,7 +387,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                         <input
                                             type="text"
                                             value={channel.name}
-                                            disabled={!canManage}
+                                            disabled={!canManageChannel}
                                             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                                         />
                                     </div>
@@ -406,7 +395,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                                         <textarea
                                             value={channel.description || ''}
-                                            disabled={!canManage}
+                                            disabled={!canManageChannel}
                                             rows={3}
                                             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                                         />
@@ -415,7 +404,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Channel Type</label>
                                         <select
                                             value={channel.type || 'general'}
-                                            disabled={!canManage}
+                                            disabled={!canManageChannel}
                                             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                                         >
                                             <option value="general">General</option>
@@ -429,7 +418,7 @@ const ChannelSettings = ({ channel, isOpen, onClose, onUpdate }) => {
                             </div>
 
                             {/* Danger Zone for Managers */}
-                            {isManager && (
+                            {isChannelCreator && (
                                 <div className="border-t border-gray-200 pt-6">
                                     <h3 className="text-lg font-medium text-red-900 mb-4">Danger Zone</h3>
                                     <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">

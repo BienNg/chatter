@@ -31,11 +31,11 @@ export const useThreadReplies = (channelId, messageId) => {
         setLoading(true);
         
         // Query replies for this message thread with a reasonable limit for performance
-        // OPTIMIZATION: Reduced limit from 100 to 50 to minimize Firestore reads
+        // OPTIMIZATION: Reduced limit from 50 to 25 to minimize Firestore reads
         const repliesQuery = query(
             collection(db, 'channels', channelId, 'messages', messageId, 'replies'),
             orderBy('createdAt', 'asc'),
-            limit(50) // Reduced for performance and quota management
+            limit(25) // Reduced for performance and quota management
         );
 
         const unsubscribe = onSnapshot(

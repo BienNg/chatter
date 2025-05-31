@@ -7,6 +7,7 @@ import { useChannels } from '../../hooks/useChannels';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useThread } from '../../contexts/ThreadContext';
+import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 
 // Layout components
 import { AppLayout } from './layout';
@@ -72,6 +73,7 @@ const MessagingInterface = () => {
     switchChannel,
     activeThread: persistentActiveThread 
   } = useThread();
+  const { markChannelAsRead, initializeChannelRead } = useUnreadMessages();
 
   // Navigation logic with persistence
   const { 
@@ -88,6 +90,18 @@ const MessagingInterface = () => {
       saveMessagingState(channelId, currentTab, subTab);
     }
   }, [channelId, currentTab, subTab, saveMessagingState]);
+
+  // Mark channel as read when viewing messages tab
+  useEffect(() => {
+    if (channelId && currentTab === 'messages' && !messagesLoading) {
+      // Small delay to ensure the user actually viewed the channel
+      const timer = setTimeout(() => {
+        markChannelAsRead(channelId);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [channelId, currentTab, messagesLoading, markChannelAsRead]);
 
   // Auto-redirect to first channel if none selected
   useEffect(() => {
@@ -171,11 +185,15 @@ const MessagingInterface = () => {
   const handleChannelCreated = (newChannelId) => {
     setShowCreateChannel(false);
     navigate(`/channels/${newChannelId}/messages`);
+    // Initialize read timestamp for new channel
+    initializeChannelRead(newChannelId);
   };
 
   const handleSendMessage = async (messageData) => {
     try {
       await sendMessage(messageData.content, messageData.attachments);
+      // Mark channel as read when sending a message
+      markChannelAsRead(channelId);
     } catch (error) {
       console.error('Failed to send message:', error);
     }

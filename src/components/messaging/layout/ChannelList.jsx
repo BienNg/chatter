@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   Hash,
   Users,
@@ -9,27 +9,61 @@ import {
   Plus
 } from 'lucide-react';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
+import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 
 /**
  * ChannelList - Organized channel display with grouping
  * Handles channel grouping by type and visual organization
  * Excludes DM channels which are handled by DirectMessages component
+ * Shows unread message indicators with bold text for channels with unread messages
  */
 export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
+  const { hasUnreadMessages, calculateUnreadCounts } = useUnreadMessages();
+
   // Filter out DM channels - they're handled by DirectMessages component
   const regularChannels = channels.filter(channel => 
     !channel.isDM && channel.type !== 'direct-message'
   );
 
+  // Calculate unread counts when channels change
+  useEffect(() => {
+    if (regularChannels.length > 0) {
+      calculateUnreadCounts(regularChannels);
+    }
+  }, [regularChannels, calculateUnreadCounts]);
+
   // Channel type metadata
   const typeMetadata = {
-    'general': { label: 'General', icon: Hash, color: 'text-indigo-300' },
-    'class': { label: 'Classes', icon: Users, color: 'text-cyan-300' },
-    'management': { label: 'Management', icon: Settings, color: 'text-purple-300' },
-    'social-media': { label: 'Social Media', icon: MessageSquare, color: 'text-pink-300' },
-    'customer-support': { label: 'Support', icon: User, color: 'text-green-300' },
-    'bookkeeping': { label: 'Finance', icon: DollarSign, color: 'text-yellow-300' },
-    'import': { label: 'Import', icon: Plus, color: 'text-orange-300' }
+    'general': {
+      icon: Hash,
+      label: 'General Channels',
+      description: 'General discussion and announcements'
+    },
+    'team': {
+      icon: Users,
+      label: 'Team Channels',
+      description: 'Team collaboration and meetings'
+    },
+    'project': {
+      icon: Settings,
+      label: 'Project Channels',
+      description: 'Project-specific discussions'
+    },
+    'social': {
+      icon: MessageSquare,
+      label: 'Social Channels',
+      description: 'Casual conversations and social topics'
+    },
+    'support': {
+      icon: User,
+      label: 'Support Channels',
+      description: 'Help and support discussions'
+    },
+    'sales': {
+      icon: DollarSign,
+      label: 'Sales Channels', 
+      description: 'Sales and business discussions'
+    }
   };
 
   // Group channels by type
@@ -42,67 +76,84 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
     return groups;
   }, {});
 
-  // Sort groups by priority
-  const groupOrder = ['general', 'class', 'management', 'social-media', 'customer-support', 'bookkeeping', 'import'];
-  const sortedGroups = groupOrder.filter(type => groupedChannels[type]);
+  // Sort groups by priority and channels within groups by name
+  const sortedGroups = Object.entries(groupedChannels)
+    .sort(([a], [b]) => {
+      const priority = { general: 0, team: 1, project: 2, social: 3, support: 4, sales: 5 };
+      return (priority[a] || 999) - (priority[b] || 999);
+    })
+    .map(([type, channelList]) => [
+      type,
+      channelList.sort((a, b) => a.name.localeCompare(b.name))
+    ]);
+
+  const renderChannel = (channel) => {
+    const Icon = typeMetadata[channel.type]?.icon || Hash;
+    const isActive = channel.id === activeChannelId;
+    const hasUnread = hasUnreadMessages(channel.id);
+    const url = generateChannelUrl(channel.id, 'messages');
+    
+    return (
+      <button
+        key={channel.id}
+        onClick={() => onChannelSelect(channel.id)}
+        {...getMiddleClickHandlers(url)}
+        className={`flex items-center w-full px-3 py-2 rounded-lg mb-1 transition-colors group ${
+          isActive
+            ? 'bg-indigo-700 text-white'
+            : 'text-indigo-200 hover:bg-indigo-700/50 hover:text-white'
+        }`}
+      >
+        <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
+        <span 
+          className={`truncate ${hasUnread ? 'font-extrabold' : 'font-normal'}`}
+          title={hasUnread ? `${channel.name} (unread messages)` : channel.name}
+        >
+          {channel.name}
+        </span>
+        {hasUnread && !isActive && (
+          <div className="w-2 h-2 bg-indigo-400 rounded-full ml-auto flex-shrink-0" />
+        )}
+      </button>
+    );
+  };
+
+  if (regularChannels.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <Hash className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
+        <p className="text-indigo-300 text-sm mb-4">No channels available</p>
+        <button className="text-indigo-400 hover:text-white text-sm flex items-center mx-auto">
+          <Plus className="w-4 h-4 mr-1" />
+          Create Channel
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {sortedGroups.map((type, groupIndex) => {
-        const channels = groupedChannels[type];
-        const metadata = typeMetadata[type] || typeMetadata['general'];
-        const IconComponent = metadata.icon;
-
+    <div className="space-y-4">
+      {sortedGroups.map(([type, channelList]) => {
+        const metadata = typeMetadata[type] || typeMetadata.general;
+        
         return (
-          <div key={type} className={groupIndex > 0 ? 'mt-4' : ''}>
-            {/* Group Header - only show if more than one group exists */}
-            {sortedGroups.length > 1 && (
-              <div className="flex items-center px-2 py-1 mb-1">
-                <IconComponent className={`w-3 h-3 mr-2 ${metadata.color}`} />
-                <span className="text-xs font-medium text-indigo-300 uppercase tracking-wider">
-                  {metadata.label}
-                </span>
-                <div className="flex-1 h-px bg-indigo-700/30 ml-2"></div>
-              </div>
-            )}
+          <div key={type} className="space-y-1">
+            {/* Group Header */}
+            <div className="flex items-center px-2 py-1 mb-2">
+              <metadata.icon className="w-3 h-3 mr-2 text-indigo-300" />
+              <span className="text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                {metadata.label}
+              </span>
+              <div className="flex-1 h-px bg-indigo-700/30 ml-2"></div>
+            </div>
             
-            {/* Channels in this group */}
-            {channels.map((channel) => {
-              const channelUrl = generateChannelUrl(channel.id);
-              const middleClickHandlers = getMiddleClickHandlers(
-                channelUrl,
-                () => onChannelSelect(channel.id)
-              );
-
-              return (
-                <button
-                  key={channel.id}
-                  onClick={() => onChannelSelect(channel.id)}
-                  {...middleClickHandlers}
-                  className={`flex items-center w-full px-3 py-2 rounded-lg mb-1 transition-colors ${
-                    channel.id === activeChannelId
-                      ? 'bg-indigo-700 text-white'
-                      : 'text-indigo-200 hover:bg-indigo-700/50'
-                  }`}
-                >
-                  <Hash className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="truncate">{channel.name}</span>
-                  {/* Subtle type indicator dot */}
-                  {sortedGroups.length > 1 && (
-                    <div 
-                      className={`w-1.5 h-1.5 rounded-full ml-auto flex-shrink-0 ${
-                        channel.id === activeChannelId 
-                          ? 'bg-white/60' 
-                          : metadata.color.replace('text-', 'bg-').replace('-300', '-400')
-                      }`}
-                    />
-                  )}
-                </button>
-              );
-            })}
+            {/* Channels in Group */}
+            <div className="space-y-1">
+              {channelList.map(renderChannel)}
+            </div>
           </div>
         );
       })}
-    </>
+    </div>
   );
 }; 

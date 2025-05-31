@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { Plus, ChevronDown, X } from 'lucide-react';
 import { 
   doc, 
@@ -39,6 +40,7 @@ const FirebaseMultiSelectSelector = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const dropdownRef = useRef(null);
   
   // Get the current selected values from the record
@@ -47,14 +49,39 @@ const FirebaseMultiSelectSelector = ({
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchTerm('');
+        // Also check if click is inside the dropdown portal
+        const dropdownElement = document.querySelector('[data-dropdown-portal]');
+        if (!dropdownElement || !dropdownElement.contains(event.target)) {
+          setIsOpen(false);
+          setSearchTerm('');
+        }
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    const handleScroll = () => {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
+    };
+
+    const handleResize = () => {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true); // Use capture to catch all scroll events
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     // Auto-hide success message after 2 seconds
@@ -152,12 +179,27 @@ const FirebaseMultiSelectSelector = ({
     }
   };
 
+  // Calculate dropdown position
+  const updateDropdownPosition = () => {
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  };
+
   return (
     <>
       <div className="relative w-full" ref={dropdownRef}>
         <div
           onClick={() => {
             if (!isLoading) {
+              if (!isOpen) {
+                updateDropdownPosition();
+              }
               setIsOpen(!isOpen);
             }
           }}
@@ -201,13 +243,14 @@ const FirebaseMultiSelectSelector = ({
         </div>
       </div>
 
-      {isOpen && (
+      {isOpen && ReactDOM.createPortal(
         <div 
+          data-dropdown-portal
           className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
           style={{
-            top: dropdownRef.current?.getBoundingClientRect().bottom + window.scrollY + 4 || 0,
-            left: dropdownRef.current?.getBoundingClientRect().left + window.scrollX || 0,
-            width: dropdownRef.current?.getBoundingClientRect().width || 'auto',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
             minWidth: '200px'
           }}
         >
@@ -272,7 +315,8 @@ const FirebaseMultiSelectSelector = ({
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

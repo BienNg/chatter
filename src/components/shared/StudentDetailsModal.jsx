@@ -179,286 +179,391 @@ const StudentDetailsModal = ({
   };
 
   const renderStudentInfoTab = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Loading indicator */}
       {loading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-          <span className="ml-2 text-sm text-gray-500">Loading student data...</span>
+        <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent"></div>
+            <span className="text-sm font-medium text-gray-500">Loading student profile...</span>
+          </div>
         </div>
       )}
       
-      {/* Basic Information */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Basic Information</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-gray-500">Name</label>
-              {!editField && (
-                <button 
-                  onClick={() => handleEditStart('name', displayData.name)}
-                  className="text-indigo-600 hover:text-indigo-800"
+      {!loading && (
+        <>
+          {/* Hero Section with Visual Identity */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-8 border border-indigo-100">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100 rounded-full -translate-y-16 translate-x-16 opacity-20"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-100 rounded-full translate-y-12 -translate-x-12 opacity-20"></div>
+            
+            <div className="relative flex items-center space-x-6">
+              <div className="relative">
+                <div 
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg ring-4 ring-white"
+                  style={{ backgroundColor: displayData.avatarColor || '#6366F1' }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-            {editField === 'name' ? (
-              <div className="mt-1 flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  autoFocus
-                />
-                <div className="flex space-x-1">
-                  <button 
-                    onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
-                    className="p-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200"
-                  >
-                    Save
-                  </button>
-                  <button 
-                    onClick={handleEditCancel}
-                    className="p-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
+                  {displayData.avatar}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
-            ) : (
-              <p className="mt-1 text-sm font-medium text-gray-900">{displayData.name}</p>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Contact Information */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Contact Information</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-gray-500">Email</label>
-              {!editField && (
-                <button 
-                  onClick={() => handleEditStart('email', displayData.email)}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-            {editField === 'email' ? (
-              <div className="mt-1 flex items-center space-x-2">
-                <input
-                  type="email"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  autoFocus
-                />
-                <div className="flex space-x-1">
-                  <button 
-                    onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
-                    className="p-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200"
-                  >
-                    Save
-                  </button>
-                  <button 
-                    onClick={handleEditCancel}
-                    className="p-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-3 mb-2">
+                  {editField === 'name' ? (
+                    <div className="flex-1 flex items-center space-x-3">
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="flex-1 text-2xl font-bold text-gray-900 bg-white border-2 border-indigo-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        autoFocus
+                        placeholder="Enter student name"
+                      />
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
+                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                        >
+                          Save
+                        </button>
+                        <button 
+                          onClick={handleEditCancel}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{displayData.name}</h1>
+                      <button 
+                        onClick={() => handleEditStart('name', displayData.name)}
+                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all group"
+                        title="Edit name"
+                      >
+                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 font-medium">Student ID: {displayData.studentId || 'Not assigned'}</p>
+                
+                {/* Quick Stats */}
+                <div className="flex items-center space-x-6 mt-4">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-600">{studentEnrollments.length} Course{studentEnrollments.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-gray-600">{studentPayments.length} Payment{studentPayments.length !== 1 ? 's' : ''}</span>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="mt-1 flex items-center space-x-2">
-                <Mail className="h-4 w-4 text-gray-400" />
-                <p className="text-sm text-gray-900">{displayData.email || 'No email provided'}</p>
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-gray-500">Phone</label>
-              {!editField && (
-                <button 
-                  onClick={() => handleEditStart('phone', displayData.phone)}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-                  </svg>
-                </button>
-              )}
             </div>
-            {editField === 'phone' ? (
-              <div className="mt-1 flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  autoFocus
-                />
-                <div className="flex space-x-1">
-                  <button 
-                    onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
-                    className="p-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200"
-                  >
-                    Save
-                  </button>
-                  <button 
-                    onClick={handleEditCancel}
-                    className="p-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
+          </div>
+
+          {/* Information Cards Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Contact Information Card */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-indigo-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
+              </div>
+              
+              <div className="space-y-5">
+                {/* Email Field */}
+                <div className="group">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-500">Email Address</label>
+                    {!editField && (
+                      <button 
+                        onClick={() => handleEditStart('email', displayData.email)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
+                        title="Edit email"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  
+                  {editField === 'email' ? (
+                    <div className="space-y-3">
+                      <input
+                        type="email"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        autoFocus
+                        placeholder="student@example.com"
+                      />
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
+                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button 
+                          onClick={handleEditCancel}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-900 flex-1">
+                        {displayData.email || (
+                          <span className="text-gray-500 italic">No email provided</span>
+                        )}
+                      </span>
+                      {displayData.email && (
+                        <a 
+                          href={`mailto:${displayData.email}`}
+                          className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                        >
+                          Send
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Phone Field */}
+                <div className="group">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-500">Phone Number</label>
+                    {!editField && (
+                      <button 
+                        onClick={() => handleEditStart('phone', displayData.phone)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
+                        title="Edit phone"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  
+                  {editField === 'phone' ? (
+                    <div className="space-y-3">
+                      <input
+                        type="tel"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        autoFocus
+                        placeholder="+1 (555) 123-4567"
+                      />
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
+                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button 
+                          onClick={handleEditCancel}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-900 flex-1">
+                        {displayData.phone || (
+                          <span className="text-gray-500 italic">No phone provided</span>
+                        )}
+                      </span>
+                      {displayData.phone && (
+                        <a 
+                          href={`tel:${displayData.phone}`}
+                          className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                        >
+                          Call
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            ) : (
-              <div className="mt-1 flex items-center space-x-2">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <p className="text-sm text-gray-900">{displayData.phone || 'No phone provided'}</p>
+            </div>
+
+            {/* Location Information Card */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Location</h3>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Location */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Location</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Country</label>
-            <div className="mt-1">
-              <FirebaseCollectionSelector
-                collectionName="countries"
-                record={displayData}
-                updateRecord={updateStudentRecord}
-                fieldName="location"
-                fieldDisplayName="Country"
-                options={countries}
-                addOption={addCountry}
-              />
+              
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-2">Country</label>
+                  <div className="relative">
+                    <FirebaseCollectionSelector
+                      collectionName="countries"
+                      record={displayData}
+                      updateRecord={updateStudentRecord}
+                      fieldName="location"
+                      fieldDisplayName="Country"
+                      options={countries}
+                      addOption={addCountry}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-2">City</label>
+                  <div className="relative">
+                    <FirebaseCollectionSelector
+                      collectionName="cities"
+                      record={displayData}
+                      updateRecord={updateStudentRecord}
+                      fieldName="city"
+                      fieldDisplayName="City"
+                      options={cities}
+                      addOption={addCity}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Academic Information Card */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Academic Details</h3>
+              </div>
+              
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-2">Learning Platform</label>
+                  <div className="relative">
+                    <FirebaseCollectionSelector
+                      collectionName="platforms"
+                      record={displayData}
+                      updateRecord={updateStudentRecord}
+                      fieldName="platform"
+                      fieldDisplayName="Platform"
+                      options={platforms}
+                      addOption={addPlatform}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-2">Interest Categories</label>
+                  <div className="relative">
+                    <FirebaseMultiSelectSelector
+                      collectionName="categories"
+                      record={displayData}
+                      updateRecord={updateStudentRecord}
+                      fieldName="categories"
+                      fieldDisplayName="Category"
+                      options={categories}
+                      addOption={addCategory}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes Card - Full Width */}
+            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Notes & Observations</h3>
+                </div>
+                {!editField && (
+                  <button 
+                    onClick={() => handleEditStart('notes', displayData.notes)}
+                    className="px-4 py-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all text-sm font-medium"
+                  >
+                    {displayData.notes ? 'Edit Notes' : 'Add Notes'}
+                  </button>
+                )}
+              </div>
+              
+              {editField === 'notes' ? (
+                <div className="space-y-4">
+                  <textarea
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
+                    rows="6"
+                    autoFocus
+                    placeholder="Add notes about this student's progress, behavior, special requirements, or any other relevant observations..."
+                  />
+                  <div className="flex justify-end space-x-3">
+                    <button 
+                      onClick={handleEditCancel}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
+                      className="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                    >
+                      Save Notes
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-lg p-6 min-h-[120px] relative group">
+                  {displayData.notes ? (
+                    <div className="prose prose-sm max-w-none">
+                      <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {displayData.notes}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-center py-8">
+                      <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <p className="text-gray-500 text-sm">No notes added yet</p>
+                      <p className="text-gray-400 text-xs mt-1">Click "Add Notes" to record observations about this student</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-gray-500">City</label>
-            <div className="mt-1">
-              <FirebaseCollectionSelector
-                collectionName="cities"
-                record={displayData}
-                updateRecord={updateStudentRecord}
-                fieldName="city"
-                fieldDisplayName="City"
-                options={cities}
-                addOption={addCity}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Platform & Categories */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Additional Information</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Platform</label>
-            <div className="mt-1">
-              <FirebaseCollectionSelector
-                collectionName="platforms"
-                record={displayData}
-                updateRecord={updateStudentRecord}
-                fieldName="platform"
-                fieldDisplayName="Platform"
-                options={platforms}
-                addOption={addPlatform}
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Categories</label>
-            <div className="mt-1">
-              <FirebaseMultiSelectSelector
-                collectionName="categories"
-                record={displayData}
-                updateRecord={updateStudentRecord}
-                fieldName="categories"
-                fieldDisplayName="Category"
-                options={categories}
-                addOption={addCategory}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Notes */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-500">Notes</h3>
-          {!editField && (
-            <button 
-              onClick={() => handleEditStart('notes', displayData.notes)}
-              className="text-indigo-600 hover:text-indigo-800"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-              </svg>
-            </button>
-          )}
-        </div>
-        
-        {editField === 'notes' ? (
-          <div className="mt-1 flex flex-col space-y-2">
-            <textarea
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              rows="4"
-              autoFocus
-            />
-            <div className="flex space-x-2 justify-end">
-              <button 
-                onClick={() => handleEditSave(displayData.id || enrollment.studentId)}
-                className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 text-sm"
-              >
-                Save
-              </button>
-              <button 
-                onClick={handleEditCancel}
-                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {displayData.notes || 'No notes available for this student.'}
-            </p>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 
@@ -661,6 +766,9 @@ const StudentDetailsModal = ({
                   onClick={() => setActiveTab('courses')}
                 >
                   Courses
+                  <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-600 bg-gray-100 rounded-full">
+                    {studentEnrollments.length}
+                  </span>
                 </button>
                 <button
                   className={`py-3 text-sm font-medium border-b-2 ${
@@ -671,6 +779,9 @@ const StudentDetailsModal = ({
                   onClick={() => setActiveTab('payments')}
                 >
                   Payments
+                  <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-600 bg-gray-100 rounded-full">
+                    {studentPayments.length}
+                  </span>
                 </button>
               </div>
             </div>

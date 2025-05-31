@@ -39,6 +39,7 @@ import ClassDetailsView from '../classes/ClassDetailsView';
 import { StudentSelector } from '../classes/components';
 import PaymentModal from '../../shared/PaymentModal';
 import StudentDetailsModal from '../../shared/StudentDetailsModal';
+import PaymentSuccessToast from '../../shared/PaymentSuccessToast';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 
 /**
@@ -64,6 +65,14 @@ export const ClassesTab = ({
   const [paymentModalData, setPaymentModalData] = useState(null); // For pre-filling payment modal
   const [showStudentDetailsModal, setShowStudentDetailsModal] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState(null); // For student details modal
+  const [paymentSuccessToast, setPaymentSuccessToast] = useState({
+    isVisible: false,
+    autoEnrolled: false,
+    studentName: '',
+    courseName: '',
+    amount: 0,
+    currency: 'VND'
+  });
 
   // Use the class students hook
   const {
@@ -256,9 +265,9 @@ export const ClassesTab = ({
       };
 
       // Create the payment using the usePayments hook
-      await addPayment(enrichedPaymentData);
+      const result = await addPayment(enrichedPaymentData);
       
-      console.log('Payment created successfully:', enrichedPaymentData);
+      console.log('Payment created successfully:', result);
       
       // Update the enrollment with payment information if needed
       // This could be handled automatically in your payment creation function
@@ -270,8 +279,15 @@ export const ClassesTab = ({
       setShowPaymentModal(false);
       setPaymentModalData(null);
       
-      // Show success message
-      alert('Payment recorded successfully!');
+      // Show payment success toast
+      setPaymentSuccessToast({
+        isVisible: true,
+        autoEnrolled: result.autoEnrolled || false,
+        studentName: paymentModalData?.studentName || 'Unknown Student',
+        courseName: paymentModalData?.courseName || 'Unknown Course',
+        amount: parseFloat(enrichedPaymentData.amount) || 0,
+        currency: enrichedPaymentData.currency || 'VND'
+      });
     } catch (error) {
       console.error('Error creating payment:', error);
       throw error; // Let the modal handle the error
@@ -1433,6 +1449,26 @@ export const ClassesTab = ({
         isOpen={showStudentDetailsModal}
         onClose={handleCloseStudentDetails}
       />
+
+      {/* Payment Success Toast */}
+      {paymentSuccessToast.isVisible && (
+        <PaymentSuccessToast
+          isVisible={paymentSuccessToast.isVisible}
+          onDismiss={() => setPaymentSuccessToast({
+            isVisible: false,
+            autoEnrolled: false,
+            studentName: '',
+            courseName: '',
+            amount: 0,
+            currency: 'VND'
+          })}
+          autoEnrolled={paymentSuccessToast.autoEnrolled}
+          studentName={paymentSuccessToast.studentName}
+          courseName={paymentSuccessToast.courseName}
+          amount={paymentSuccessToast.amount}
+          currency={paymentSuccessToast.currency}
+        />
+      )}
     </div>
   );
 };

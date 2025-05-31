@@ -5,6 +5,7 @@ import { usePayments } from '../../hooks/usePayments';
 import { BookkeepingLayout } from './layout';
 import FinancialOverview from './FinancialOverview';
 import PaymentModal from '../shared/PaymentModal';
+import PaymentSuccessToast from '../shared/PaymentSuccessToast';
 import PaymentsList from './PaymentsList';
 import RevenueChart from './RevenueChart';
 import { Plus, Download } from 'lucide-react';
@@ -18,6 +19,14 @@ const BookkeepingInterface = () => {
   const { addPayment } = usePayments();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('EUR');
+  const [paymentSuccessToast, setPaymentSuccessToast] = useState({
+    isVisible: false,
+    autoEnrolled: false,
+    studentName: '',
+    courseName: '',
+    amount: 0,
+    currency: 'EUR'
+  });
   const params = useParams();
 
   const handleRecordPayment = () => {
@@ -31,11 +40,21 @@ const BookkeepingInterface = () => {
   const handlePaymentSubmit = async (paymentData) => {
     try {
       // Submit payment to database using the usePayments hook
-      await addPayment(paymentData);
-      console.log('Payment recorded successfully:', paymentData);
+      const result = await addPayment(paymentData);
+      console.log('Payment recorded successfully:', result);
       
       // Close modal after successful submission
       setShowPaymentModal(false);
+      
+      // Show payment success toast
+      setPaymentSuccessToast({
+        isVisible: true,
+        autoEnrolled: result.autoEnrolled || false,
+        studentName: paymentData.studentName || 'Unknown Student',
+        courseName: paymentData.courseName || 'Unknown Course',
+        amount: parseFloat(paymentData.amount) || 0,
+        currency: paymentData.currency || selectedCurrency
+      });
     } catch (error) {
       console.error('Error recording payment:', error);
       throw error; // Let the PaymentModal handle the error display
@@ -119,6 +138,26 @@ const BookkeepingInterface = () => {
         description="Add a new payment record to the financial system"
         submitButtonText="Record Payment"
       />
+
+      {/* Payment Success Toast */}
+      {paymentSuccessToast.isVisible && (
+        <PaymentSuccessToast
+          isVisible={paymentSuccessToast.isVisible}
+          onDismiss={() => setPaymentSuccessToast({
+            isVisible: false,
+            autoEnrolled: false,
+            studentName: '',
+            courseName: '',
+            amount: 0,
+            currency: selectedCurrency
+          })}
+          autoEnrolled={paymentSuccessToast.autoEnrolled}
+          studentName={paymentSuccessToast.studentName}
+          courseName={paymentSuccessToast.courseName}
+          amount={paymentSuccessToast.amount}
+          currency={paymentSuccessToast.currency}
+        />
+      )}
     </BookkeepingLayout>
   );
 };

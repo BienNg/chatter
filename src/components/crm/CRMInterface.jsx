@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { CRMLayout } from './layout';
 import StudentsInterface from './content/StudentsInterface';
@@ -12,6 +13,14 @@ import { Database } from 'lucide-react';
 const CRMInterface = () => {
   const { currentUser, userProfile, logout } = useAuth();
   const [showDatabaseInitializer, setShowDatabaseInitializer] = useState(false);
+  const params = useParams();
+
+  useEffect(() => {
+    if (params.studentId) {
+      // Handle student details route
+      console.log('Student details route accessed:', params.studentId);
+    }
+  }, [params.studentId]);
 
   return (
     <CRMLayout

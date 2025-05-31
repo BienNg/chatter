@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Search, Download, Plus, Trash2, AlertTriangle, ChevronDown } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Search, Download, Plus, Trash2, AlertTriangle, ChevronDown, Eye, Edit, MessageSquare } from 'lucide-react';
 import AddStudentModal from './AddStudentModal';
-import StudentDetailsModal from './StudentDetailsModal';
+import StudentDetailsModal from '../../shared/StudentDetailsModal';
+import SendStudentToChatModal from './SendStudentToChatModal';
 import { useStudents } from '../../../hooks/useStudents';
 import { useCountries } from '../../../hooks/useCountries';
 import { useCities } from '../../../hooks/useCities';
 import { usePlatforms } from '../../../hooks/usePlatforms';
 import { useCategories } from '../../../hooks/useCategories';
 import FirebaseCollectionSelector from '../../shared/FirebaseCollectionSelector.jsx';
-import { FirebaseMultiSelectSelector } from '../../shared/index.js';
+import { FirebaseMultiSelectSelector, ActionsDropdown } from '../../shared/index.js';
 
 const StudentsInterface = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,8 +18,13 @@ const StudentsInterface = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [editingCell, setEditingCell] = useState({ studentId: null, field: null });
   const [editValue, setEditValue] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [showSendToChatModal, setShowSendToChatModal] = useState(false);
+  const [studentToShare, setStudentToShare] = useState(null);
+
+  const navigate = useNavigate();
+  const params = useParams();
 
   // Database hooks
   const { students, loading, error, addStudent, deleteStudent, updateStudent } = useStudents();
@@ -26,7 +33,46 @@ const StudentsInterface = () => {
   const { platforms, addPlatform } = usePlatforms();
   const { categories, addCategory } = useCategories();
 
-  // Auto-save function that saves changes when clicking outside
+  // URL Parameter Handling
+  useEffect(() => {
+    if (params.studentId) {
+      // Find the student by ID and open the details modal
+      const student = students.find(s => s.id === params.studentId);
+      if (student) {
+        // Create enrollment-like object for the modal
+        const enrollmentData = {
+          studentId: student.id,
+          studentName: student.name,
+          studentEmail: student.email,
+          studentPhone: student.phone,
+          avatar: student.avatar,
+          avatarColor: student.avatarColor
+        };
+        setSelectedEnrollment(enrollmentData);
+        setDetailsModalOpen(true);
+      }
+    } else {
+      // Close modal if no studentId in URL
+      setDetailsModalOpen(false);
+      setSelectedEnrollment(null);
+    }
+  }, [params.studentId, students]);
+
+  // Function to handle opening student details via URL
+  const handleViewStudentDetails = (studentId) => {
+    navigate(`/crm/students/${studentId}`);
+  };
+
+  // Function to handle closing the modal
+  const handleCloseStudentModal = () => {
+    navigate('/crm');
+  };
+
+  const handleRowClick = (student) => {
+    handleViewStudentDetails(student.id);
+  };
+
+  // Handle auto-save when editing cells
   const handleAutoSave = useCallback(async () => {
     if (!editingCell.studentId || !editingCell.field) return;
     
@@ -106,9 +152,9 @@ const StudentsInterface = () => {
     }
   };
 
-  const handleDeleteClick = (e, studentId) => {
+  const handleDeleteClick = (student, e) => {
     e.stopPropagation(); // Prevent row click
-    setDeleteConfirm(studentId);
+    setDeleteConfirm(student.id);
   };
 
   const handleDeleteConfirm = async () => {
@@ -137,9 +183,14 @@ const StudentsInterface = () => {
     setEditValue('');
   };
 
-  const handleRowClick = (student) => {
-    setSelectedStudent(student);
-    setDetailsModalOpen(true);
+  const handleSendToChat = (student) => {
+    setStudentToShare(student);
+    setShowSendToChatModal(true);
+  };
+
+  const handleCloseSendToChatModal = () => {
+    setShowSendToChatModal(false);
+    setStudentToShare(null);
   };
 
   // Inline editable text component
@@ -236,9 +287,9 @@ const StudentsInterface = () => {
   }
 
   return (
-    <div className="flex-1 bg-gray-50 overflow-hidden">
+    <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-semibold text-gray-900">Students</h1>
@@ -274,134 +325,161 @@ const StudentsInterface = () => {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full table-fixed">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">Student</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">Contact</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Country</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">City</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Category</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Course/Service</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Payments</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Platform</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Notes</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredStudents.map((student) => (
-              <tr 
-                key={student.id} 
-                className="hover:bg-gray-50 h-20 cursor-pointer transition-colors"
-                onClick={() => handleRowClick(student)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap w-64 h-20">
-                  <div className="flex items-center h-full">
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
-                      style={{ 
-                        backgroundColor: student.avatarColor || '#6B7280'
-                      }}
-                    >
-                      {student.avatar}
-                    </div>
-                    <div className="ml-4 min-w-0 flex-1">
-                      <div className="text-sm font-medium text-gray-900">
-                        {renderInlineEditableText(student, 'name', student.name)}
+      <div className="flex-1 relative">
+        <div className="absolute inset-0 overflow-auto">
+          <table className="w-full table-fixed">
+            <thead className="bg-gray-50 sticky top-0 z-10">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">Student</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">Contact</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Country</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">City</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Course/Service</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Payments</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Platform</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Notes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredStudents.map((student) => (
+                <tr 
+                  key={student.id} 
+                  className="hover:bg-gray-50 h-20 cursor-pointer transition-colors"
+                  onClick={() => handleRowClick(student)}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap w-64 h-20">
+                    <div className="flex items-center h-full">
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
+                        style={{ 
+                          backgroundColor: student.avatarColor || '#6B7280'
+                        }}
+                      >
+                        {student.avatar}
+                      </div>
+                      <div className="ml-4 min-w-0 flex-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          {renderInlineEditableText(student, 'name', student.name)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-56 h-20">
-                  <div className="space-y-1 flex flex-col justify-center h-full">
-                    <div className="text-sm text-gray-900">{renderInlineEditableText(student, 'email', student.email)}</div>
-                    <div className="text-sm text-gray-900">{renderInlineEditableText(student, 'phone', student.phone)}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
-                  <FirebaseCollectionSelector
-                    collectionName="countries"
-                    record={student}
-                    updateRecord={updateStudent}
-                    fieldName="location"
-                    fieldDisplayName="Country"
-                    options={countries}
-                    addOption={addCountry}
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
-                  <FirebaseCollectionSelector
-                    collectionName="cities"
-                    record={student}
-                    updateRecord={updateStudent}
-                    fieldName="city"
-                    fieldDisplayName="City"
-                    options={cities}
-                    addOption={addCity}
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
-                  <FirebaseMultiSelectSelector
-                    collectionName="categories"
-                    record={student}
-                    updateRecord={updateStudent}
-                    fieldName="categories"
-                    fieldDisplayName="Category"
-                    options={categories}
-                    addOption={addCategory}
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
-                  {/* Empty Course/Service column */}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
-                  {/* Empty Payments column */}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
-                  <FirebaseCollectionSelector
-                    collectionName="platforms"
-                    record={student}
-                    updateRecord={updateStudent}
-                    fieldName="platform"
-                    fieldDisplayName="Platform"
-                    options={platforms}
-                    addOption={addPlatform}
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
-                  {/* Empty Notes column */}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium w-20 h-20">
-                  <div className="flex items-center justify-start h-full">
-                  <button 
-                    onClick={(e) => handleDeleteClick(e, student.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Delete student"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-56 h-20">
+                    <div className="space-y-1 flex flex-col justify-center h-full">
+                      <div className="text-sm text-gray-900">{renderInlineEditableText(student, 'email', student.email)}</div>
+                      <div className="text-sm text-gray-900">{renderInlineEditableText(student, 'phone', student.phone)}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
+                    <FirebaseCollectionSelector
+                      collectionName="countries"
+                      record={student}
+                      updateRecord={updateStudent}
+                      fieldName="location"
+                      fieldDisplayName="Country"
+                      options={countries}
+                      addOption={addCountry}
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
+                    <FirebaseCollectionSelector
+                      collectionName="cities"
+                      record={student}
+                      updateRecord={updateStudent}
+                      fieldName="city"
+                      fieldDisplayName="City"
+                      options={cities}
+                      addOption={addCity}
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
+                    <FirebaseMultiSelectSelector
+                      collectionName="categories"
+                      record={student}
+                      updateRecord={updateStudent}
+                      fieldName="categories"
+                      fieldDisplayName="Category"
+                      options={categories}
+                      addOption={addCategory}
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
+                    {/* Empty Course/Service column */}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-32 h-20">
+                    {/* Empty Payments column */}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
+                    <FirebaseCollectionSelector
+                      collectionName="platforms"
+                      record={student}
+                      updateRecord={updateStudent}
+                      fieldName="platform"
+                      fieldDisplayName="Platform"
+                      options={platforms}
+                      addOption={addPlatform}
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
+                    {/* Empty Notes column */}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium w-20 h-20">
+                    <div className="flex items-center justify-start h-full">
+                      <ActionsDropdown
+                        itemId={student.id}
+                        item={student}
+                        actions={[
+                          {
+                            key: 'view',
+                            label: 'View Details',
+                            icon: Eye,
+                            onClick: (student) => handleRowClick(student),
+                          },
+                          {
+                            key: 'edit',
+                            label: 'Edit Student',
+                            icon: Edit,
+                            onClick: (student) => handleRowClick(student),
+                          },
+                          {
+                            key: 'sendToChat',
+                            label: 'Send to Chat',
+                            icon: MessageSquare,
+                            onClick: (student) => handleSendToChat(student),
+                          },
+                          {
+                            key: 'delete',
+                            label: 'Delete Student',
+                            icon: Trash2,
+                            onClick: (student, e) => handleDeleteClick(student, e),
+                            isDanger: true,
+                            separator: true
+                          }
+                        ]}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {filteredStudents.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-500">
-              {searchTerm 
-                ? 'No students match your search criteria.' 
-                : 'No students found. Add your first student to get started.'}
+          {filteredStudents.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-500">
+                {searchTerm 
+                  ? 'No students match your search criteria.' 
+                  : 'No students found. Add your first student to get started.'}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Pagination Footer */}
-      <div className="bg-white border-t border-gray-200 px-6 py-3">
+      <div className="bg-white border-t border-gray-200 px-6 py-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-700">
             Showing <span className="font-medium">{filteredStudents.length}</span> of{' '}
@@ -428,18 +506,9 @@ const StudentsInterface = () => {
 
       {/* Student Details Modal */}
       <StudentDetailsModal
-        student={selectedStudent}
+        enrollment={selectedEnrollment}
         isOpen={detailsModalOpen}
-        onClose={() => setDetailsModalOpen(false)}
-        updateStudent={updateStudent}
-        countries={countries}
-        addCountry={addCountry}
-        cities={cities}
-        addCity={addCity}
-        platforms={platforms}
-        addPlatform={addPlatform}
-        categories={categories}
-        addCategory={addCategory}
+        onClose={handleCloseStudentModal}
       />
 
       {/* Delete Confirmation Modal */}
@@ -481,6 +550,15 @@ const StudentsInterface = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Send to Chat Modal */}
+      {showSendToChatModal && (
+        <SendStudentToChatModal
+          isOpen={showSendToChatModal}
+          onClose={handleCloseSendToChatModal}
+          student={studentToShare}
+        />
       )}
     </div>
   );

@@ -22,6 +22,7 @@ const StudentDetailsModal = ({
   const [studentEnrollments, setStudentEnrollments] = useState([]);
   const [studentPayments, setStudentPayments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // Hooks
   const { getStudentById, updateStudent, addStudent } = useStudents();
@@ -31,6 +32,28 @@ const StudentDetailsModal = ({
   const { cities, addCity } = useCities();
   const { platforms, addPlatform } = usePlatforms();
   const { categories, addCategory } = useCategories();
+
+  // Animation handling
+  useEffect(() => {
+    if (isOpen) {
+      setIsAnimating(true);
+    } else {
+      setIsAnimating(false);
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsAnimating(false);
+    setTimeout(() => {
+      onClose();
+    }, 300); // Match the animation duration
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
 
   // Load student data when modal opens
   useEffect(() => {
@@ -138,12 +161,6 @@ const StudentDetailsModal = ({
     console.warn('StudentDetailsModal: Invalid enrollment data received', enrollment);
     return null;
   }
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
 
   // Use enrollment data as fallback if student data not loaded
   const displayData = {
@@ -583,72 +600,86 @@ const StudentDetailsModal = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl mx-4 my-8 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div className="flex items-center space-x-4">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium text-lg flex-shrink-0"
-              style={{ backgroundColor: displayData.avatarColor || '#6B7280' }}
-            >
-              {displayData.avatar}
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      {/* Backdrop - clickable to close but doesn't block background */}
+      <div 
+        className={`fixed inset-0 transition-opacity duration-300 pointer-events-auto ${
+          isAnimating ? 'bg-black bg-opacity-20' : 'bg-transparent'
+        }`}
+        onClick={handleBackdropClick}
+      />
+      
+      {/* Modal Panel - positioned to not block background */}
+      <div className="fixed inset-y-0 right-0 flex justify-end pointer-events-none">
+        <div 
+          className={`w-[1200px] transform transition-transform duration-300 ease-out pointer-events-auto ${
+            isAnimating ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex h-full flex-col bg-white shadow-2xl border-l border-gray-200">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center space-x-4">
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium text-lg flex-shrink-0"
+                  style={{ backgroundColor: displayData.avatarColor || '#6B7280' }}
+                >
+                  {displayData.avatar}
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">{displayData.name}</h2>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleClose}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">{displayData.name}</h2>
+            
+            {/* Tabs */}
+            <div className="border-b border-gray-100">
+              <div className="flex space-x-8 px-6">
+                <button
+                  className={`py-3 text-sm font-medium border-b-2 ${
+                    activeTab === 'info' 
+                      ? 'border-indigo-600 text-indigo-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => setActiveTab('info')}
+                >
+                  Student Information
+                </button>
+                <button
+                  className={`py-3 text-sm font-medium border-b-2 ${
+                    activeTab === 'courses' 
+                      ? 'border-indigo-600 text-indigo-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => setActiveTab('courses')}
+                >
+                  Courses
+                </button>
+                <button
+                  className={`py-3 text-sm font-medium border-b-2 ${
+                    activeTab === 'payments' 
+                      ? 'border-indigo-600 text-indigo-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => setActiveTab('payments')}
+                >
+                  Payments
+                </button>
+              </div>
+            </div>
+            
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {renderTabContent()}
             </div>
           </div>
-          
-          <button 
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
-        
-        {/* Tabs */}
-        <div className="border-b border-gray-100">
-          <div className="flex space-x-8 px-6">
-            <button
-              className={`py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'info' 
-                  ? 'border-indigo-600 text-indigo-600' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('info')}
-            >
-              Student Information
-            </button>
-            <button
-              className={`py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'courses' 
-                  ? 'border-indigo-600 text-indigo-600' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('courses')}
-            >
-              Courses
-            </button>
-            <button
-              className={`py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'payments' 
-                  ? 'border-indigo-600 text-indigo-600' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('payments')}
-            >
-              Payments
-            </button>
-          </div>
-        </div>
-        
-        {/* Tab Content */}
-        <div className="p-6">
-          {renderTabContent()}
         </div>
       </div>
     </div>

@@ -136,7 +136,13 @@ function App() {
                                     <CRMInterface />
                                 </ProtectedRoute>
                             }
-                        />
+                        >
+                            {/* Default CRM overview */}
+                            <Route index element={<CRMInterface />} />
+                            
+                            {/* Student details route */}
+                            <Route path="students/:studentId" element={<CRMInterface />} />
+                        </Route>
 
                         {/* Bookkeeping System Routes */}
                         <Route

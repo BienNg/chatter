@@ -14,6 +14,9 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useEnrollments } from './useEnrollments';
+import { useStudents } from './useStudents';
+import { useCourses } from './useCourses';
 
 /**
  * usePayments - Custom hook for managing payment data
@@ -25,6 +28,9 @@ export const usePayments = () => {
     const [error, setError] = useState(null);
     
     const { currentUser } = useAuth();
+    const { isStudentEnrolled, enrollStudent } = useEnrollments();
+    const { getStudentById } = useStudents();
+    const { courses } = useCourses();
 
     // Load payments on mount
     useEffect(() => {
@@ -69,13 +75,69 @@ export const usePayments = () => {
         return () => unsubscribe();
     }, [currentUser]);
 
-    // Add a new payment
+    // Add a new payment with automatic enrollment
     const addPayment = async (paymentData) => {
         if (!currentUser || !paymentData) {
             throw new Error('Missing required data for payment creation');
         }
 
         try {
+            console.log('Processing payment with automatic enrollment check:', paymentData);
+
+            // Check if the payment includes student and course information for auto-enrollment
+            const { studentId, courseId, studentName, studentEmail, courseName } = paymentData;
+            
+            if (studentId && courseId) {
+                // Check if student is already enrolled in the course
+                const alreadyEnrolled = isStudentEnrolled(studentId, courseId);
+                console.log(`Student ${studentName} enrollment status for course ${courseName}:`, alreadyEnrolled);
+                
+                if (!alreadyEnrolled) {
+                    console.log(`Auto-enrolling student ${studentName} in course ${courseName}`);
+                    
+                    // Find the course to get the classId
+                    const selectedCourse = courses.find(c => c.id === courseId);
+                    if (!selectedCourse) {
+                        console.warn(`Course not found for courseId: ${courseId}, proceeding with payment only`);
+                    } else {
+                        try {
+                            // Prepare enrollment data
+                            const enrollmentData = {
+                                studentId: studentId,
+                                courseId: courseId,
+                                classId: selectedCourse.classId,
+                                studentName: studentName || 'Unknown Student',
+                                studentEmail: studentEmail || '',
+                                courseName: courseName || selectedCourse.courseName || 'Unknown Course',
+                                courseLevel: selectedCourse.level || '',
+                                className: selectedCourse.className || '',
+                                status: 'active',
+                                paymentStatus: 'paid',
+                                amount: paymentData.amount || 0,
+                                currency: paymentData.currency || 'VND',
+                                notes: `Auto-enrolled via payment on ${new Date().toLocaleDateString()}`
+                            };
+
+                            // Enroll the student
+                            const enrollmentId = await enrollStudent(enrollmentData);
+                            console.log(`Successfully auto-enrolled student ${studentName} with enrollment ID: ${enrollmentId}`);
+                            
+                            // Add enrollment ID to payment data
+                            paymentData.enrollmentId = enrollmentId;
+                            paymentData.autoEnrolled = true;
+                            
+                        } catch (enrollmentError) {
+                            console.error('Error auto-enrolling student:', enrollmentError);
+                            // Continue with payment creation even if enrollment fails
+                            console.log('Proceeding with payment creation despite enrollment failure');
+                        }
+                    }
+                } else {
+                    console.log(`Student ${studentName} is already enrolled in course ${courseName}`);
+                }
+            }
+
+            // Create the payment
             const payment = {
                 ...paymentData,
                 createdAt: serverTimestamp(),
@@ -88,10 +150,13 @@ export const usePayments = () => {
 
             const docRef = await addDoc(collection(db, 'payments'), payment);
             
+            console.log('Payment created successfully:', { paymentId: docRef.id, autoEnrolled: paymentData.autoEnrolled });
+            
             return {
                 success: true,
                 paymentId: docRef.id,
-                payment: { id: docRef.id, ...payment }
+                payment: { id: docRef.id, ...payment },
+                autoEnrolled: paymentData.autoEnrolled || false
             };
 
         } catch (error) {

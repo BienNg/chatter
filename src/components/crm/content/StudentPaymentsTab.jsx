@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Calendar, DollarSign, FileText, MoreVertical } from 'lucide-react';
+import { CreditCard, Calendar, DollarSign, FileText, MoreVertical, User } from 'lucide-react';
 import { usePayments } from '../../../hooks/usePayments';
+import { useAccounts } from '../../../hooks/useAccounts';
 
 const StudentPaymentsTab = ({ student }) => {
   const [studentPayments, setStudentPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const { getPaymentsByStudent } = usePayments();
+  const { accounts } = useAccounts();
 
   // Load student payments when component mounts or student changes
   useEffect(() => {
@@ -52,6 +54,88 @@ const StudentPaymentsTab = ({ student }) => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Get account by payment method or account ID
+  const getAccountForPayment = (payment) => {
+    if (!accounts || accounts.length === 0) return null;
+    
+    // Try to find by paymentAccountId first
+    if (payment.paymentAccountId) {
+      const account = accounts.find(acc => acc.id === payment.paymentAccountId);
+      if (account) return account;
+    }
+    
+    // Fall back to matching by payment method type
+    if (payment.paymentMethod) {
+      const account = accounts.find(acc => acc.type === payment.paymentMethod);
+      if (account) return account;
+    }
+    
+    // Default to first account or null
+    return accounts[0] || null;
+  };
+  
+  // Generate account icon display
+  const renderAccountIcon = (payment) => {
+    const account = getAccountForPayment(payment);
+    
+    if (!account) {
+      return (
+        <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+          <User className="w-4 h-4 text-indigo-600" />
+        </div>
+      );
+    }
+    
+    // Generate consistent account icon color based on type
+    const getAccountIconColor = (type) => {
+      const typeColors = {
+        'bank_transfer': { background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)' },
+        'cash': { background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
+        'credit_card': { background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)' },
+        'paypal': { background: 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)' },
+        'other': { background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)' },
+        'payment_method': { background: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)' }
+      };
+      
+      return typeColors[type] || typeColors['payment_method'];
+    };
+    
+    const getAccountInitials = (account) => {
+      const name = account.name || '';
+      const words = name.trim().split(/\s+/);
+      if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+      } else if (words.length === 1 && words[0].length >= 2) {
+        return words[0].slice(0, 2).toUpperCase();
+      } else if (words[0]) {
+        return (words[0][0] + 'A').toUpperCase();
+      }
+      return 'AC';
+    };
+    
+    return (
+      <div 
+        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ 
+          background: account.avatarUrl ? '#ffffff' : getAccountIconColor(account.type).background,
+          border: account.avatarUrl ? '1px solid #e5e7eb' : 'none'
+        }}
+      >
+        {account.avatarUrl ? (
+          <img
+            src={account.avatarUrl}
+            alt={account.name || 'Account'}
+            className="w-8 h-8 rounded-lg object-cover"
+          />
+        ) : (
+          <span className="text-xs font-bold text-white">
+            {getAccountInitials(account)}
+          </span>
+        )}
+      </div>
+    );
   };
 
   // Get status badge
@@ -149,9 +233,7 @@ const StudentPaymentsTab = ({ student }) => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <CreditCard className="w-4 h-4 text-indigo-600" />
-                      </div>
+                      {renderAccountIcon(payment)}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900">
                           {formatCurrency(payment.amount, payment.currency)}

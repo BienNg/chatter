@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Phone } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Tag, User, Globe, Monitor, FileText, Edit2, Check, X } from 'lucide-react';
 import FirebaseCollectionSelector from '../../shared/FirebaseCollectionSelector';
 import { FirebaseMultiSelectSelector } from '../../shared/index';
 import { useFieldEdit } from '../../../hooks/useFieldEdit';
@@ -25,283 +25,261 @@ const StudentInfoTab = ({
     setEditValue
   } = useFieldEdit(updateStudent);
 
-  return (
-    <div className="space-y-6">
-      {/* Basic Information */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Basic Information</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-gray-500">Name</label>
-              {!editField && (
-                <button 
-                  onClick={() => handleEditStart('name', student.name)}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-            {editField === 'name' ? (
-              <div className="mt-1 flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  autoFocus
-                />
-                <div className="flex space-x-1">
-                  <button 
-                    onClick={() => handleEditSave(student.id)}
-                    className="p-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200"
-                  >
-                    Save
-                  </button>
-                  <button 
-                    onClick={handleEditCancel}
-                    className="p-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-1 text-sm font-medium text-gray-900">{student.name}</p>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Student ID</label>
-            <p className="mt-1 text-sm font-medium text-gray-900">{student.studentId}</p>
-          </div>
+  const CompactField = ({ label, value, fieldName, type = "text", placeholder = "", rows = 1, icon: Icon }) => (
+    <div className="flex items-center space-x-2 py-1">
+      {Icon && (
+        <div className="flex-shrink-0 p-1 bg-gray-50 rounded">
+          <Icon className="w-3 h-3 text-gray-500" />
         </div>
-      </div>
-      
-      {/* Contact Information */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Contact Information</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-gray-500">Email</label>
-              {!editField && (
-                <button 
-                  onClick={() => handleEditStart('email', student.email)}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-            {editField === 'email' ? (
-              <div className="mt-1 flex items-center space-x-2">
-                <input
-                  type="email"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  autoFocus
-                />
-                <div className="flex space-x-1">
-                  <button 
-                    onClick={() => handleEditSave(student.id)}
-                    className="p-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200"
-                  >
-                    Save
-                  </button>
-                  <button 
-                    onClick={handleEditCancel}
-                    className="p-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-1 flex items-center space-x-2">
-                <Mail className="h-4 w-4 text-gray-400" />
-                <p className="text-sm text-gray-900">{student.email || 'No email provided'}</p>
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-gray-500">Phone</label>
-              {!editField && (
-                <button 
-                  onClick={() => handleEditStart('phone', student.phone)}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-            {editField === 'phone' ? (
-              <div className="mt-1 flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  autoFocus
-                />
-                <div className="flex space-x-1">
-                  <button 
-                    onClick={() => handleEditSave(student.id)}
-                    className="p-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200"
-                  >
-                    Save
-                  </button>
-                  <button 
-                    onClick={handleEditCancel}
-                    className="p-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-1 flex items-center space-x-2">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <p className="text-sm text-gray-900">{student.phone || 'No phone provided'}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Location */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Location</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Country</label>
-            <div className="mt-1">
-              <FirebaseCollectionSelector
-                collectionName="countries"
-                record={student}
-                updateRecord={updateStudent}
-                fieldName="location"
-                fieldDisplayName="Country"
-                options={countries}
-                addOption={addCountry}
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-gray-500">City</label>
-            <div className="mt-1">
-              <FirebaseCollectionSelector
-                collectionName="cities"
-                record={student}
-                updateRecord={updateStudent}
-                fieldName="city"
-                fieldDisplayName="City"
-                options={cities}
-                addOption={addCity}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Platform & Categories */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-500">Additional Information</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Platform</label>
-            <div className="mt-1">
-              <FirebaseCollectionSelector
-                collectionName="platforms"
-                record={student}
-                updateRecord={updateStudent}
-                fieldName="platform"
-                fieldDisplayName="Platform"
-                options={platforms}
-                addOption={addPlatform}
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Categories</label>
-            <div className="mt-1">
-              <FirebaseMultiSelectSelector
-                collectionName="categories"
-                record={student}
-                updateRecord={updateStudent}
-                fieldName="categories"
-                fieldDisplayName="Category"
-                options={categories}
-                addOption={addCategory}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Notes */}
-      <div className="space-y-4">
+      )}
+      <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-500">Notes</h3>
+          <label className="text-xs font-medium text-gray-600 w-20 flex-shrink-0">{label}</label>
           {!editField && (
             <button 
-              onClick={() => handleEditStart('notes', student.notes)}
-              className="text-indigo-600 hover:text-indigo-800"
+              onClick={() => handleEditStart(fieldName, value)}
+              className="p-0.5 text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-              </svg>
+              <Edit2 className="w-3 h-3" />
             </button>
           )}
         </div>
         
-        {editField === 'notes' ? (
-          <div className="mt-1 flex flex-col space-y-2">
-            <textarea
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              rows="4"
-              autoFocus
-            />
-            <div className="flex space-x-2 justify-end">
+        {editField === fieldName ? (
+          <div className="space-y-1 mt-1">
+            {type === "textarea" ? (
+              <textarea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                rows={rows}
+                placeholder={placeholder}
+                autoFocus
+              />
+            ) : (
+              <input
+                type={type}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder={placeholder}
+                autoFocus
+              />
+            )}
+            <div className="flex justify-end space-x-1">
               <button 
                 onClick={() => handleEditSave(student.id)}
-                className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 text-sm"
+                className="px-2 py-0.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
               >
-                Save
+                ✓
               </button>
               <button 
                 onClick={handleEditCancel}
-                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200"
               >
-                Cancel
+                ✕
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {student.notes || 'No notes available for this student.'}
-            </p>
-          </div>
+          <p className="text-xs text-gray-900 mt-0.5 truncate">{value || <span className="text-gray-400 italic">Not provided</span>}</p>
         )}
+      </div>
+    </div>
+  );
+
+  const SelectorField = ({ label, children, icon: Icon }) => (
+    <div className="flex items-center space-x-2 py-1">
+      {Icon && (
+        <div className="flex-shrink-0 p-1 bg-gray-50 rounded">
+          <Icon className="w-3 h-3 text-gray-500" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <label className="text-xs font-medium text-gray-600 block mb-1">{label}</label>
+        {children}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+      {/* Quick Overview Header */}
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 border border-indigo-100">
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="text-center">
+            <div className="text-gray-500">Email</div>
+            <div className="font-medium text-gray-900 truncate">{student.email || 'Not provided'}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-gray-500">Status</div>
+            <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
+              student.status === 'active' ? 'bg-green-100 text-green-800' :
+              student.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+              student.status === 'suspended' ? 'bg-red-100 text-red-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>
+              {student.status || 'Active'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Compact Form Fields */}
+      <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2 group">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+          <User className="w-4 h-4 text-indigo-600 mr-2" />
+          Personal Information
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <CompactField
+            label="Name"
+            value={student.name}
+            fieldName="name"
+            placeholder="Full name"
+            icon={User}
+          />
+          
+          <CompactField
+            label="Phone"
+            value={student.phone}
+            fieldName="phone"
+            type="tel"
+            placeholder="+1 (555) 123-4567"
+            icon={Phone}
+          />
+          
+          <CompactField
+            label="Email"
+            value={student.email}
+            fieldName="email"
+            type="email"
+            placeholder="email@example.com"
+            icon={Mail}
+          />
+          
+          <CompactField
+            label="Emergency"
+            value={student.emergencyContact}
+            fieldName="emergencyContact"
+            placeholder="Emergency contact"
+            icon={Phone}
+          />
+        </div>
+
+        {/* Quick Info Row */}
+        <div className="grid grid-cols-3 gap-2 pt-2 mt-2 border-t border-gray-100 text-xs">
+          <div>
+            <span className="text-gray-500">DOB:</span>
+            <span className="ml-1 text-gray-900">{student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not provided'}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Gender:</span>
+            <span className="ml-1 text-gray-900">{student.gender || 'Not provided'}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Level:</span>
+            <span className="ml-1 text-gray-900">{student.level || 'Not provided'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Location & Platform */}
+      <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+          <MapPin className="w-4 h-4 text-indigo-600 mr-2" />
+          Location & Platform
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <SelectorField label="Country" icon={Globe}>
+            <FirebaseCollectionSelector
+              collectionName="countries"
+              record={student}
+              updateRecord={updateStudent}
+              fieldName="location"
+              fieldDisplayName="Country"
+              options={countries}
+              addOption={addCountry}
+            />
+          </SelectorField>
+          
+          <SelectorField label="City" icon={MapPin}>
+            <FirebaseCollectionSelector
+              collectionName="cities"
+              record={student}
+              updateRecord={updateStudent}
+              fieldName="city"
+              fieldDisplayName="City"
+              options={cities}
+              addOption={addCity}
+            />
+          </SelectorField>
+          
+          <SelectorField label="Platform" icon={Monitor}>
+            <FirebaseCollectionSelector
+              collectionName="platforms"
+              record={student}
+              updateRecord={updateStudent}
+              fieldName="platform"
+              fieldDisplayName="Platform"
+              options={platforms}
+              addOption={addPlatform}
+            />
+          </SelectorField>
+          
+          <SelectorField label="Categories" icon={Tag}>
+            <FirebaseMultiSelectSelector
+              collectionName="categories"
+              record={student}
+              updateRecord={updateStudent}
+              fieldName="categories"
+              fieldDisplayName="Category"
+              options={categories}
+              addOption={addCategory}
+            />
+          </SelectorField>
+        </div>
+        
+        <div className="pt-2 border-t border-gray-100">
+          <CompactField
+            label="Address"
+            value={student.address}
+            fieldName="address"
+            placeholder="Full address"
+            icon={MapPin}
+          />
+        </div>
+      </div>
+
+      {/* Academic & Notes */}
+      <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+          <FileText className="w-4 h-4 text-indigo-600 mr-2" />
+          Academic Information
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+          <div>
+            <span className="text-gray-500">Enrolled:</span>
+            <span className="ml-1 text-gray-900">{student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not provided'}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Level:</span>
+            <span className="ml-1 text-gray-900">{student.level || 'Not provided'}</span>
+          </div>
+        </div>
+        
+        <CompactField
+          label="Notes"
+          value={student.notes}
+          fieldName="notes"
+          type="textarea"
+          rows={2}
+          placeholder="Add notes..."
+          icon={FileText}
+        />
       </div>
     </div>
   );

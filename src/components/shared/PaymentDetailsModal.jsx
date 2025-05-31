@@ -125,37 +125,9 @@ const PaymentDetailsModal = ({
     return formatters[curr]?.format(amount) || `${curr} ${amount?.toLocaleString() || 0}`;
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'pending':
-        return <Clock className="w-5 h-5 text-yellow-600" />;
-      case 'failed':
-        return <XCircle className="w-5 h-5 text-red-600" />;
-      case 'refunded':
-        return <RefreshCw className="w-5 h-5 text-gray-600" />;
-      default:
-        return <AlertCircle className="w-5 h-5 text-gray-600" />;
-    }
-  };
+  // Status icon function removed
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      'completed': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
-      'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
-      'failed': { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
-      'refunded': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Refunded' }
-    };
-
-    const config = statusConfig[status] || statusConfig['pending'];
-    
-    return (
-      <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
-    );
-  };
+  // Status badge function removed
 
   const getUserInitials = (name) => {
     return name
@@ -311,9 +283,7 @@ const PaymentDetailsModal = ({
                         </span>
                       )}
                     </div>
-                    <div className="mt-2 text-sm text-gray-600">
-                      Payment method: {payment.paymentMethod || 'Not specified'}
-                    </div>
+                    {/* Payment method removed */}
                   </div>
 
                   {/* Two Column Layout for Main Content */}

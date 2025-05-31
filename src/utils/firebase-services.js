@@ -21,7 +21,6 @@ export const studentServices = {
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      studentId: doc.data().studentId || doc.id,
       createdAt: doc.data().createdAt?.toDate?.() || new Date()
     }));
   },
@@ -35,7 +34,6 @@ export const studentServices = {
       return {
         id: docSnap.id,
         ...docSnap.data(),
-        studentId: docSnap.data().studentId || docSnap.id,
         createdAt: docSnap.data().createdAt?.toDate?.() || new Date()
       };
     } else {

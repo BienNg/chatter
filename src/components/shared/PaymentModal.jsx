@@ -39,11 +39,9 @@ const PaymentModal = ({
     discountIds: [],
     paymentType: 'full_payment',
     paymentAccountId: '',
-    status: 'completed',
     notes: '',
     paymentDate: new Date().toISOString().split('T')[0],
-    receiptImage: null,
-    paymentMethod: 'cash'
+    receiptImage: null
   });
 
   const [errors, setErrors] = useState({});
@@ -61,11 +59,9 @@ const PaymentModal = ({
         discountIds: prefilledData?.discountIds || [],
         paymentType: prefilledData?.paymentType || 'full_payment',
         paymentAccountId: prefilledData?.paymentAccountId || '',
-        status: prefilledData?.status || 'completed',
         notes: prefilledData?.notes || '',
         paymentDate: prefilledData?.paymentDate || new Date().toISOString().split('T')[0],
-        receiptImage: null,
-        paymentMethod: prefilledData?.paymentMethod || 'cash'
+        receiptImage: null
       };
       
       setFormData(initialData);

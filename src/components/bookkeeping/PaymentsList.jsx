@@ -15,7 +15,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
   const navigate = useNavigate();
   const params = useParams();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  // Status filter removed
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState(null);
@@ -33,22 +33,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
     return formatters[curr]?.format(amount) || `${curr} ${amount.toLocaleString()}`;
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      'completed': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
-      'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
-      'failed': { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
-      'refunded': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Refunded' }
-    };
-
-    const config = statusConfig[status] || statusConfig['pending'];
-    
-    return (
-      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
-    );
-  };
+  // Status badge function removed
 
   const getUserInitials = (name) => {
     return name
@@ -76,8 +61,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
       // Course information
       payment.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       payment.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      // Status
-      payment.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // Status field removed
       // Amount and currency
       payment.amount.toString().includes(searchQuery.toLowerCase()) ||
       payment.currency.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,9 +73,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
       new Date(payment.createdAt).toLocaleDateString('en-US').includes(searchQuery.toLowerCase()) ||
       new Date(payment.createdAt).toLocaleDateString('de-DE').includes(searchQuery.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   // Handle URL-based modal opening
@@ -233,21 +215,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
             />
           </div>
           
-          {/* Status Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-8 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
-            >
-              <option value="all">All Status</option>
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-              <option value="failed">Failed</option>
-              <option value="refunded">Refunded</option>
-            </select>
-          </div>
+          {/* Status Filter removed */}
         </div>
       </div>
 
@@ -264,9 +232,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Amount
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
+              {/* Status column removed */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Date
               </th>
@@ -283,7 +249,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
               <tr>
                 <td colSpan="7" className="px-6 py-16 text-center text-gray-500">
                   <div className="text-center max-w-md mx-auto">
-                    {searchQuery || statusFilter !== 'all' ? (
+                    {searchQuery ? (
                       // Filtered but no results
                       <>
                         <div className="mb-4">
@@ -296,11 +262,10 @@ const PaymentsList = ({ currency = 'EUR' }) => {
                         <button
                           onClick={() => {
                             setSearchQuery('');
-                            setStatusFilter('all');
                           }}
                           className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
                         >
-                          Clear all filters
+                          Clear search
                         </button>
                       </>
                     ) : (
@@ -362,9 +327,7 @@ const PaymentsList = ({ currency = 'EUR' }) => {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(payment.status)}
-                  </td>
+                  {/* Status cell removed */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(payment.createdAt).toLocaleDateString()}
                   </td>

@@ -1,24 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { studentServices } from '../utils/firebase-services';
 
-// Helper function to generate next sequential student ID
-const generateNextStudentId = (existingStudents) => {
-  // Extract all existing student IDs that match the STU format
-  const studentNumbers = existingStudents
-    .filter(student => student.studentId && student.studentId.startsWith('STU'))
-    .map(student => {
-      const match = student.studentId.match(/STU(\d+)/);
-      return match ? parseInt(match[1], 10) : 0;
-    })
-    .filter(num => !isNaN(num));
-  
-  // Find the highest number and add 1
-  const nextNumber = studentNumbers.length > 0 ? Math.max(...studentNumbers) + 1 : 1;
-  
-  // Format as STU with 5 digits (padded with zeros)
-  return `STU${nextNumber.toString().padStart(5, '0')}`;
-};
-
 export function useStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,19 +40,11 @@ export function useStudents() {
         }
       }
 
-      // Generate sequential student ID
-      const studentId = generateNextStudentId(students);
-
-      const newStudent = {
-        ...studentData,
-        studentId, // Use the generated sequential ID
-      };
-
-      const docId = await studentServices.addStudent(newStudent);
+      const docId = await studentServices.addStudent(studentData);
       
       // Create the student object for local state
       const studentWithId = {
-        ...newStudent,
+        ...studentData,
         id: docId,
         createdAt: new Date(),
         updatedAt: new Date()

@@ -950,10 +950,6 @@
                                         <input type="text" id="fullName" class="modern-input w-full" placeholder=" " required>
                                         <label for="fullName">Full Name</label>
                                     </div>
-                                    <div class="floating-label">
-                                        <input type="text" id="personId" class="modern-input w-full" placeholder=" " readonly>
-                                        <label for="personId">ID (Auto-generated)</label>
-                                    </div>
                                 </div>
                             </div>
 
@@ -1147,9 +1143,6 @@
         // Modal functions
         function openAddStudentModal() {
             document.getElementById('addStudentModal').style.display = 'flex';
-            // Generate auto person ID
-            const personId = 'STU' + String(Math.floor(Math.random() * 9000) + 1000);
-            document.getElementById('personId').value = personId;
             
             // Reset form
             selectedCourses = [];
@@ -1236,7 +1229,6 @@
             // Collect all form data
             const formData = {
                 fullName: document.getElementById('fullName').value,
-                personId: document.getElementById('personId').value,
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 country: document.getElementById('country').value,

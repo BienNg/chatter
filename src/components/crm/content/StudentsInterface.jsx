@@ -87,15 +87,12 @@ const StudentsInterface = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [editingCell.studentId, editingCell.field, handleAutoSave]);
 
-  // Filtered students - simplified to only search by name, email, and studentId
+  // Filtered students - simplified to only search by name and email
   const filteredStudents = useMemo(() => {
-    return students.filter(student => {
-      const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.studentId?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      return matchesSearch;
-    });
+    return students.filter(student =>
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   }, [students, searchTerm]);
 
   const handleAddStudent = async (newStudent) => {
@@ -314,7 +311,6 @@ const StudentsInterface = () => {
                       <div className="text-sm font-medium text-gray-900">
                         {renderInlineEditableText(student, 'name', student.name)}
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">{student.studentId}</div>
                     </div>
                   </div>
                 </td>

@@ -218,11 +218,6 @@ const StudentDetailsModal = ({
               <p className="mt-1 text-sm font-medium text-gray-900">{displayData.name}</p>
             )}
           </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-gray-500">Student ID</label>
-            <p className="mt-1 text-sm font-medium text-gray-900">{displayData.studentId}</p>
-          </div>
         </div>
       </div>
       
@@ -604,7 +599,6 @@ const StudentDetailsModal = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{displayData.name}</h2>
-              <p className="text-sm text-gray-500">{displayData.studentId}</p>
             </div>
           </div>
           

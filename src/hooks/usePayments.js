@@ -82,9 +82,7 @@ export const usePayments = () => {
                 updatedAt: serverTimestamp(),
                 createdBy: currentUser.uid,
                 // Ensure we have required fields
-                status: paymentData.status || 'pending',
                 currency: paymentData.currency || 'EUR',
-                paymentMethod: paymentData.paymentMethod || 'bank_transfer',
                 paymentType: paymentData.paymentType || 'full_payment'
             };
 
@@ -159,14 +157,10 @@ export const usePayments = () => {
         const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-        // Filter payments by currency and status
-        const completedPayments = payments.filter(p => 
-            p.status === 'completed' && p.currency === currency
-        );
-
-        const pendingPayments = payments.filter(p => 
-            p.status === 'pending' && p.currency === currency
-        );
+        // Filter payments by currency
+        const allPayments = payments.filter(p => p.currency === currency);
+        const completedPayments = allPayments;
+        const pendingPayments = [];
 
         // Calculate totals
         const totalRevenue = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -182,8 +176,8 @@ export const usePayments = () => {
         });
         const previousMonthRevenue = previousMonthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        const pendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        const pendingCount = pendingPayments.length;
+        const pendingAmount = 0;
+        const pendingCount = 0;
 
         // Calculate growth percentages
         const monthlyGrowthPercent = previousMonthRevenue > 0 

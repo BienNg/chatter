@@ -74,7 +74,6 @@ const StudentDetailsModal = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{student.name}</h2>
-              <p className="text-sm text-gray-500">{student.studentId}</p>
             </div>
           </div>
           

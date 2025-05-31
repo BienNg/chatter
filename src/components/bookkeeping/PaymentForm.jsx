@@ -28,7 +28,6 @@ const PaymentForm = ({ isOpen, onClose, onSubmit, currency = 'EUR' }) => {
     discountIds: [],
     paymentType: 'full_payment',
     paymentAccountId: '',
-    status: 'completed',
     notes: '',
     paymentDate: new Date().toISOString().split('T')[0],
     receiptImage: null
@@ -49,7 +48,6 @@ const PaymentForm = ({ isOpen, onClose, onSubmit, currency = 'EUR' }) => {
         discountIds: [],
         paymentType: 'full_payment',
         paymentAccountId: '',
-        status: 'completed',
         notes: '',
         paymentDate: new Date().toISOString().split('T')[0],
         receiptImage: null

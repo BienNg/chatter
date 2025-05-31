@@ -87,7 +87,6 @@ const defaultData = {
 // Sample students data
 const sampleStudents = [
   {
-    studentId: 'STU00001',
     name: 'Nguyen Thi Mai',
     email: 'mai.nguyen@email.com',
     phone: '+84 901 234 567',
@@ -102,7 +101,6 @@ const sampleStudents = [
     avatarColor: '#3B82F6'
   },
   {
-    studentId: 'STU00002',
     name: 'Le Van Duc',
     email: 'duc.le@email.com',
     phone: '+84 912 345 678',
@@ -117,7 +115,6 @@ const sampleStudents = [
     avatarColor: '#10B981'
   },
   {
-    studentId: 'STU00003',
     name: 'Pham Hoang An',
     email: 'an.pham@email.com',
     phone: '+84 923 456 789',
@@ -132,7 +129,6 @@ const sampleStudents = [
     avatarColor: '#8B5CF6'
   },
   {
-    studentId: 'STU00004',
     name: 'Tran Linh Chi',
     email: 'chi.tran@email.com',
     phone: '+84 934 567 890',
@@ -147,7 +143,6 @@ const sampleStudents = [
     avatarColor: '#EC4899'
   },
   {
-    studentId: 'STU00005',
     name: 'Vo Thanh Minh',
     email: 'minh.vo@email.com',
     phone: '+84 945 678 901',

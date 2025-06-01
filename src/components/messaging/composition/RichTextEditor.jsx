@@ -7,6 +7,7 @@ import {
     ListOrdered,
     Link
 } from 'lucide-react';
+import LinkModal from './LinkModal';
 
 const RichTextEditor = forwardRef(({ 
     value = '', 
@@ -20,6 +21,8 @@ const RichTextEditor = forwardRef(({
     const editorRef = useRef(null);
     const [selection, setSelection] = useState(null);
     const [activeFormats, setActiveFormats] = useState(new Set());
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkModalData, setLinkModalData] = useState({ text: '', url: '' });
 
     // Expose methods to parent component
     useImperativeHandle(ref, () => ({
@@ -246,18 +249,48 @@ const RichTextEditor = forwardRef(({
         const selection = window.getSelection();
         const selectedText = selection.toString();
         
-        const url = prompt('Enter URL:', 'https://');
-        if (url && url !== 'https://') {
-            if (selectedText) {
-                execCommand('createLink', url);
+        // Store the current selection for later use
+        setSelection(selection.rangeCount > 0 ? selection.getRangeAt(0) : null);
+        
+        // Set initial data for the modal
+        setLinkModalData({
+            text: selectedText || '',
+            url: ''
+        });
+        
+        setShowLinkModal(true);
+    };
+
+    const handleLinkSave = (text, url) => {
+        // Ensure URL has protocol
+        const finalUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+        
+        // Focus the editor
+        editorRef.current?.focus();
+        
+        if (selection) {
+            // Restore the selection
+            const newSelection = window.getSelection();
+            newSelection.removeAllRanges();
+            newSelection.addRange(selection);
+            
+            // If there was selected text, replace it with the link
+            if (selection.toString()) {
+                const linkHtml = `<a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+                execCommand('insertHTML', linkHtml);
             } else {
-                const linkText = prompt('Enter link text:', url);
-                if (linkText) {
-                    const linkHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-                    execCommand('insertHTML', linkHtml);
-                }
+                // Insert new link at cursor position
+                const linkHtml = `<a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+                execCommand('insertHTML', linkHtml);
             }
+        } else {
+            // No stored selection, just insert at current position
+            const linkHtml = `<a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+            execCommand('insertHTML', linkHtml);
         }
+        
+        // Reset the stored selection
+        setSelection(null);
     };
 
     const toggleList = (listType) => {
@@ -374,6 +407,15 @@ const RichTextEditor = forwardRef(({
                 onKeyDown={handleKeyDown}
                 data-placeholder={placeholder}
                 suppressContentEditableWarning={true}
+            />
+
+            {/* Link Modal */}
+            <LinkModal
+                isOpen={showLinkModal}
+                onClose={() => setShowLinkModal(false)}
+                onSave={handleLinkSave}
+                initialText={linkModalData.text}
+                initialUrl={linkModalData.url}
             />
 
             <style jsx>{`

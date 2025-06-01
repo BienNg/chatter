@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   MessageSquare, 
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useTabPersistence } from '../../../hooks/useTabPersistence';
 import { generateSectionUrl, getMiddleClickHandlers } from '../../../utils/navigation';
+import UserProfileModal from '../../shared/UserProfileModal';
 
 /**
  * Sidebar - Left navigation bar component
@@ -17,6 +18,7 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
   const navigate = useNavigate();
   const location = useLocation();
   const { getLastMessagingState } = useTabPersistence();
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Determine active section from URL if not explicitly provided
   const getCurrentSection = () => {
@@ -134,13 +136,22 @@ export const Sidebar = ({ userProfile, currentUser, onLogout, activeSection }) =
           <Settings className="w-5 h-5" />
         </button>
         <button 
-          onClick={onLogout}
+          onClick={() => setShowProfileModal(true)}
           className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm hover:bg-indigo-700 transition-colors"
           title="User Profile"
         >
           {getUserInitial()}
         </button>
       </div>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        userProfile={userProfile}
+        currentUser={currentUser}
+        onLogout={onLogout}
+      />
     </div>
   );
 }; 

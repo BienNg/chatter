@@ -80,11 +80,8 @@ export const useCourses = (classId = null) => {
             const timestamp = serverTimestamp();
             const newCourse = {
                 classId,
-                courseName: courseData.className,
-                courseType: courseData.type,
-                format: courseData.format || 'Online',
-                formatOption: courseData.formatOption || '',
-                googleDriveUrl: courseData.sheetUrl || '',
+                courseName: courseData.courseName,
+                googleDriveUrl: courseData.googleDriveUrl || '',
                 teachers: courseData.teachers || [],
                 level: courseData.level || '',
                 beginDate: courseData.beginDate || '',
@@ -199,9 +196,6 @@ export const useCourses = (classId = null) => {
             }
             if (filters.level) {
                 q = query(q, where('level', '==', filters.level));
-            }
-            if (filters.courseType) {
-                q = query(q, where('courseType', '==', filters.courseType));
             }
             if (filters.status) {
                 q = query(q, where('status', '==', filters.status));

@@ -28,8 +28,8 @@ const PaymentCourseSelector = ({
                            course.courseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            course.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            course.level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.format?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.formatOption?.toLowerCase().includes(searchTerm.toLowerCase());
+                           (course.format && course.format.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (course.formatOption && course.formatOption.toLowerCase().includes(searchTerm.toLowerCase()));
       
       return matchesSearch;
     })

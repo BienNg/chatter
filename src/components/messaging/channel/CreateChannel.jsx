@@ -4,6 +4,7 @@ import { X, Hash, Lock } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useChannelClassSync } from '../../../hooks/useChannelClassSync';
 
 const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
     const [channelData, setChannelData] = useState({
@@ -16,6 +17,7 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
     const [error, setError] = useState('');
 
     const { currentUser } = useAuth();
+    const { handleChannelTypeChange } = useChannelClassSync();
 
     const channelTypes = [
         { id: 'general', name: 'General' },
@@ -54,6 +56,17 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
                     notifications: true
                 }
             });
+
+            // If channel type is 'class', automatically create a class object
+            if (channelData.type === 'class') {
+                try {
+                    await handleChannelTypeChange(channelRef.id, 'class', 'general', channelData.name.trim());
+                    console.log(`Auto-created class for new channel: ${channelData.name.trim()}`);
+                } catch (classError) {
+                    console.error('Error creating class for new channel:', classError);
+                    // Don't fail the channel creation if class creation fails
+                }
+            }
 
             // Close the modal immediately
             onClose();

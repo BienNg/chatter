@@ -134,6 +134,13 @@ export const ClassesTab = ({
     loadClassData();
   }, [channelId]);
 
+  // Reset course navigation state when channelId or courses change
+  useEffect(() => {
+    setActiveCourseIndex(0);
+    setIsNavigationVisible(false);
+    courseRefs.current = {};
+  }, [channelId, courses]);
+
   // Handle keyboard shortcuts for confirmation modal
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -542,7 +549,7 @@ export const ClassesTab = ({
       );
     };
 
-    if (courses.length < 2) return null;
+    if (courses.length < 2 || !courses.every(course => course && (course.id || course.courseName))) return null;
 
     return (
       <div 
@@ -778,9 +785,9 @@ export const ClassesTab = ({
                         <div className="flex flex-wrap items-center gap-4 text-sm">
                           <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/20">
                             <Globe className="w-4 h-4 text-indigo-500" />
-                            <span className="font-medium text-gray-700">{course.format}</span>
+                            <span className="font-medium text-gray-700">{classData?.format || 'Not specified'}</span>
                             <span className="text-gray-500">•</span>
-                            <span className="text-gray-600">{course.formatOption}</span>
+                            <span className="text-gray-600">{classData?.formatOption || 'Not specified'}</span>
                           </div>
                           
                           <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/20">
@@ -1237,7 +1244,7 @@ export const ClassesTab = ({
                         <Globe className="w-4 h-4 text-gray-400" />
                       </div>
                       <p className="text-sm font-semibold text-gray-900">
-                        {[...new Set(courses.map(c => c.courseType).filter(Boolean))].length || 'None'}
+                        {classData?.classType || 'Not specified'}
                       </p>
                     </div>
                   </div>
@@ -1584,11 +1591,13 @@ export const ClassesTab = ({
       )}
 
       {/* Course Navigation Component */}
-      <CourseNavigationDots
-        courses={courses}
-        activeCourseIndex={activeCourseIndex}
-        onCourseSelect={scrollToCourse}
-      />
+      {classData && courses.length > 1 && (subTab || 'courses') === 'courses' && (
+        <CourseNavigationDots
+          courses={courses}
+          activeCourseIndex={activeCourseIndex}
+          onCourseSelect={scrollToCourse}
+        />
+      )}
     </div>
   );
 };

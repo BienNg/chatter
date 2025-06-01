@@ -10,10 +10,11 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
   const { types, addType } = useTypes();
   const { teachers, addTeacher } = useTeachers();
   const { createCourse, updateCourse } = useCourses();
-  const { getClassByChannelId } = useClasses();
+  const { getClassByChannelId, updateClass } = useClasses();
 
-  // State to store the classId
+  // State to store the classId and class data
   const [classId, setClassId] = useState(null);
+  const [classData, setClassData] = useState(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -231,13 +232,13 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     setForm({
       className: channelName ? channelName.toUpperCase() : '',
       level: '',
-      format: '',
-      formatOption: '',
-      type: '',
+      format: classData?.format || '',
+      formatOption: classData?.formatOption || '',
+      type: classData?.classType || '',
       teachers: [],
       beginDate: '',
       endDate: '',
-      days: [],
+      days: classData?.days || [],
       sheetUrl: '',
       totalDays: '',
     });
@@ -287,24 +288,46 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
         }
       }
 
+      // Update the class with format, location (formatOption), type, and days
+      const classUpdates = {
+        format: form.format,
+        formatOption: form.formatOption,
+        classType: form.type,
+        days: form.days // Course Days should be in classes collection
+      };
+
+      await updateClass(currentClassId, classUpdates);
+
       // Construct the final course name
       const finalCourseName = `${form.className} - ${form.level} - ${form.format} - ${form.formatOption}`;
 
       let result;
       if (isEditing && initialData) {
-        // Update existing course
+        // Update existing course - exclude format, formatOption, and type as they're now in classes
         result = await updateCourse(initialData.id, {
-          ...form,
+          className: form.className,
+          level: form.level,
+          teachers: form.teachers,
+          beginDate: form.beginDate,
+          endDate: form.endDate,
+          days: form.days, // Course Days should also be in courses collection
+          sheetUrl: form.sheetUrl,
+          totalDays: form.totalDays,
           courseName: finalCourseName,
-          courseType: form.type,
           googleDriveUrl: form.sheetUrl,
         });
       } else {
-        // Create new course
+        // Create new course - exclude format, formatOption, and type as they're now in classes
         const courseData = {
-          ...form,
+          className: form.className,
+          level: form.level,
+          teachers: form.teachers,
+          beginDate: form.beginDate,
+          endDate: form.endDate,
+          days: form.days, // Course Days should also be in courses collection
+          sheetUrl: form.sheetUrl,
+          totalDays: form.totalDays,
           courseName: finalCourseName,
-          courseType: form.type,
           googleDriveUrl: form.sheetUrl,
         };
         result = await createCourse(courseData, currentClassId);
@@ -344,45 +367,73 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [levelDropdown, typeDropdown, teacherDropdown]);
 
+  // Update form with class data when it becomes available
+  useEffect(() => {
+    if (isOpen && classData && !isEditing) {
+      // Only update if fields are currently empty (haven't been manually changed)
+      if (!form.format && classData.format) {
+        setForm(prev => ({
+          ...prev,
+          format: classData.format,
+          formatOption: classData.formatOption || '',
+          type: classData.classType || '',
+          days: classData.days || prev.days,
+          totalDays: calculateTotalDays(classData.format, prev.level) || prev.totalDays
+        }));
+      }
+    }
+  }, [classData, isOpen, isEditing, form.format, calculateTotalDays]);
+
   // Populate form with initial data when editing
   useEffect(() => {
-    if (isOpen && isEditing && initialData) {
-      let extractedClassName = initialData.courseName || initialData.className || '';
-      if (initialData.level && extractedClassName.includes(` - ${initialData.level}`)) {
-        extractedClassName = extractedClassName.replace(` - ${initialData.level}`, '');
+    const populateFormData = async () => {
+      if (isOpen && isEditing && initialData) {
+        // Get class data to populate format, formatOption, and type
+        let currentClassData = classData;
+        if (!currentClassData && channelId) {
+          try {
+            currentClassData = await getClassByChannelId(channelId);
+            if (currentClassData) {
+              setClassData(currentClassData);
+            }
+          } catch (error) {
+            console.error('Error fetching class data for editing:', error);
+          }
+        }
+
+        let extractedClassName = initialData.courseName || initialData.className || '';
+        if (initialData.level && extractedClassName.includes(` - ${initialData.level}`)) {
+          extractedClassName = extractedClassName.replace(` - ${initialData.level}`, '');
+        }
+        
+        setForm({
+          className: extractedClassName,
+          level: initialData.level || '',
+          format: currentClassData?.format || initialData.format || '',
+          formatOption: currentClassData?.formatOption || initialData.formatOption || '',
+          type: currentClassData?.classType || initialData.courseType || initialData.classType || '',
+          teachers: initialData.teachers || [],
+          beginDate: initialData.beginDate || '',
+          endDate: initialData.endDate || '',
+          days: currentClassData?.days || initialData.days || [],
+          sheetUrl: initialData.googleDriveUrl || '',
+          totalDays: initialData.totalDays || '',
+        });
       }
-      
-      setForm({
-        className: extractedClassName,
-        level: initialData.level || '',
-        format: initialData.format || '',
-        formatOption: initialData.formatOption || '',
-        type: initialData.courseType || initialData.classType || '',
-        teachers: initialData.teachers || [],
-        beginDate: initialData.beginDate || '',
-        endDate: initialData.endDate || '',
-        days: initialData.days || [],
-        sheetUrl: initialData.googleDriveUrl || '',
-        totalDays: initialData.totalDays || '',
-      });
-    } else if (isOpen && !isEditing && !form.className) {
-      setForm({
-        className: channelName ? channelName.toUpperCase() : '',
-        level: '',
-        format: '',
-        formatOption: '',
-        type: '',
-        teachers: [],
-        beginDate: '',
-        endDate: '',
-        days: [],
-        sheetUrl: '',
-        totalDays: '',
-      });
-    } else if (isOpen && !isEditing && channelName && form.className !== channelName.toUpperCase()) {
-      setForm((prev) => ({ ...prev, className: channelName.toUpperCase() }));
+    };
+
+    populateFormData();
+  }, [isOpen, isEditing, initialData, channelId, getClassByChannelId]);
+
+  // Initialize form for new courses - only run once when modal opens
+  useEffect(() => {
+    if (isOpen && !isEditing && channelName && !form.className) {
+      setForm(prev => ({
+        ...prev,
+        className: channelName.toUpperCase(),
+      }));
     }
-  }, [isOpen, isEditing, initialData, channelName]);
+  }, [isOpen, isEditing, channelName, form.className]);
 
   // Reset calendar to current month when modal opens
   useEffect(() => {
@@ -425,9 +476,10 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     const fetchClassData = async () => {
       if (channelId) {
         try {
-          const classData = await getClassByChannelId(channelId);
-          if (classData) {
-            setClassId(classData.id);
+          const fetchedClassData = await getClassByChannelId(channelId);
+          if (fetchedClassData) {
+            setClassId(fetchedClassData.id);
+            setClassData(fetchedClassData);
           }
         } catch (error) {
           console.error('Error fetching class data:', error);
@@ -441,12 +493,22 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
   // Check if all required fields are filled
   const isFormValid = form.className.trim() && form.level.trim() && form.format.trim() && form.formatOption.trim();
 
+  // Determine if fields should be disabled based on class data
+  const isFormatDisabled = !!(classData?.format);
+  const isLocationDisabled = !!(classData?.formatOption);
+  const isTypeDisabled = !!(classData?.classType);
+
   return {
     // Form state
     form,
     setForm,
     loading,
     isFormValid,
+    
+    // Field disabled states
+    isFormatDisabled,
+    isLocationDisabled,
+    isTypeDisabled,
     
     // Data
     levels,

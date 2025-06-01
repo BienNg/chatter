@@ -23,7 +23,10 @@ const CourseBasicInfo = ({
   onNewLevelClick,
   onNewTypeClick,
   onNewTeacherClick,
-  calculateTotalDays
+  calculateTotalDays,
+  isFormatDisabled = false,
+  isLocationDisabled = false,
+  isTypeDisabled = false
 }) => {
   const handleLevelSelect = (level) => {
     setForm((prev) => ({ 
@@ -122,61 +125,83 @@ const CourseBasicInfo = ({
       {/* Format */}
       <div className="flex items-end space-x-6">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Format *</label>
-          <div className="flex space-x-4">
-            {FORMATS.map((fmt) => (
-              <button
-                type="button"
-                key={fmt}
-                className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.format === fmt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                onClick={() => {
-                  setForm((prev) => ({ 
-                    ...prev, 
-                    format: fmt,
-                    formatOption: '',
-                    totalDays: calculateTotalDays(fmt, prev.level)
-                  }));
-                }}
-              >
-                {fmt}
-              </button>
-            ))}
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Format *
+            {isFormatDisabled && (
+              <span className="text-xs text-gray-500 ml-2">(Pre-selected from class)</span>
+            )}
+          </label>
+          {isFormatDisabled ? (
+            <div className="px-5 py-1.5 rounded-full border text-sm font-medium bg-gray-100 text-gray-700 border-gray-200 cursor-not-allowed">
+              {form.format}
+            </div>
+          ) : (
+            <div className="flex space-x-4">
+              {FORMATS.map((fmt) => (
+                <button
+                  type="button"
+                  key={fmt}
+                  className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.format === fmt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                  onClick={() => {
+                    setForm((prev) => ({ 
+                      ...prev, 
+                      format: fmt,
+                      formatOption: '',
+                      totalDays: calculateTotalDays(fmt, prev.level)
+                    }));
+                  }}
+                >
+                  {fmt}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-          <div className="flex space-x-4">
-            {form.format === 'Online' ? (
-              <>
-                {['VN', 'DE'].map((option) => (
-                  <button
-                    type="button"
-                    key={option}
-                    className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.formatOption === option ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                    onClick={() => setForm((prev) => ({ ...prev, formatOption: option }))}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </>
-            ) : form.format === 'Offline' ? (
-              <>
-                {['Hanoi', 'Saigon'].map((option) => (
-                  <button
-                    type="button"
-                    key={option}
-                    className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.formatOption === option ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                    onClick={() => setForm((prev) => ({ ...prev, formatOption: option }))}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </>
-            ) : (
-              <div className="text-sm text-gray-400 py-1.5">Select format first</div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Location *
+            {isLocationDisabled && (
+              <span className="text-xs text-gray-500 ml-2">(Pre-selected from class)</span>
             )}
-          </div>
+          </label>
+          {isLocationDisabled ? (
+            <div className="px-5 py-1.5 rounded-full border text-sm font-medium bg-gray-100 text-gray-700 border-gray-200 cursor-not-allowed">
+              {form.formatOption}
+            </div>
+          ) : (
+            <div className="flex space-x-4">
+              {form.format === 'Online' ? (
+                <>
+                  {['VN', 'DE'].map((option) => (
+                    <button
+                      type="button"
+                      key={option}
+                      className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.formatOption === option ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                      onClick={() => setForm((prev) => ({ ...prev, formatOption: option }))}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </>
+              ) : form.format === 'Offline' ? (
+                <>
+                  {['Hanoi', 'Saigon'].map((option) => (
+                    <button
+                      type="button"
+                      key={option}
+                      className={`px-5 py-1.5 rounded-full border text-sm font-medium transition-colors focus:outline-none ${form.formatOption === option ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                      onClick={() => setForm((prev) => ({ ...prev, formatOption: option }))}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <div className="text-sm text-gray-400 py-1.5">Select format first</div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
@@ -193,37 +218,50 @@ const CourseBasicInfo = ({
 
       {/* Type - custom dropdown */}
       <div className="relative" ref={typeRef}>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-        <button
-          type="button"
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-white text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between"
-          onClick={() => setTypeDropdown((open) => !open)}
-        >
-          <span className={`text-gray-900 ${!form.type ? 'text-gray-400' : ''}`}>{form.type || 'Select type'}</span>
-          <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-        </button>
-        {typeDropdown && (
-          <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg border border-gray-100 py-1">
-            {types && types.length > 0 && types.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => handleTypeSelect(t.value)}
-                className={`w-full text-left px-4 py-2 text-sm ${form.type === t.value ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-900 hover:bg-gray-50'} transition-colors`}
-              >
-                {t.value}
-              </button>
-            ))}
-            <div className="border-t border-gray-200 my-1" />
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Type
+          {isTypeDisabled && (
+            <span className="text-xs text-gray-500 ml-2">(Pre-selected from class)</span>
+          )}
+        </label>
+        {isTypeDisabled ? (
+          <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed">
+            {form.type || 'Not specified'}
+          </div>
+        ) : (
+          <>
             <button
               type="button"
-              className="w-full flex items-center px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium"
-              onClick={onNewTypeClick}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-white text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between"
+              onClick={() => setTypeDropdown((open) => !open)}
             >
-              <PlusCircle className="w-4 h-4 mr-2" />
-              New Type...
+              <span className={`text-gray-900 ${!form.type ? 'text-gray-400' : ''}`}>{form.type || 'Select type'}</span>
+              <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
-          </div>
+            {typeDropdown && (
+              <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg border border-gray-100 py-1">
+                {types && types.length > 0 && types.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleTypeSelect(t.value)}
+                    className={`w-full text-left px-4 py-2 text-sm ${form.type === t.value ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-900 hover:bg-gray-50'} transition-colors`}
+                  >
+                    {t.value}
+                  </button>
+                ))}
+                <div className="border-t border-gray-200 my-1" />
+                <button
+                  type="button"
+                  className="w-full flex items-center px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium"
+                  onClick={onNewTypeClick}
+                >
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  New Type...
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

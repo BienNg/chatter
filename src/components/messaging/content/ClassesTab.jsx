@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Edit, 
   Calendar, 
@@ -25,7 +25,9 @@ import {
   ArrowRight,
   CreditCard,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Circle,
+  Navigation
 } from 'lucide-react';
 import { useClasses } from '../../../hooks/useClasses';
 import { useClassStudents } from '../../../hooks/useClassStudents';
@@ -72,6 +74,12 @@ export const ClassesTab = ({
     amount: 0,
     currency: 'VND'
   });
+
+  // Course navigation refs and state
+  const courseRefs = useRef({});
+  const scrollContainerRef = useRef(null);
+  const [activeCourseIndex, setActiveCourseIndex] = useState(0);
+  const [isNavigationVisible, setIsNavigationVisible] = useState(false);
 
   // Use the class students hook
   const {
@@ -503,6 +511,153 @@ export const ClassesTab = ({
     loadEnrichedEnrollments();
   }, [courses, getCourseEnrollments]);
 
+  // Course Navigation Component
+  const CourseNavigationDots = ({ courses, activeCourseIndex, onCourseSelect }) => {
+    const [hoveredIndex, setHoveredIndex] = useState(null);
+    const [isNavigationExpanded, setIsNavigationExpanded] = useState(false);
+
+    const generateCourseIcon = (course, index) => {
+      // Create a unique color for each course based on its name/index
+      const colors = [
+        'bg-gradient-to-br from-indigo-500 to-purple-600',
+        'bg-gradient-to-br from-blue-500 to-indigo-600', 
+        'bg-gradient-to-br from-purple-500 to-pink-600',
+        'bg-gradient-to-br from-green-500 to-teal-600',
+        'bg-gradient-to-br from-orange-500 to-red-600',
+        'bg-gradient-to-br from-teal-500 to-cyan-600',
+        'bg-gradient-to-br from-pink-500 to-rose-600',
+        'bg-gradient-to-br from-amber-500 to-orange-600'
+      ];
+      
+      const colorClass = colors[index % colors.length];
+      // Display course level instead of initials
+      const level = course.level || (index + 1).toString();
+
+      return (
+        <div className={`${colorClass} flex items-center justify-center text-white font-semibold text-sm shadow-lg border-2 border-white transition-all duration-300 ease-out ${
+          isNavigationExpanded ? 'w-12 h-12 rounded-full' : 'w-3 h-3 rounded-full'
+        }`}>
+          {isNavigationExpanded && level}
+        </div>
+      );
+    };
+
+    if (courses.length < 2) return null;
+
+    return (
+      <div 
+        className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50"
+        onMouseEnter={() => setIsNavigationExpanded(true)}
+        onMouseLeave={() => {
+          setIsNavigationExpanded(false);
+          setHoveredIndex(null);
+        }}
+      >
+        <div className={`bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200/50 transition-all duration-300 ease-out ${
+          isNavigationExpanded ? 'p-4' : 'p-2'
+        }`}>
+          {/* Course Dots */}
+          <div className={`transition-all duration-300 ease-out ${
+            isNavigationExpanded ? 'space-y-3' : 'space-y-1'
+          }`}>
+            {courses.map((course, index) => (
+              <div
+                key={course.id || index}
+                className="relative group"
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                <button
+                  onClick={() => onCourseSelect(index)}
+                  className={`relative block transition-all duration-300 ease-out ${
+                    activeCourseIndex === index && isNavigationExpanded
+                      ? 'scale-110 transform'
+                      : activeCourseIndex === index && !isNavigationExpanded
+                      ? 'scale-125 transform'
+                      : 'scale-100 hover:scale-105 transform'
+                  }`}
+                  title={isNavigationExpanded ? course.courseName : `${course.courseName} (${course.level || index + 1})`}
+                >
+                  {generateCourseIcon(course, index)}
+                  
+                  {/* Active indicator ring - only show when expanded */}
+                  {activeCourseIndex === index && isNavigationExpanded && (
+                    <div className="absolute inset-0 rounded-full border-4 border-indigo-400 animate-pulse"></div>
+                  )}
+                  
+                  {/* Active indicator for collapsed state */}
+                  {activeCourseIndex === index && !isNavigationExpanded && (
+                    <div className="absolute inset-0 rounded-full border-2 border-indigo-400 animate-pulse"></div>
+                  )}
+                  
+                  {/* Hover glow effect - only when expanded */}
+                  {hoveredIndex === index && activeCourseIndex !== index && isNavigationExpanded && (
+                    <div className="absolute inset-0 rounded-full border-2 border-indigo-300/60 animate-pulse"></div>
+                  )}
+                </button>
+                
+                {/* Course name tooltip - only show when expanded and hovered */}
+                {hoveredIndex === index && isNavigationExpanded && (
+                  <div className="absolute right-full mr-4 top-1/2 transform -translate-y-1/2 whitespace-nowrap">
+                    <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg">
+                      {course.courseName}
+                      <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Function to scroll to specific course
+  const scrollToCourse = (courseIndex) => {
+    const courseId = courses[courseIndex]?.id || courseIndex;
+    const courseElement = courseRefs.current[courseId];
+    
+    if (courseElement && scrollContainerRef.current) {
+      courseElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+      setActiveCourseIndex(courseIndex);
+    }
+  };
+
+  // Intersection Observer to track active course
+  useEffect(() => {
+    if (courses.length < 2) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const courseId = entry.target.getAttribute('data-course-id');
+            const courseIndex = courses.findIndex(course => (course.id || course) === courseId);
+            if (courseIndex !== -1) {
+              setActiveCourseIndex(courseIndex);
+            }
+          }
+        });
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '-20% 0px -20% 0px',
+        threshold: 0.5
+      }
+    );
+
+    Object.values(courseRefs.current).forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, [courses]);
+
   const renderCoursesView = () => {
     if (loading) {
       return (
@@ -590,10 +745,15 @@ export const ClassesTab = ({
         </div>
 
         {/* Courses List - Scrollable Container */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
           <div className="space-y-8 px-8 pt-8 pb-24">
             {courses.map((course, index) => (
-              <div key={course.id || index} className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-300 ease-out overflow-hidden">
+              <div 
+                key={course.id || index} 
+                ref={el => courseRefs.current[course.id || index] = el}
+                data-course-id={course.id || index}
+                className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-300 ease-out overflow-hidden"
+              >
                 {/* Course Header */}
                 <div className="relative bg-white px-8 py-6 border-b border-gray-100">
                   
@@ -1422,6 +1582,13 @@ export const ClassesTab = ({
           currency={paymentSuccessToast.currency}
         />
       )}
+
+      {/* Course Navigation Component */}
+      <CourseNavigationDots
+        courses={courses}
+        activeCourseIndex={activeCourseIndex}
+        onCourseSelect={scrollToCourse}
+      />
     </div>
   );
 };

@@ -138,30 +138,8 @@ const StudentPaymentsTab = ({ student }) => {
     );
   };
 
-  // Get status badge
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      completed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completed' },
-      pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending' },
-      cancelled: { bg: 'bg-red-100', text: 'text-red-700', label: 'Cancelled' },
-      refunded: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Refunded' }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
-    );
-  };
-
   // Calculate totals
   const totalPaid = studentPayments
-    .filter(p => p.status === 'completed')
-    .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-  
-  const pendingAmount = studentPayments
-    .filter(p => p.status === 'pending')
     .reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
   if (loading) {
@@ -200,26 +178,14 @@ const StudentPaymentsTab = ({ student }) => {
       ) : (
         <div className="space-y-4">
           {/* Payment Summary */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="bg-green-50 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <DollarSign className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="text-xs font-medium text-green-600">Total Paid</p>
+                  <p className="text-xs font-medium text-green-600">Total Amount</p>
                   <p className="text-lg font-semibold text-green-700">
                     {formatCurrency(totalPaid, studentPayments[0]?.currency)}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-yellow-50 rounded-lg p-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="text-xs font-medium text-yellow-600">Pending</p>
-                  <p className="text-lg font-semibold text-yellow-700">
-                    {formatCurrency(pendingAmount, studentPayments[0]?.currency)}
                   </p>
                 </div>
               </div>
@@ -259,7 +225,6 @@ const StudentPaymentsTab = ({ student }) => {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    {getStatusBadge(payment.status)}
                     <button className="p-1 rounded-full hover:bg-gray-100">
                       <MoreVertical className="w-4 h-4 text-gray-400" />
                     </button>

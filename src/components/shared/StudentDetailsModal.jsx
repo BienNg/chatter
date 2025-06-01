@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Phone, BookOpen, CreditCard } from 'lucide-react';
+import { X, Mail, Phone, BookOpen, CreditCard, Plus, MoreVertical } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useEnrollments } from '../../hooks/useEnrollments';
 import { usePayments } from '../../hooks/usePayments';
@@ -568,118 +568,208 @@ const StudentDetailsModal = ({
   );
 
   const renderCoursesTab = () => (
-    <div className="space-y-6 p-1 h-full">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-gray-500">Enrolled Courses</h3>
-        <button className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition-colors">
-          Enroll in Course
-        </button>
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Enrolled Courses</h3>
+            <p className="text-sm text-gray-500">
+              {studentEnrollments.length} course{studentEnrollments.length !== 1 ? 's' : ''} • 
+              {studentPayments.length} payment{studentPayments.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+            <Plus className="w-4 h-4 mr-2 inline" />
+            Enroll in Course
+          </button>
+        </div>
       </div>
-      
-      {studentEnrollments.length === 0 ? (
-        <div className="bg-gray-50 rounded-lg p-6 flex flex-col items-center justify-center text-center h-[340px]">
-          <BookOpen className="h-10 w-10 text-gray-400 mb-3" />
-          <p className="text-sm font-medium text-gray-500">No courses enrolled yet</p>
-          <p className="text-xs text-gray-400 mt-2 max-w-sm">Enroll this student in a course to get started</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {studentEnrollments.map((courseEnrollment, index) => (
-            <div key={courseEnrollment.id || index} className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <BookOpen className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900">{courseEnrollment.courseName}</h4>
-                      <p className="text-xs text-gray-500">{courseEnrollment.courseLevel}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <div className="flex items-center space-x-4">
-                      <span>Class: {courseEnrollment.className}</span>
-                      <span>Enrolled: {new Date(courseEnrollment.enrollmentDate || courseEnrollment.enrolledAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                    Active
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 
-  const renderPaymentsTab = () => (
-    <div className="space-y-6 p-1 h-full">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-gray-500">Payment History</h3>
-        <button className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition-colors">
-          Record Payment
-        </button>
-      </div>
-      
-      {studentPayments.length === 0 ? (
-        <div className="bg-gray-50 rounded-lg p-6 flex flex-col items-center justify-center text-center h-[340px]">
-          <CreditCard className="h-10 w-10 text-gray-400 mb-3" />
-          <p className="text-sm font-medium text-gray-500">No payment records found</p>
-          <p className="text-xs text-gray-400 mt-2 max-w-sm">Record a payment to track this student's financial history</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {studentPayments.map((payment, index) => (
-            <div key={payment.id || index} className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900">
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: payment.currency || 'VND'
-                        }).format(payment.amount || 0)}
-                      </h4>
-                      <p className="text-xs text-gray-500">{payment.courseName}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <div className="flex items-center space-x-4">
-                      <span>Type: {payment.paymentType?.replace('_', ' ') || 'Payment'}</span>
-                      <span>Date: {new Date(payment.paymentDate || payment.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    {payment.notes && (
-                      <p className="italic">"{payment.notes}"</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    payment.status === 'completed' ? 'bg-green-100 text-green-700' :
-                    payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {payment.status || 'pending'}
-                  </span>
-                </div>
-              </div>
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {studentEnrollments.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 flex flex-col items-center justify-center text-center border border-gray-200 shadow-sm">
+            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-6">
+              <BookOpen className="w-8 h-8 text-indigo-600" />
             </div>
-          ))}
-        </div>
-      )}
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Courses Yet</h3>
+            <p className="text-gray-500 mb-6 max-w-md">
+              This student hasn't been enrolled in any courses yet. Start by enrolling them in their first course.
+            </p>
+            <button className="px-6 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+              <Plus className="w-4 h-4 mr-2 inline" />
+              Enroll in First Course
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {studentEnrollments.map((courseEnrollment, index) => {
+              // Get payments for this specific course
+              const coursePayments = studentPayments.filter(payment => 
+                payment.courseName === courseEnrollment.courseName || 
+                payment.courseId === courseEnrollment.courseId
+              );
+              
+              const totalPaid = coursePayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+              const latestPayment = coursePayments.length > 0 ? 
+                coursePayments.sort((a, b) => new Date(b.paymentDate || b.createdAt) - new Date(a.paymentDate || a.createdAt))[0] : 
+                null;
+
+              return (
+                <div key={courseEnrollment.id || index} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                  {/* Course Header */}
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-100">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-4">
+                        {/* Course Icon */}
+                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                          <BookOpen className="w-6 h-6 text-white" />
+                        </div>
+                        
+                        {/* Course Info */}
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-900 mb-1">
+                            {courseEnrollment.courseName}
+                          </h4>
+                          <div className="flex items-center space-x-4 text-sm">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                              {courseEnrollment.courseLevel}
+                            </span>
+                            <span className="text-gray-600">
+                              Class: {courseEnrollment.className}
+                            </span>
+                            <span className="text-gray-600">
+                              Enrolled: {new Date(courseEnrollment.enrollmentDate || courseEnrollment.enrolledAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Status Badge */}
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 shadow-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        Active
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Course Content */}
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      
+                      {/* Payment Summary Card */}
+                      <div className="lg:col-span-1">
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-100">
+                          <div className="flex items-center justify-between mb-3">
+                            <h5 className="text-sm font-semibold text-gray-900">Payment Summary</h5>
+                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                              <CreditCard className="w-4 h-4 text-green-600" />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Total Paid</p>
+                              <p className="text-xl font-bold text-green-700">
+                                {new Intl.NumberFormat('vi-VN', {
+                                  style: 'currency',
+                                  currency: 'VND'
+                                }).format(totalPaid)}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Payments Made:</span>
+                              <span className="font-semibold text-gray-900">{coursePayments.length}</span>
+                            </div>
+                            
+                            {latestPayment && (
+                              <div className="pt-2 border-t border-green-200">
+                                <p className="text-xs text-gray-500 mb-1">Latest Payment</p>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {new Date(latestPayment.paymentDate || latestPayment.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Payment History */}
+                      <div className="lg:col-span-2">
+                        <div className="flex items-center justify-between mb-4">
+                          <h5 className="text-sm font-semibold text-gray-900">Payment History</h5>
+                          <button className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition-colors">
+                            <Plus className="w-3 h-3 mr-1 inline" />
+                            Add Payment
+                          </button>
+                        </div>
+                        
+                        {coursePayments.length === 0 ? (
+                          <div className="bg-gray-50 rounded-lg p-6 text-center">
+                            <CreditCard className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500 mb-3">No payments recorded yet</p>
+                            <button className="px-4 py-2 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition-colors">
+                              Record First Payment
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 max-h-48 overflow-y-auto">
+                            {coursePayments
+                              .sort((a, b) => new Date(b.paymentDate || b.createdAt) - new Date(a.paymentDate || a.createdAt))
+                              .map((payment, paymentIndex) => (
+                              <div key={payment.id || paymentIndex} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                      <CreditCard className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center space-x-2 mb-1">
+                                        <p className="text-sm font-semibold text-gray-900">
+                                          {new Intl.NumberFormat('vi-VN', {
+                                            style: 'currency',
+                                            currency: payment.currency || 'VND'
+                                          }).format(payment.amount || 0)}
+                                        </p>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                          {payment.paymentType?.replace('_', ' ') || 'Payment'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                        <span>
+                                          {new Date(payment.paymentDate || payment.createdAt).toLocaleDateString()}
+                                        </span>
+                                        {payment.paymentMethod && (
+                                          <span>• {payment.paymentMethod}</span>
+                                        )}
+                                      </div>
+                                      {payment.notes && (
+                                        <p className="text-xs text-gray-600 mt-1 italic">
+                                          "{payment.notes}"
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <button className="p-1 rounded-full hover:bg-gray-200 transition-colors">
+                                    <MoreVertical className="w-4 h-4 text-gray-400" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -697,8 +787,6 @@ const StudentDetailsModal = ({
         return renderStudentInfoTab();
       case 'courses':
         return renderCoursesTab();
-      case 'payments':
-        return renderPaymentsTab();
       default:
         return renderStudentInfoTab();
     }
@@ -768,19 +856,6 @@ const StudentDetailsModal = ({
                   Courses
                   <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-600 bg-gray-100 rounded-full">
                     {studentEnrollments.length}
-                  </span>
-                </button>
-                <button
-                  className={`py-3 text-sm font-medium border-b-2 ${
-                    activeTab === 'payments' 
-                      ? 'border-indigo-600 text-indigo-600' 
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                  onClick={() => setActiveTab('payments')}
-                >
-                  Payments
-                  <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-gray-600 bg-gray-100 rounded-full">
-                    {studentPayments.length}
                   </span>
                 </button>
               </div>

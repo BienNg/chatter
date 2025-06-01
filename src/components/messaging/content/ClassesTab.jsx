@@ -25,8 +25,7 @@ import {
   ArrowRight,
   CreditCard,
   DollarSign,
-  AlertCircle,
-  CheckCircle
+  AlertCircle
 } from 'lucide-react';
 import { useClasses } from '../../../hooks/useClasses';
 import { useClassStudents } from '../../../hooks/useClassStudents';
@@ -344,51 +343,6 @@ export const ClassesTab = ({
       style: 'currency',
       currency: currency || 'USD'
     }).format(amount);
-  };
-
-  const getPaymentStatusBadge = (paymentStatus, payment) => {
-    const statusConfig = {
-      pending: { 
-        bg: 'bg-yellow-100', 
-        text: 'text-yellow-700', 
-        icon: AlertCircle,
-        label: 'Pending' 
-      },
-      paid: { 
-        bg: 'bg-green-100', 
-        text: 'text-green-700', 
-        icon: CheckCircle,
-        label: 'Paid' 
-      },
-      partial: { 
-        bg: 'bg-blue-100', 
-        text: 'text-blue-700', 
-        icon: CreditCard,
-        label: 'Partial' 
-      },
-      overdue: { 
-        bg: 'bg-red-100', 
-        text: 'text-red-700', 
-        icon: AlertCircle,
-        label: 'Overdue' 
-      },
-      completed: { 
-        bg: 'bg-green-100', 
-        text: 'text-green-700', 
-        icon: CheckCircle,
-        label: 'Completed' 
-      }
-    };
-    
-    const config = statusConfig[paymentStatus] || statusConfig.pending;
-    const Icon = config.icon;
-    
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-        <Icon className="w-3 h-3 mr-1" />
-        {config.label}
-      </span>
-    );
   };
 
   const getProgressColor = (progress) => {
@@ -901,7 +855,10 @@ export const ClassesTab = ({
                                               {/* Payment Status Badge */}
                                               <div className="flex items-center space-x-2">
                                                 {hasPayments ? (
-                                                  getPaymentStatusBadge(latestPayment.status || 'pending', latestPayment)
+                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                                    <CreditCard className="w-3 h-3 mr-1" />
+                                                    Payment
+                                                  </span>
                                                 ) : (
                                                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                                                     <AlertCircle className="w-3 h-3 mr-1" />
@@ -999,12 +956,8 @@ export const ClassesTab = ({
                                   </div>
                                   <div className="flex items-center space-x-4 text-xs text-gray-500">
                                     <div className="flex items-center space-x-1">
-                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                      <span>Paid</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                      <span>Pending</span>
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                      <span>Payment</span>
                                     </div>
                                     <div className="flex items-center space-x-1">
                                       <div className="w-2 h-2 bg-gray-400 rounded-full"></div>

@@ -8,6 +8,7 @@ import PaymentModal from '../shared/PaymentModal';
 import PaymentSuccessToast from '../shared/PaymentSuccessToast';
 import PaymentsList from './PaymentsList';
 import RevenueChart from './RevenueChart';
+import InterfaceWrapper from '../shared/InterfaceWrapper';
 import { Plus, Download } from 'lucide-react';
 
 /**
@@ -74,91 +75,93 @@ const BookkeepingInterface = () => {
   }, [params.paymentId]);
 
   return (
-    <BookkeepingLayout
-      userProfile={userProfile}
-      currentUser={currentUser}
-      onLogout={logout}
-    >
-      {/* Header */}
-      <div className="h-16 border-b border-gray-200 px-6 flex items-center justify-between bg-white">
-        <div className="flex items-center">
-          <h1 className="text-xl font-semibold text-gray-800">Financial Overview</h1>
-          <button
-            onClick={handleRecordPayment}
-            className="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Record Payment
-          </button>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <select
-            value={selectedCurrency}
-            onChange={(e) => setSelectedCurrency(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="EUR">EUR</option>
-            <option value="VND">VND</option>
-            <option value="USD">USD</option>
-          </select>
-          <button
-            onClick={handleExportData}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-            title="Export Data"
-          >
-            <Download className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Financial Overview Cards */}
-        <FinancialOverview currency={selectedCurrency} />
-
-        {/* Recent Transactions */}
-        <div className="px-6">
-          <PaymentsList currency={selectedCurrency} />
+    <InterfaceWrapper>
+      <BookkeepingLayout
+        userProfile={userProfile}
+        currentUser={currentUser}
+        onLogout={logout}
+      >
+        {/* Header */}
+        <div className="h-16 border-b border-gray-200 px-6 flex items-center justify-between bg-white">
+          <div className="flex items-center">
+            <h1 className="text-xl font-semibold text-gray-800">Financial Overview</h1>
+            <button
+              onClick={handleRecordPayment}
+              className="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Record Payment
+            </button>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <select
+              value={selectedCurrency}
+              onChange={(e) => setSelectedCurrency(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="EUR">EUR</option>
+              <option value="VND">VND</option>
+              <option value="USD">USD</option>
+            </select>
+            <button
+              onClick={handleExportData}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+              title="Export Data"
+            >
+              <Download className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Revenue Chart */}
-        <div className="p-6">
-          <RevenueChart currency={selectedCurrency} />
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Financial Overview Cards */}
+          <FinancialOverview currency={selectedCurrency} />
+
+          {/* Recent Transactions */}
+          <div className="px-6">
+            <PaymentsList currency={selectedCurrency} />
+          </div>
+
+          {/* Revenue Chart */}
+          <div className="p-6">
+            <RevenueChart currency={selectedCurrency} />
+          </div>
         </div>
-      </div>
 
-      {/* Payment Modal */}
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={handlePaymentModalClose}
-        onSubmit={handlePaymentSubmit}
-        currency={selectedCurrency}
-        title="Record Payment"
-        description="Add a new payment record to the financial system"
-        submitButtonText="Record Payment"
-      />
-
-      {/* Payment Success Toast */}
-      {paymentSuccessToast.isVisible && (
-        <PaymentSuccessToast
-          isVisible={paymentSuccessToast.isVisible}
-          onDismiss={() => setPaymentSuccessToast({
-            isVisible: false,
-            autoEnrolled: false,
-            studentName: '',
-            courseName: '',
-            amount: 0,
-            currency: selectedCurrency
-          })}
-          autoEnrolled={paymentSuccessToast.autoEnrolled}
-          studentName={paymentSuccessToast.studentName}
-          courseName={paymentSuccessToast.courseName}
-          amount={paymentSuccessToast.amount}
-          currency={paymentSuccessToast.currency}
+        {/* Payment Modal */}
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={handlePaymentModalClose}
+          onSubmit={handlePaymentSubmit}
+          currency={selectedCurrency}
+          title="Record Payment"
+          description="Add a new payment record to the financial system"
+          submitButtonText="Record Payment"
         />
-      )}
-    </BookkeepingLayout>
+
+        {/* Payment Success Toast */}
+        {paymentSuccessToast.isVisible && (
+          <PaymentSuccessToast
+            isVisible={paymentSuccessToast.isVisible}
+            onDismiss={() => setPaymentSuccessToast({
+              isVisible: false,
+              autoEnrolled: false,
+              studentName: '',
+              courseName: '',
+              amount: 0,
+              currency: selectedCurrency
+            })}
+            autoEnrolled={paymentSuccessToast.autoEnrolled}
+            studentName={paymentSuccessToast.studentName}
+            courseName={paymentSuccessToast.courseName}
+            amount={paymentSuccessToast.amount}
+            currency={paymentSuccessToast.currency}
+          />
+        )}
+      </BookkeepingLayout>
+    </InterfaceWrapper>
   );
 };
 

@@ -8,31 +8,34 @@ import {
     MessageSquare,
     X
 } from 'lucide-react';
-import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../utils/navigation';
 
-const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
+const ChannelToolbar = ({ 
+    channelId, 
+    onJumpToMessage, 
+    onOpenThread,
+    getPinnedMessages,
+    togglePinMessage
+}) => {
     const [activeTab, setActiveTab] = useState('pinned');
     const [isExpanded, setIsExpanded] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     const { currentUser } = useAuth();
-    const { 
-        getPinnedMessages, 
-        togglePinMessage
-    } = useMessages(channelId);
 
     const [pinnedMessages, setPinnedMessages] = useState([]);
     const [loading, setLoading] = useState(false);
 
     // Load pinned messages when tab changes or channel changes
     useEffect(() => {
-        if (!channelId || activeTab !== 'pinned') return;
+        if (!channelId || activeTab !== 'pinned' || !getPinnedMessages) return;
         loadPinnedMessages();
-    }, [channelId, activeTab]);
+    }, [channelId, activeTab, getPinnedMessages]);
 
     const loadPinnedMessages = async () => {
+        if (!getPinnedMessages) return;
+        
         setLoading(true);
         try {
             const pinned = await getPinnedMessages();
@@ -58,6 +61,8 @@ const ChannelToolbar = ({ channelId, onJumpToMessage, onOpenThread }) => {
     };
 
     const handleUnpinMessage = async (messageId) => {
+        if (!togglePinMessage) return;
+        
         try {
             await togglePinMessage(messageId);
             await loadPinnedMessages();

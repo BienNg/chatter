@@ -64,6 +64,8 @@ export const MessagesTab = ({
         channelId={channelId}
         onJumpToMessage={onJumpToMessage}
         onOpenThread={onOpenThread}
+        getPinnedMessages={getPinnedMessages}
+        togglePinMessage={togglePinMessage}
       />
       
       <div className="flex-1 flex min-h-0 overflow-hidden">

@@ -20,6 +20,7 @@ import {
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useFirebaseLogger } from '../contexts/FirebaseLoggerContext';
 
 export const useMessages = (channelId) => {
     const [messages, setMessages] = useState([]);
@@ -30,6 +31,7 @@ export const useMessages = (channelId) => {
     const [loadingMore, setLoadingMore] = useState(false);
     
     const { currentUser, userProfile } = useAuth();
+    const { logFirebaseRead, logFirebaseWrite } = useFirebaseLogger();
 
     useEffect(() => {
         if (!channelId) {
@@ -57,6 +59,9 @@ export const useMessages = (channelId) => {
         const unsubscribe = onSnapshot(
             messagesQuery,
             (snapshot) => {
+                // Log the Firebase read operation - THIS IS LIKELY YOUR HIGH USAGE SOURCE
+                logFirebaseRead('messages', null, `REALTIME_LISTENER for channel ${channelId}`, snapshot.size);
+                
                 const messageData = snapshot.docs.map((doc) => ({
                     id: doc.id,
                     ...doc.data()
@@ -110,6 +115,8 @@ export const useMessages = (channelId) => {
                 }
             },
             (err) => {
+                // Log the error
+                logFirebaseRead('messages', null, `LISTENER_ERROR for channel ${channelId}: ${err.message}`, 0);
                 console.error('Error fetching messages:', err);
                 setError(err.message);
                 setLoading(false);
@@ -149,7 +156,12 @@ export const useMessages = (channelId) => {
             };
 
             await addDoc(collection(db, 'channels', channelId, 'messages'), messageData);
+            
+            // Log the Firebase write operation
+            logFirebaseWrite('messages', null, 'ADD_MESSAGE');
         } catch (error) {
+            // Log the error
+            logFirebaseWrite('messages', null, `ADD_MESSAGE_ERROR: ${error.message}`);
             console.error('Error sending message:', error);
             throw error;
         }

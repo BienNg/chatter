@@ -2,11 +2,13 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FirebaseLoggerProvider } from './contexts/FirebaseLoggerContext';
 import { ThreadProvider } from './contexts/ThreadContext';
 import { Login, OnboardingFlow } from './components/auth';
 import { MessagingInterface } from './components/messaging';
 import { CRMInterface } from './components/crm';
 import { BookkeepingInterface } from './components/bookkeeping';
+import AdminToggle from './components/shared/AdminToggle';
 
 
 // Protected Route wrapper component
@@ -56,115 +58,118 @@ const OnboardingRoute = ({ children }) => {
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <div className="App">
-                    <Routes>
-                        {/* Public Routes */}
-                        <Route 
-                            path="/login" 
-                            element={
-                                <PublicRoute>
-                                    <Login />
-                                </PublicRoute>
-                            } 
-                        />
+            <FirebaseLoggerProvider>
+                <BrowserRouter>
+                    <div className="App">
+                        <AdminToggle />
+                        <Routes>
+                            {/* Public Routes */}
+                            <Route 
+                                path="/login" 
+                                element={
+                                    <PublicRoute>
+                                        <Login />
+                                    </PublicRoute>
+                                } 
+                            />
 
-                        {/* Onboarding Route */}
-                        <Route 
-                            path="/onboarding" 
-                            element={
-                                <OnboardingRoute>
-                                    <OnboardingFlow />
-                                </OnboardingRoute>
-                            } 
-                        />
+                            {/* Onboarding Route */}
+                            <Route 
+                                path="/onboarding" 
+                                element={
+                                    <OnboardingRoute>
+                                        <OnboardingFlow />
+                                    </OnboardingRoute>
+                                } 
+                            />
 
-                        {/* Protected Routes */}
-                        <Route
-                            path="/"
-                            element={
-                                <ProtectedRoute>
-                                    <ThreadProvider>
-                                        <MessagingInterface />
-                                    </ThreadProvider>
-                                </ProtectedRoute>
-                            }
-                        >
-                            {/* Default redirect to channels */}
-                            <Route index element={<Navigate to="/channels" replace />} />
-                            
-                            {/* Channel routes with nested tab routing */}
-                            <Route path="channels" element={<MessagingInterface />}>
-                                {/* Default to first channel when no channel selected */}
-                                <Route index element={<MessagingInterface />} />
+                            {/* Protected Routes */}
+                            <Route
+                                path="/"
+                                element={
+                                    <ProtectedRoute>
+                                        <ThreadProvider>
+                                            <MessagingInterface />
+                                        </ThreadProvider>
+                                    </ProtectedRoute>
+                                }
+                            >
+                                {/* Default redirect to channels */}
+                                <Route index element={<Navigate to="/channels" replace />} />
                                 
-                                {/* Channel with tab routes */}
-                                <Route path=":channelId" element={<MessagingInterface />}>
-                                    {/* Default to messages tab */}
-                                    <Route index element={<Navigate to="messages" replace />} />
+                                {/* Channel routes with nested tab routing */}
+                                <Route path="channels" element={<MessagingInterface />}>
+                                    {/* Default to first channel when no channel selected */}
+                                    <Route index element={<MessagingInterface />} />
                                     
-                                    {/* Messages tab with optional thread */}
-                                    <Route path="messages" element={<MessagingInterface />} />
-                                    <Route path="messages/thread/:messageId" element={<MessagingInterface />} />
-                                    
-                                    {/* Tasks tab with optional task detail */}
-                                    <Route path="tasks" element={<MessagingInterface />} />
-                                    <Route path="tasks/:taskId" element={<MessagingInterface />} />
-                                    
-                                    {/* Classes tab with optional sub-tabs */}
-                                    <Route path="classes" element={<MessagingInterface />}>
-                                        <Route index element={<Navigate to="courses" replace />} />
-                                        <Route path="courses" element={<MessagingInterface />} />
-                                        <Route path="info" element={<MessagingInterface />} />
+                                    {/* Channel with tab routes */}
+                                    <Route path=":channelId" element={<MessagingInterface />}>
+                                        {/* Default to messages tab */}
+                                        <Route index element={<Navigate to="messages" replace />} />
+                                        
+                                        {/* Messages tab with optional thread */}
+                                        <Route path="messages" element={<MessagingInterface />} />
+                                        <Route path="messages/thread/:messageId" element={<MessagingInterface />} />
+                                        
+                                        {/* Tasks tab with optional task detail */}
+                                        <Route path="tasks" element={<MessagingInterface />} />
+                                        <Route path="tasks/:taskId" element={<MessagingInterface />} />
+                                        
+                                        {/* Classes tab with optional sub-tabs */}
+                                        <Route path="classes" element={<MessagingInterface />}>
+                                            <Route index element={<Navigate to="courses" replace />} />
+                                            <Route path="courses" element={<MessagingInterface />} />
+                                            <Route path="info" element={<MessagingInterface />} />
+                                        </Route>
+                                        
+                                        {/* Import tab */}
+                                        <Route path="import" element={<MessagingInterface />} />
+                                        
+                                        {/* Wiki tab */}
+                                        <Route path="wiki" element={<MessagingInterface />} />
+                                        <Route path="wiki/:pageId" element={<MessagingInterface />} />
                                     </Route>
-                                    
-                                    {/* Import tab */}
-                                    <Route path="import" element={<MessagingInterface />} />
-                                    
-                                    {/* Wiki tab */}
-                                    <Route path="wiki" element={<MessagingInterface />} />
-                                    <Route path="wiki/:pageId" element={<MessagingInterface />} />
                                 </Route>
                             </Route>
-                        </Route>
 
-                        {/* CRM System Routes */}
-                        <Route
-                            path="/crm"
-                            element={
-                                <ProtectedRoute>
-                                    <CRMInterface />
-                                </ProtectedRoute>
-                            }
-                        >
-                            {/* Default CRM overview */}
-                            <Route index element={<CRMInterface />} />
-                            
-                            {/* Student details route */}
-                            <Route path="students/:studentId" element={<CRMInterface />} />
-                        </Route>
+                            {/* CRM System Routes */}
+                            <Route
+                                path="/crm"
+                                element={
+                                    <ProtectedRoute>
+                                        <CRMInterface />
+                                    </ProtectedRoute>
+                                }
+                            >
+                                {/* Default CRM overview */}
+                                <Route index element={<CRMInterface />} />
+                                
+                                {/* Student details route */}
+                                <Route path="students/:studentId" element={<CRMInterface />} />
+                            </Route>
 
-                        {/* Bookkeeping System Routes */}
-                        <Route
-                            path="/bookkeeping"
-                            element={
-                                <ProtectedRoute>
-                                    <BookkeepingInterface />
-                                </ProtectedRoute>
-                            }
-                        >
-                            {/* Default bookkeeping overview */}
-                            <Route index element={<BookkeepingInterface />} />
-                            
-                            {/* Payment details route */}
-                            <Route path="payment/:paymentId" element={<BookkeepingInterface />} />
-                        </Route>
+                            {/* Bookkeeping System Routes */}
+                            <Route
+                                path="/bookkeeping"
+                                element={
+                                    <ProtectedRoute>
+                                        <BookkeepingInterface />
+                                    </ProtectedRoute>
+                                }
+                            >
+                                {/* Default bookkeeping overview */}
+                                <Route index element={<BookkeepingInterface />} />
+                                
+                                {/* Payment details route */}
+                                <Route path="payment/:paymentId" element={<BookkeepingInterface />} />
+                            </Route>
 
-                        {/* Catch all route */}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </div>
-            </BrowserRouter>
+                            {/* Catch all route */}
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </div>
+                </BrowserRouter>
+            </FirebaseLoggerProvider>
         </AuthProvider>
     );
 }

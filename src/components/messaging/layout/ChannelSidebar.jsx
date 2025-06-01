@@ -69,6 +69,7 @@ export const ChannelSidebar = ({
         <DirectMessages 
           onChannelSelect={onChannelSelect}
           activeChannelId={activeChannelId}
+          channels={channels}
         />
       </div>
 

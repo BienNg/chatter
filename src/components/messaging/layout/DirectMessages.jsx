@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { User, Plus, Search } from 'lucide-react';
 import { useUsers } from '../../../hooks/useUsers';
 import { useDirectMessages } from '../../../hooks/useDirectMessages';
-import { useChannels } from '../../../hooks/useChannels';
 import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,19 +10,20 @@ import { useNavigate } from 'react-router-dom';
  * Handles direct message user list and DM channel creation
  * Shows unread message indicators for DM channels
  */
-export const DirectMessages = ({ onChannelSelect, activeChannelId }) => {
+export const DirectMessages = ({ onChannelSelect, activeChannelId, channels }) => {
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [dmChannels, setDmChannels] = useState([]);
   
   const { users, loading: usersLoading, searchUsers } = useUsers();
   const { createOrFindDMChannel, getDMChannels, getOtherParticipant, isDMChannel, loading: dmLoading } = useDirectMessages();
-  const { channels } = useChannels();
   const { hasUnreadMessages, calculateUnreadCounts } = useUnreadMessages();
   const navigate = useNavigate();
 
   // Filter DM channels from all channels
   useEffect(() => {
+    if (!channels) return; // Add safety check
+    
     const directMessageChannels = channels.filter(channel => isDMChannel(channel));
     setDmChannels(directMessageChannels);
   }, [channels, isDMChannel]);

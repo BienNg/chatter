@@ -1,5 +1,5 @@
 // src/hooks/useChannels.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
     collection, 
     query, 
@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useFirebaseLogger } from '../contexts/FirebaseLoggerContext';
 
 export const useChannels = () => {
     const [channels, setChannels] = useState([]);
@@ -18,6 +19,12 @@ export const useChannels = () => {
     const [error, setError] = useState(null);
     
     const { currentUser } = useAuth();
+    const { logFirebaseRead } = useFirebaseLogger();
+    
+    // Add cache ref to prevent unnecessary re-subscriptions
+    const unsubscribeRef = useRef(null);
+    const currentUserIdRef = useRef(null);
+    const channelCacheRef = useRef(new Map());
 
     useEffect(() => {
         if (!currentUser?.uid) {
@@ -26,6 +33,17 @@ export const useChannels = () => {
             return;
         }
 
+        // If same user and we already have a listener, don't create a new one
+        if (currentUserIdRef.current === currentUser.uid && unsubscribeRef.current) {
+            return;
+        }
+
+        // Clean up previous listener if it exists
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+        }
+
+        currentUserIdRef.current = currentUser.uid;
         setLoading(true);
         
         // Query channels where user is a member
@@ -40,6 +58,9 @@ export const useChannels = () => {
             channelsQuery,
             {
                 next: (snapshot) => {
+                    // Log the Firebase read operation
+                    logFirebaseRead('channels', null, 'REALTIME_LISTENER', snapshot.size);
+                    
                     const channelData = snapshot.docs.map((doc) => ({
                         id: doc.id,
                         ...doc.data()
@@ -53,6 +74,8 @@ export const useChannels = () => {
                     setError(null);
                 },
                 error: (err) => {
+                    // Log the error
+                    logFirebaseRead('channels', null, `LISTENER_ERROR: ${err.message}`, 0);
                     console.error('Error fetching channels:', err);
                     setError(err.message);
                     setLoading(false);
@@ -60,18 +83,39 @@ export const useChannels = () => {
             }
         );
 
+        unsubscribeRef.current = unsubscribe;
+
         return () => {
             // Ensure proper cleanup of channels listener
-            unsubscribe();
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+                unsubscribeRef.current = null;
+            }
         };
     }, [currentUser?.uid]);
 
     const getChannelById = async (channelId) => {
+        // Check cache first
+        if (channelCacheRef.current.has(channelId)) {
+            return channelCacheRef.current.get(channelId);
+        }
+
         try {
             const channelRef = doc(db, 'channels', channelId);
             const channelSnap = await getDoc(channelRef);
-            return channelSnap.exists() ? { id: channelSnap.id, ...channelSnap.data() } : null;
+            
+            // Log the Firebase read operation
+            logFirebaseRead('channels', channelId, 'SINGLE_DOC_READ', channelSnap.exists() ? 1 : 0);
+            
+            const result = channelSnap.exists() ? { id: channelSnap.id, ...channelSnap.data() } : null;
+            
+            // Cache the result
+            channelCacheRef.current.set(channelId, result);
+            
+            return result;
         } catch (error) {
+            // Log the error
+            logFirebaseRead('channels', channelId, `ERROR: ${error.message}`, 0);
             console.error('Error fetching channel:', error);
             return null;
         }

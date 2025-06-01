@@ -8,6 +8,7 @@ import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useThread } from '../../contexts/ThreadContext';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
+import { useFirebaseLogger } from '../../contexts/FirebaseLoggerContext';
 
 // Layout components
 import { AppLayout } from './layout';
@@ -31,6 +32,9 @@ import { TaskTab } from './tasks';
 // Modal components
 import { CreateChannel } from './channel';
 import ChannelAboutModal from './channel/ChannelAboutModal';
+
+// Shared components
+import InterfaceWrapper from '../shared/InterfaceWrapper';
 
 /**
  * MessagingInterface - Main messaging application component
@@ -74,6 +78,7 @@ const MessagingInterface = () => {
     activeThread: persistentActiveThread 
   } = useThread();
   const { markChannelAsRead, initializeChannelRead } = useUnreadMessages();
+  const { logUserClick } = useFirebaseLogger();
 
   // Navigation logic with persistence
   const { 
@@ -151,23 +156,27 @@ const MessagingInterface = () => {
 
   // Event handlers
   const handleChannelSelectWithNavigation = (newChannelId) => {
+    logUserClick('Channel Select', 'Messaging', { channelId: newChannelId });
     switchChannel(newChannelId);
     // Use the enhanced channel select that remembers last tab
     handleChannelSelect(newChannelId);
   };
 
   const handleOpenThread = (threadMessageId) => {
+    logUserClick('Open Thread', 'Messaging', { messageId: threadMessageId });
     const messageData = messages.find(msg => msg.id === threadMessageId);
     openThread(channelId, threadMessageId, messageData);
     navigate(`/channels/${channelId}/messages/thread/${threadMessageId}`);
   };
 
   const handleCloseThread = () => {
+    logUserClick('Close Thread', 'Messaging');
     closeThread(channelId);
     navigate(`/channels/${channelId}/messages`);
   };
 
   const handleOpenTask = (taskId) => {
+    logUserClick('Open Task', 'Messaging', { taskId });
     if (!channelId) return;
     if (taskId) {
       navigate(`/channels/${channelId}/tasks/${taskId}`);
@@ -177,12 +186,14 @@ const MessagingInterface = () => {
   };
 
   const handleJumpToMessage = (messageId) => {
+    logUserClick('Jump to Message', 'Messaging', { messageId });
     if (!channelId || !messageId) return;
     navigate(`/channels/${channelId}/messages`);
     setScrollToMessageId(messageId);
   };
 
   const handleChannelCreated = (newChannelId) => {
+    logUserClick('Channel Created', 'Messaging', { channelId: newChannelId });
     setShowCreateChannel(false);
     navigate(`/channels/${newChannelId}/messages`);
     // Initialize read timestamp for new channel
@@ -190,6 +201,7 @@ const MessagingInterface = () => {
   };
 
   const handleSendMessage = async (messageData) => {
+    logUserClick('Send Message', 'Messaging', { hasAttachments: messageData.attachments?.length > 0 });
     try {
       await sendMessage(messageData.content, messageData.attachments);
       // Mark channel as read when sending a message
@@ -200,6 +212,7 @@ const MessagingInterface = () => {
   };
 
   const handleClassesSubTabSelect = (subTabId) => {
+    logUserClick('Classes Sub-tab Select', 'Messaging', { subTab: subTabId });
     if (!channelId) return;
     
     // Save the sub-tab selection to persistence
@@ -335,7 +348,7 @@ const MessagingInterface = () => {
 
   // Main render
   return (
-    <>
+    <InterfaceWrapper>
       <AppLayout
         channels={channels}
         activeChannelId={channelId}
@@ -378,7 +391,7 @@ const MessagingInterface = () => {
           onChannelDeleted={handleChannelDeleted}
         />
       )}
-    </>
+    </InterfaceWrapper>
   );
 };
 

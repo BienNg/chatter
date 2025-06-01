@@ -604,7 +604,9 @@ const StudentDetailsModal = ({
           </div>
         ) : (
           <div className="space-y-6">
-            {studentEnrollments.map((courseEnrollment, index) => {
+            {studentEnrollments
+              .sort((a, b) => (b.courseName || '').localeCompare(a.courseName || ''))
+              .map((courseEnrollment, index) => {
               // Get payments for this specific course
               const coursePayments = studentPayments.filter(payment => 
                 payment.courseName === courseEnrollment.courseName || 

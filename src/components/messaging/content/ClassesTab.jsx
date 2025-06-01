@@ -1464,7 +1464,11 @@ const CourseCalendar = ({ course }) => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startCalendar = new Date(firstDay);
-    startCalendar.setDate(startCalendar.getDate() - firstDay.getDay());
+    
+    // Adjust for Monday-first week (getDay() returns 0 for Sunday, 1 for Monday, etc.)
+    const dayOfWeek = firstDay.getDay();
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If Sunday (0), go back 6 days to Monday
+    startCalendar.setDate(startCalendar.getDate() - daysToSubtract);
 
     const days = [];
     const current = new Date(startCalendar);
@@ -1555,11 +1559,34 @@ const CourseCalendar = ({ course }) => {
       <div className="p-4">
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-1 mb-3">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-            <div key={index} className="text-center text-xs font-semibold text-gray-600 py-2">
-              {day}
-            </div>
-          ))}
+          {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => {
+            // Map day letters to full day names for comparison
+            const dayMap = {
+              'M': 'Mon',
+              'T': index === 1 ? 'Tue' : 'Thu', // First T is Tuesday, second T is Thursday
+              'W': 'Wed',
+              'F': 'Fri',
+              'S': index === 5 ? 'Sat' : 'Sun' // First S is Saturday, last S is Sunday
+            };
+            
+            const dayName = dayMap[day];
+            const isCourseDay = courseDays.includes(dayName);
+            
+            return (
+              <div 
+                key={index} 
+                className={`
+                  text-center text-xs font-semibold py-2 rounded-lg transition-all duration-300 ease-out
+                  ${isCourseDay 
+                    ? 'text-indigo-600 bg-indigo-50/70 border border-indigo-200/50 shadow-sm backdrop-blur-sm' 
+                    : 'text-gray-500'
+                  }
+                `}
+              >
+                {day}
+              </div>
+            );
+          })}
         </div>
 
         {/* Calendar days */}

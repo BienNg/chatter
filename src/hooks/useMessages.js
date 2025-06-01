@@ -20,7 +20,7 @@ import {
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { useFirebaseLogger } from '../contexts/FirebaseLoggerContext';
+import { logRealtimeListener, logFirebaseRead, logFirebaseWrite } from '../utils/comprehensiveFirebaseTracker';
 
 export const useMessages = (channelId) => {
     const [messages, setMessages] = useState([]);
@@ -29,9 +29,9 @@ export const useMessages = (channelId) => {
     const [deletingMessages, setDeletingMessages] = useState(new Set());
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [lastVisible, setLastVisible] = useState(null);
     
     const { currentUser, userProfile } = useAuth();
-    const { logFirebaseRead, logFirebaseWrite } = useFirebaseLogger();
 
     useEffect(() => {
         if (!channelId) {
@@ -60,7 +60,7 @@ export const useMessages = (channelId) => {
             messagesQuery,
             (snapshot) => {
                 // Log the Firebase read operation - THIS IS LIKELY YOUR HIGH USAGE SOURCE
-                logFirebaseRead('messages', null, `REALTIME_LISTENER for channel ${channelId}`, snapshot.size);
+                logRealtimeListener('messages', snapshot.size, `Real-time messages listener for channel ${channelId}`);
                 
                 const messageData = snapshot.docs.map((doc) => ({
                     id: doc.id,
@@ -116,7 +116,7 @@ export const useMessages = (channelId) => {
             },
             (err) => {
                 // Log the error
-                logFirebaseRead('messages', null, `LISTENER_ERROR for channel ${channelId}: ${err.message}`, 0);
+                logRealtimeListener('messages', 0, `Messages listener error for channel ${channelId}: ${err.message}`);
                 console.error('Error fetching messages:', err);
                 setError(err.message);
                 setLoading(false);
@@ -158,10 +158,10 @@ export const useMessages = (channelId) => {
             await addDoc(collection(db, 'channels', channelId, 'messages'), messageData);
             
             // Log the Firebase write operation
-            logFirebaseWrite('messages', null, 'ADD_MESSAGE');
+            logFirebaseWrite('messages', `Message sent to channel ${channelId}`);
         } catch (error) {
             // Log the error
-            logFirebaseWrite('messages', null, `ADD_MESSAGE_ERROR: ${error.message}`);
+            logFirebaseWrite('messages', `Message send error for channel ${channelId}: ${error.message}`);
             console.error('Error sending message:', error);
             throw error;
         }
@@ -309,8 +309,13 @@ export const useMessages = (channelId) => {
                 editedBy: currentUser.uid
             });
 
+            // Log the Firebase write operation
+            logFirebaseWrite('messages', `Message edited in channel ${channelId}`);
+
             return { success: true, messageId };
         } catch (error) {
+            // Log the error
+            logFirebaseWrite('messages', `Message edit error in channel ${channelId}: ${error.message}`);
             console.error('Error editing message:', error);
             throw error;
         }
@@ -478,6 +483,9 @@ export const useMessages = (channelId) => {
                     deletionType: 'soft',
                     deletionReason: options.reason || null
                 });
+                
+                // Log the Firebase write operation
+                logFirebaseWrite('messages', `Message soft deleted in channel ${channelId}`);
             } else {
                 // Hard delete: remove completely
                 await handleAttachmentsOnDelete(message, 'hard');
@@ -486,6 +494,9 @@ export const useMessages = (channelId) => {
                 
                 // Delete the message document
                 await deleteDoc(messageRef);
+                
+                // Log the Firebase write operation
+                logFirebaseWrite('messages', `Message hard deleted in channel ${channelId}`);
             }
 
             return {
@@ -496,6 +507,8 @@ export const useMessages = (channelId) => {
             };
 
         } catch (error) {
+            // Log the error
+            logFirebaseWrite('messages', `Message delete error in channel ${channelId}: ${error.message}`);
             console.error('Error deleting message:', error);
             throw error;
         } finally {
@@ -573,6 +586,9 @@ export const useMessages = (channelId) => {
 
             const snapshot = await getDocs(moreMessagesQuery);
             
+            // Log the Firebase read operation
+            logFirebaseRead('messages', snapshot.size, `Load more messages for channel ${channelId}`);
+            
             if (snapshot.empty) {
                 setHasMoreMessages(false);
                 return;
@@ -592,6 +608,8 @@ export const useMessages = (channelId) => {
             }
 
         } catch (error) {
+            // Log the error
+            logFirebaseRead('messages', 0, `Load more messages error for channel ${channelId}: ${error.message}`);
             console.error('Error loading more messages:', error);
             setError(error.message);
         } finally {

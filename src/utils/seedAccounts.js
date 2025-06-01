@@ -1,5 +1,6 @@
 import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { logFirebaseRead, logFirebaseWrite } from './comprehensiveFirebaseTracker';
 
 const defaultAccounts = [
   {
@@ -40,11 +41,18 @@ export const seedAccounts = async () => {
     const accountsRef = collection(db, 'accounts');
     const snapshot = await getDocs(accountsRef);
     
+    // Log the Firebase read operation
+    logFirebaseRead('accounts', snapshot.size, 'Check if accounts collection needs seeding');
+    
     if (snapshot.empty) {
       console.log('Seeding accounts collection...');
       
       for (const account of defaultAccounts) {
         await addDoc(accountsRef, account);
+        
+        // Log the Firebase write operation
+        logFirebaseWrite('accounts', `Seeded account: ${account.name}`);
+        
         console.log(`Added account: ${account.name}`);
       }
       

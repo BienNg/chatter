@@ -1,5 +1,6 @@
 import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { logFirebaseRead, logFirebaseWrite } from './comprehensiveFirebaseTracker';
 
 const defaultDiscounts = [
   {
@@ -45,11 +46,18 @@ export const seedDiscounts = async () => {
     const discountsRef = collection(db, 'discounts');
     const snapshot = await getDocs(discountsRef);
     
+    // Log the Firebase read operation
+    logFirebaseRead('discounts', snapshot.size, 'Check if discounts collection needs seeding');
+    
     if (snapshot.empty) {
       console.log('Seeding discounts collection...');
       
       for (const discount of defaultDiscounts) {
         await addDoc(discountsRef, discount);
+        
+        // Log the Firebase write operation
+        logFirebaseWrite('discounts', `Seeded discount: ${discount.name}`);
+        
         console.log(`Added discount: ${discount.name}`);
       }
       

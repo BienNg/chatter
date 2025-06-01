@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { 
   Hash,
   Users,
@@ -9,28 +9,17 @@ import {
   Plus
 } from 'lucide-react';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
-import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 
 /**
  * ChannelList - Organized channel display with grouping
  * Handles channel grouping by type and visual organization
  * Excludes DM channels which are handled by DirectMessages component
- * Shows unread message indicators with bold text for channels with unread messages
  */
 export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
-  const { hasUnreadMessages, calculateUnreadCounts } = useUnreadMessages();
-
   // Filter out DM channels - they're handled by DirectMessages component
   const regularChannels = channels.filter(channel => 
     !channel.isDM && channel.type !== 'direct-message'
   );
-
-  // Calculate unread counts when channels change
-  useEffect(() => {
-    if (regularChannels.length > 0) {
-      calculateUnreadCounts(regularChannels);
-    }
-  }, [regularChannels, calculateUnreadCounts]);
 
   // Channel type metadata
   const typeMetadata = {
@@ -90,7 +79,6 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
   const renderChannel = (channel) => {
     const Icon = typeMetadata[channel.type]?.icon || Hash;
     const isActive = channel.id === activeChannelId;
-    const hasUnread = hasUnreadMessages(channel.id);
     const url = generateChannelUrl(channel.id, 'messages');
     
     return (
@@ -106,14 +94,11 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
       >
         <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
         <span 
-          className={`truncate ${hasUnread ? 'font-extrabold' : 'font-normal'}`}
-          title={hasUnread ? `${channel.name} (unread messages)` : channel.name}
+          className="truncate font-normal"
+          title={channel.name}
         >
           {channel.name}
         </span>
-        {hasUnread && !isActive && (
-          <div className="w-2 h-2 bg-indigo-400 rounded-full ml-auto flex-shrink-0" />
-        )}
       </button>
     );
   };

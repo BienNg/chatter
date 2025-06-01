@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { useFirebaseLogger } from '../contexts/FirebaseLoggerContext';
+import { logRealtimeListener, logFirebaseRead } from '../utils/comprehensiveFirebaseTracker';
 
 export const useChannels = () => {
     const [channels, setChannels] = useState([]);
@@ -19,7 +19,6 @@ export const useChannels = () => {
     const [error, setError] = useState(null);
     
     const { currentUser } = useAuth();
-    const { logFirebaseRead } = useFirebaseLogger();
     
     // Add cache ref to prevent unnecessary re-subscriptions
     const unsubscribeRef = useRef(null);
@@ -59,7 +58,7 @@ export const useChannels = () => {
             {
                 next: (snapshot) => {
                     // Log the Firebase read operation
-                    logFirebaseRead('channels', null, 'REALTIME_LISTENER', snapshot.size);
+                    logRealtimeListener('channels', snapshot.size, `Real-time channels listener for user ${currentUser.uid}`);
                     
                     const channelData = snapshot.docs.map((doc) => ({
                         id: doc.id,
@@ -75,7 +74,7 @@ export const useChannels = () => {
                 },
                 error: (err) => {
                     // Log the error
-                    logFirebaseRead('channels', null, `LISTENER_ERROR: ${err.message}`, 0);
+                    logRealtimeListener('channels', 0, `Channels listener error: ${err.message}`);
                     console.error('Error fetching channels:', err);
                     setError(err.message);
                     setLoading(false);
@@ -105,7 +104,7 @@ export const useChannels = () => {
             const channelSnap = await getDoc(channelRef);
             
             // Log the Firebase read operation
-            logFirebaseRead('channels', channelId, 'SINGLE_DOC_READ', channelSnap.exists() ? 1 : 0);
+            logFirebaseRead('channels', channelSnap.exists() ? 1 : 0, `Single channel read for ${channelId}`);
             
             const result = channelSnap.exists() ? { id: channelSnap.id, ...channelSnap.data() } : null;
             
@@ -115,7 +114,7 @@ export const useChannels = () => {
             return result;
         } catch (error) {
             // Log the error
-            logFirebaseRead('channels', channelId, `ERROR: ${error.message}`, 0);
+            logFirebaseRead('channels', 0, `Channel read error for ${channelId}: ${error.message}`);
             console.error('Error fetching channel:', error);
             return null;
         }

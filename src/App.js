@@ -2,7 +2,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { FirebaseLoggerProvider } from './contexts/FirebaseLoggerContext';
+import { AdvancedFirebaseMonitorProvider } from './contexts/AdvancedFirebaseMonitorContext';
 import { ThreadProvider } from './contexts/ThreadContext';
 import { Login, OnboardingFlow } from './components/auth';
 import { MessagingInterface } from './components/messaging';
@@ -58,7 +58,7 @@ const OnboardingRoute = ({ children }) => {
 function App() {
     return (
         <AuthProvider>
-            <FirebaseLoggerProvider>
+            <AdvancedFirebaseMonitorProvider>
                 <BrowserRouter>
                     <div className="App">
                         <AdminToggle />
@@ -169,7 +169,7 @@ function App() {
                         </Routes>
                     </div>
                 </BrowserRouter>
-            </FirebaseLoggerProvider>
+            </AdvancedFirebaseMonitorProvider>
         </AuthProvider>
     );
 }

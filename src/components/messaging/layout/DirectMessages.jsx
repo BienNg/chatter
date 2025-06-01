@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { User, Plus, Search } from 'lucide-react';
 import { useUsers } from '../../../hooks/useUsers';
 import { useDirectMessages } from '../../../hooks/useDirectMessages';
-import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 import { useNavigate } from 'react-router-dom';
 
 /**
  * DirectMessages - Direct message contacts display
  * Handles direct message user list and DM channel creation
- * Shows unread message indicators for DM channels
  */
 export const DirectMessages = ({ onChannelSelect, activeChannelId, channels }) => {
   const [showUserSearch, setShowUserSearch] = useState(false);
@@ -16,8 +14,7 @@ export const DirectMessages = ({ onChannelSelect, activeChannelId, channels }) =
   const [dmChannels, setDmChannels] = useState([]);
   
   const { users, loading: usersLoading, searchUsers } = useUsers();
-  const { createOrFindDMChannel, getDMChannels, getOtherParticipant, isDMChannel, loading: dmLoading } = useDirectMessages();
-  const { hasUnreadMessages, calculateUnreadCounts } = useUnreadMessages();
+  const { createOrFindDMChannel, getOtherParticipant, isDMChannel, loading: dmLoading } = useDirectMessages();
   const navigate = useNavigate();
 
   // Filter DM channels from all channels
@@ -27,13 +24,6 @@ export const DirectMessages = ({ onChannelSelect, activeChannelId, channels }) =
     const directMessageChannels = channels.filter(channel => isDMChannel(channel));
     setDmChannels(directMessageChannels);
   }, [channels, isDMChannel]);
-
-  // Calculate unread counts for DM channels
-  useEffect(() => {
-    if (dmChannels.length > 0) {
-      calculateUnreadCounts(dmChannels);
-    }
-  }, [dmChannels, calculateUnreadCounts]);
 
   // Handle starting a DM conversation
   const handleStartDM = async (user) => {
@@ -155,8 +145,6 @@ export const DirectMessages = ({ onChannelSelect, activeChannelId, channels }) =
             const otherParticipant = getOtherParticipant(dmChannel);
             if (!otherParticipant) return null;
 
-            const hasUnread = hasUnreadMessages(dmChannel.id);
-
             return (
               <button
                 key={dmChannel.id}
@@ -176,14 +164,11 @@ export const DirectMessages = ({ onChannelSelect, activeChannelId, channels }) =
                   {getUserInitials(otherParticipant)}
                 </div>
                 <span 
-                  className={`truncate ${hasUnread ? 'font-extrabold' : 'font-normal'}`}
-                  title={hasUnread ? `${getDisplayName(otherParticipant)} (unread messages)` : getDisplayName(otherParticipant)}
+                  className="truncate font-normal"
+                  title={getDisplayName(otherParticipant)}
                 >
                   {getDisplayName(otherParticipant)}
                 </span>
-                {hasUnread && dmChannel.id !== activeChannelId && (
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full ml-auto flex-shrink-0" />
-                )}
               </button>
             );
           })}

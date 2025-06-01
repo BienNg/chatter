@@ -12,6 +12,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { seedAccounts } from '../utils/seedAccounts';
 import { seedDiscounts } from '../utils/seedDiscounts';
+import { logFirebaseRead, logFirebaseWrite } from '../utils/comprehensiveFirebaseTracker';
 
 const AuthContext = createContext({});
 
@@ -44,6 +45,9 @@ export const AuthProvider = ({ children }) => {
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
 
+        // Log the Firebase read operation
+        logFirebaseRead('users', userSnap.exists() ? 1 : 0, `Check if user profile exists for ${user.uid}`);
+
         if (!userSnap.exists()) {
             const { displayName, email } = user;
             const createdAt = new Date();
@@ -56,6 +60,9 @@ export const AuthProvider = ({ children }) => {
                 createdAt,
                 ...additionalData
             });
+
+            // Log the Firebase write operation
+            logFirebaseWrite('users', `Created user profile for ${user.uid}`);
         }
 
         return userRef;
@@ -64,6 +71,10 @@ export const AuthProvider = ({ children }) => {
     const fetchUserProfile = async (userId) => {
         const userRef = doc(db, 'users', userId);
         const userSnap = await getDoc(userRef);
+        
+        // Log the Firebase read operation
+        logFirebaseRead('users', userSnap.exists() ? 1 : 0, `Fetch user profile for ${userId}`);
+        
         return userSnap.exists() ? userSnap.data() : null;
     };
 

@@ -1,8 +1,6 @@
-import { useFirebaseLogger } from '../contexts/FirebaseLoggerContext';
 import { useLocation } from 'react-router-dom';
 
 export const useClickTracker = () => {
-  const { logUserClick } = useFirebaseLogger();
   const location = useLocation();
 
   const trackClick = (elementName, additionalData = {}) => {
@@ -15,7 +13,8 @@ export const useClickTracker = () => {
       ? 'Messaging' 
       : 'Unknown';
 
-    logUserClick(elementName, currentPage, {
+    // Simple console logging instead of Firebase logging
+    console.log(`User Click: ${elementName} on ${currentPage}`, {
       route: location.pathname,
       timestamp: new Date().toISOString(),
       ...additionalData

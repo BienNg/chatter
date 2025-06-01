@@ -2,19 +2,10 @@ import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperat
 import {
     Bold,
     Italic,
-    Underline,
     Strikethrough,
     List,
     ListOrdered,
-    Quote,
-    Link,
-    Indent,
-    Outdent,
-    AlignLeft,
-    AlignCenter,
-    AlignRight,
-    Code,
-    Type
+    Link
 } from 'lucide-react';
 
 const RichTextEditor = forwardRef(({ 
@@ -24,13 +15,11 @@ const RichTextEditor = forwardRef(({
     onKeyDown,
     className = '',
     disabled = false,
-    isDraftSaved = false,
-    showAdvancedToolbar = true
+    isDraftSaved = false
 }, ref) => {
     const editorRef = useRef(null);
     const [selection, setSelection] = useState(null);
     const [activeFormats, setActiveFormats] = useState(new Set());
-    const [showAdvanced, setShowAdvanced] = useState(false);
 
     // Expose methods to parent component
     useImperativeHandle(ref, () => ({
@@ -116,7 +105,6 @@ const RichTextEditor = forwardRef(({
             const formats = new Set();
             if (document.queryCommandState('bold')) formats.add('bold');
             if (document.queryCommandState('italic')) formats.add('italic');
-            if (document.queryCommandState('underline')) formats.add('underline');
             if (document.queryCommandState('strikeThrough')) formats.add('strikethrough');
             
             // Better list detection
@@ -128,15 +116,6 @@ const RichTextEditor = forwardRef(({
                 } else if (listParent.tagName === 'OL') {
                     formats.add('orderedList');
                 }
-            }
-            
-            if (document.queryCommandState('justifyLeft')) formats.add('alignLeft');
-            if (document.queryCommandState('justifyCenter')) formats.add('alignCenter');
-            if (document.queryCommandState('justifyRight')) formats.add('alignRight');
-            
-            // Check for code formatting
-            if (parentElement?.tagName === 'CODE' || parentElement?.closest('code')) {
-                formats.add('code');
             }
             
             setActiveFormats(formats);
@@ -167,17 +146,9 @@ const RichTextEditor = forwardRef(({
                     e.preventDefault();
                     execCommand('italic');
                     break;
-                case 'u':
-                    e.preventDefault();
-                    execCommand('underline');
-                    break;
                 case 'k':
                     e.preventDefault();
                     insertLink();
-                    break;
-                case '`':
-                    e.preventDefault();
-                    toggleCode();
                     break;
                 default:
                     break;
@@ -195,27 +166,59 @@ const RichTextEditor = forwardRef(({
         }
         
         // Handle Enter key in lists
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter') {
             const selection = window.getSelection();
             if (selection.rangeCount > 0) {
                 const parentElement = selection.anchorNode?.parentElement;
                 const listItem = parentElement?.closest('li');
                 
                 if (listItem) {
-                    // Check if the current list item is empty
-                    const listItemText = listItem.textContent?.trim();
-                    if (!listItemText) {
-                        // Exit the list if the current item is empty
+                    if (e.shiftKey) {
+                        // Shift+Enter: Create a new list item
                         e.preventDefault();
+                        
+                        // Get the list parent to determine list type
                         const listParent = listItem.closest('ul, ol');
                         if (listParent) {
-                            if (listParent.tagName === 'UL') {
-                                execCommand('insertUnorderedList');
-                            } else {
-                                execCommand('insertOrderedList');
-                            }
+                            // Create a new list item element
+                            const newListItem = document.createElement('li');
+                            newListItem.innerHTML = '<br>'; // Add a line break for cursor positioning
+                            
+                            // Insert the new list item after the current one
+                            listItem.parentNode.insertBefore(newListItem, listItem.nextSibling);
+                            
+                            // Move cursor to the new list item
+                            const range = document.createRange();
+                            const newSelection = window.getSelection();
+                            range.setStart(newListItem, 0);
+                            range.collapse(true);
+                            newSelection.removeAllRanges();
+                            newSelection.addRange(range);
+                            
+                            // Trigger onChange
+                            setTimeout(() => {
+                                if (editorRef.current) {
+                                    onChange?.(editorRef.current.innerHTML);
+                                }
+                            }, 0);
                         }
-                        return;
+                    } else {
+                        // Regular Enter: Check if the current list item is empty to exit list
+                        const listItemText = listItem.textContent?.trim();
+                        if (!listItemText) {
+                            // Exit the list if the current item is empty
+                            e.preventDefault();
+                            const listParent = listItem.closest('ul, ol');
+                            if (listParent) {
+                                if (listParent.tagName === 'UL') {
+                                    execCommand('insertUnorderedList');
+                                } else {
+                                    execCommand('insertOrderedList');
+                                }
+                            }
+                            return;
+                        }
+                        // If list item has content, let the default behavior handle it (which should create a new list item)
                     }
                 }
             }
@@ -257,31 +260,6 @@ const RichTextEditor = forwardRef(({
         }
     };
 
-    const toggleCode = () => {
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const selectedText = range.toString();
-            
-            if (selectedText) {
-                const codeHtml = `<code class="inline-code">${selectedText}</code>`;
-                range.deleteContents();
-                range.insertNode(range.createContextualFragment(codeHtml));
-                selection.removeAllRanges();
-                onChange?.(editorRef.current.innerHTML);
-            }
-        }
-    };
-
-    const insertCodeBlock = () => {
-        const codeHtml = `<pre><code class="code-block">// Your code here</code></pre>`;
-        execCommand('insertHTML', codeHtml);
-    };
-
-    const clearFormatting = () => {
-        execCommand('removeFormat');
-    };
-
     const toggleList = (listType) => {
         if (disabled) return;
         
@@ -321,21 +299,6 @@ const RichTextEditor = forwardRef(({
         { command: 'insertOrderedList', icon: ListOrdered, title: 'Numbered List', active: 'orderedList', handler: () => toggleList('insertOrderedList') },
         { type: 'separator' },
         { command: 'createLink', icon: Link, title: 'Insert Link (Ctrl+K)', handler: insertLink },
-    ];
-
-    const advancedFormatButtons = [
-        { command: 'underline', icon: Underline, title: 'Underline (Ctrl+U)', active: 'underline' },
-        { command: 'formatBlock', value: 'blockquote', icon: Quote, title: 'Quote' },
-        { command: 'code', icon: Code, title: 'Inline Code (Ctrl+`)', handler: toggleCode, active: 'code' },
-        { type: 'separator' },
-        { command: 'indent', icon: Indent, title: 'Increase Indent (Tab)' },
-        { command: 'outdent', icon: Outdent, title: 'Decrease Indent (Shift+Tab)' },
-        { type: 'separator' },
-        { command: 'justifyLeft', icon: AlignLeft, title: 'Align Left', active: 'alignLeft' },
-        { command: 'justifyCenter', icon: AlignCenter, title: 'Align Center', active: 'alignCenter' },
-        { command: 'justifyRight', icon: AlignRight, title: 'Align Right', active: 'alignRight' },
-        { type: 'separator' },
-        { command: 'removeFormat', icon: Type, title: 'Clear Formatting', handler: clearFormatting },
     ];
 
     const renderToolbarButtons = (buttons) => {
@@ -380,17 +343,6 @@ const RichTextEditor = forwardRef(({
                 <div className="flex items-center justify-between p-2">
                     <div className="flex items-center gap-1">
                         {renderToolbarButtons(basicFormatButtons)}
-                        
-                        {showAdvancedToolbar && (
-                            <button
-                                type="button"
-                                onClick={() => setShowAdvanced(!showAdvanced)}
-                                className="ml-2 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
-                                title="More formatting options"
-                            >
-                                <Type className="h-4 w-4" />
-                            </button>
-                        )}
                     </div>
                     
                     {/* Draft indicator */}
@@ -403,13 +355,6 @@ const RichTextEditor = forwardRef(({
                         )}
                     </div>
                 </div>
-
-                {/* Advanced Toolbar */}
-                {showAdvanced && showAdvancedToolbar && (
-                    <div className="flex items-center gap-1 p-2 pt-0 border-t border-gray-100">
-                        {renderToolbarButtons(advancedFormatButtons)}
-                    </div>
-                )}
             </div>
 
             {/* Editor */}
@@ -472,50 +417,6 @@ const RichTextEditor = forwardRef(({
                 
                 .rich-text-editor strong {
                     font-weight: 600;
-                }
-                
-                .rich-text-editor .inline-code {
-                    background-color: #F3F4F6;
-                    color: #EF4444;
-                    padding: 2px 4px;
-                    border-radius: 4px;
-                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-                    font-size: 0.875em;
-                }
-                
-                .rich-text-editor .code-block {
-                    background-color: #F9FAFB;
-                    color: #374151;
-                    padding: 12px;
-                    border-radius: 6px;
-                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-                    font-size: 0.875em;
-                    display: block;
-                    white-space: pre;
-                    overflow-x: auto;
-                    border: 1px solid #E5E7EB;
-                }
-                
-                .rich-text-editor pre {
-                    margin: 8px 0;
-                }
-                
-                /* Indentation styles */
-                .rich-text-editor [style*="margin-left"] {
-                    margin-left: 40px !important;
-                }
-                
-                /* Text alignment */
-                .rich-text-editor [style*="text-align: center"] {
-                    text-align: center;
-                }
-                
-                .rich-text-editor [style*="text-align: right"] {
-                    text-align: right;
-                }
-                
-                .rich-text-editor [style*="text-align: left"] {
-                    text-align: left;
                 }
             `}</style>
         </div>

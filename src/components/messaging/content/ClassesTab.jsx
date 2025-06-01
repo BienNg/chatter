@@ -80,6 +80,7 @@ export const ClassesTab = ({
   const scrollContainerRef = useRef(null);
   const [activeCourseIndex, setActiveCourseIndex] = useState(0);
   const [isNavigationVisible, setIsNavigationVisible] = useState(false);
+  const lastActiveCourseRef = useRef(0);
 
   // Use the class students hook
   const {
@@ -137,6 +138,7 @@ export const ClassesTab = ({
   // Reset course navigation state when channelId or courses change
   useEffect(() => {
     setActiveCourseIndex(0);
+    lastActiveCourseRef.current = 0;
     setIsNavigationVisible(false);
     courseRefs.current = {};
   }, [channelId, courses]);
@@ -524,19 +526,19 @@ export const ClassesTab = ({
     const [isNavigationExpanded, setIsNavigationExpanded] = useState(false);
 
     const generateCourseIcon = (course, index) => {
-      // Create a unique color for each course based on its name/index
-      const colors = [
-        'bg-gradient-to-br from-indigo-500 to-purple-600',
-        'bg-gradient-to-br from-blue-500 to-indigo-600', 
-        'bg-gradient-to-br from-purple-500 to-pink-600',
-        'bg-gradient-to-br from-green-500 to-teal-600',
-        'bg-gradient-to-br from-orange-500 to-red-600',
-        'bg-gradient-to-br from-teal-500 to-cyan-600',
-        'bg-gradient-to-br from-pink-500 to-rose-600',
-        'bg-gradient-to-br from-amber-500 to-orange-600'
-      ];
+      // Get course status using the existing getCourseStatus function
+      const status = getCourseStatus(course);
       
-      const colorClass = colors[index % colors.length];
+      // Define gradient colors based on course status
+      const statusColors = {
+        'completed': 'bg-gradient-to-br from-gray-400 to-gray-600',
+        'active': 'bg-gradient-to-br from-green-400 to-green-600', 
+        'planning': 'bg-gradient-to-br from-yellow-400 to-yellow-600'
+      };
+      
+      // Get the appropriate color class based on status, fallback to active if status not found
+      const colorClass = statusColors[status] || statusColors.active;
+      
       // Display course level instead of initials
       const level = course.level || (index + 1).toString();
 
@@ -639,30 +641,75 @@ export const ClassesTab = ({
   useEffect(() => {
     if (courses.length < 2) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const courseId = entry.target.getAttribute('data-course-id');
+    let observer = null;
+
+    // Add a small delay to ensure DOM elements are ready
+    const timeoutId = setTimeout(() => {
+      if (!scrollContainerRef.current) return;
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          // Find the most visible entry
+          let bestEntry = null;
+          let bestRatio = 0;
+
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
+              bestRatio = entry.intersectionRatio;
+              bestEntry = entry;
+            }
+          });
+
+          if (bestEntry) {
+            const courseId = bestEntry.target.getAttribute('data-course-id');
             const courseIndex = courses.findIndex(course => (course.id || course) === courseId);
+            
             if (courseIndex !== -1) {
-              setActiveCourseIndex(courseIndex);
+              const currentActive = lastActiveCourseRef.current;
+              
+              // Add hysteresis: only change if the new course is significantly more visible
+              // or if we're already very close to switching
+              let shouldSwitch = false;
+              
+              if (courseIndex === currentActive) {
+                // Same course, keep it active if it's still reasonably visible
+                shouldSwitch = bestRatio > 0.1;
+              } else {
+                // Different course, require higher threshold to switch
+                shouldSwitch = bestRatio > 0.3;
+              }
+              
+              if (shouldSwitch) {
+                console.log('Setting active course index to:', courseIndex, 'for course:', courses[courseIndex]?.courseName, 'with ratio:', bestRatio);
+                setActiveCourseIndex(courseIndex);
+                lastActiveCourseRef.current = courseIndex;
+              }
             }
           }
+        },
+        {
+          root: scrollContainerRef.current,
+          rootMargin: '-25% 0px -25% 0px', // More conservative margins to reduce sensitivity
+          threshold: [0, 0.1, 0.3, 0.5, 0.7, 1.0] // Fewer, more spaced thresholds
+        }
+      );
+
+      // Observe all course elements that exist
+      const currentRefs = Object.values(courseRefs.current).filter(ref => ref != null);
+      
+      if (currentRefs.length > 0) {
+        currentRefs.forEach((ref) => {
+          observer.observe(ref);
         });
-      },
-      {
-        root: scrollContainerRef.current,
-        rootMargin: '-20% 0px -20% 0px',
-        threshold: 0.5
       }
-    );
+    }, 100); // Small delay to ensure elements are rendered
 
-    Object.values(courseRefs.current).forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
-
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timeoutId);
+      if (observer) {
+        observer.disconnect();
+      }
+    };
   }, [courses]);
 
   const renderCoursesView = () => {

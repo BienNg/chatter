@@ -539,7 +539,6 @@ const MessageComposition = ({
                         className="border-0"
                         isDraftSaved={isDraftSaved}
                         disabled={disabled}
-                        showAdvancedToolbar={mode !== 'comment'} // Show advanced toolbar for main messages, not comments
                         maxLength={null} // Disable internal character count to avoid duplication
                     />
 

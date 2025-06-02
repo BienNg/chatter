@@ -32,6 +32,7 @@ import {
   MoreHorizontal,
   Info
 } from 'lucide-react';
+import { Timeline } from '../../shared/checklist';
 
 /**
  * ChannelTypeModal - Modal for managing channel type settings and checklists
@@ -40,7 +41,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
   const [activeTab, setActiveTab] = useState('checklists');
 
   // Mock checklist data - exact replica from ImportTab.jsx
-  const [workflowStages] = useState([
+  const [workflowStages, setWorkflowStages] = useState([
     {
       id: 'discover',
       title: 'Discovery & First Contact',
@@ -119,95 +120,48 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     { id: 'info', label: 'Info', icon: Info }
   ];
 
-  const overallProgress = workflowStages.reduce((acc, stage) => acc + stage.progress, 0) / workflowStages.length;
-  const completedTasks = workflowStages.flatMap(s => s.tasks).filter(t => t.completed).length;
-  const totalTasks = workflowStages.flatMap(s => s.tasks).length;
+  const handleTaskStatusChange = (taskId, completed) => {
+    // Update the workflow stages when a task's status changes
+    const updatedStages = workflowStages.map(stage => {
+      // Find the task within the stage
+      const taskIndex = stage.tasks.findIndex(task => task.id === taskId);
+      
+      // If task is found in this stage, update it
+      if (taskIndex !== -1) {
+        const updatedTasks = [...stage.tasks];
+        updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], completed };
+        
+        // Calculate new progress based on completed tasks
+        const totalTasks = updatedTasks.length;
+        const completedCount = updatedTasks.filter(task => task.completed).length;
+        const newProgress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+        
+        return {
+          ...stage,
+          tasks: updatedTasks,
+          progress: newProgress
+        };
+      }
+      
+      return stage;
+    });
+    
+    setWorkflowStages(updatedStages);
+  };
 
-  const getStageStatusIcon = (stage) => {
-    if (stage.progress === 100) return CheckCircle2;
-    if (stage.progress > 0) return Timer;
-    return Circle;
+  const handleTaskStart = (taskId) => {
+    console.log(`Starting task: ${taskId}`);
+    // Implement task start functionality here
   };
 
   const renderChecklistsTab = () => (
     <div className="flex-1 overflow-y-auto">
       <div className="p-6">
-        {/* Timeline Workflow Stages */}
-        <div className="max-w-4xl mx-auto pb-16">
-          <div className="relative min-h-full">
-            {/* Timeline Line */}
-            <div className="absolute left-8 top-0 w-0.5 bg-gradient-to-b from-indigo-500 via-purple-500 to-emerald-500" style={{ height: 'calc(100% - 2rem)' }}></div>
-            
-            {workflowStages.map((stage, index) => {
-              const StageIcon = stage.icon;
-              const StatusIcon = getStageStatusIcon(stage);
-              
-              return (
-                <div key={stage.id} className="relative mb-8">
-                  {/* Stage Node */}
-                  <div className="absolute left-6 w-4 h-4 rounded-full bg-white border-2 flex items-center justify-center"
-                       style={{ borderColor: stage.color.replace('bg-', '').replace('blue-500', '#3b82f6').replace('indigo-500', '#6366f1').replace('purple-500', '#a855f7').replace('green-500', '#10b981').replace('emerald-500', '#10b981') }}>
-                    <div className={`w-2 h-2 rounded-full ${stage.color}`}></div>
-                  </div>
-                  
-                  {/* Stage Content */}
-                  <div className="ml-16 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 ${stage.color} rounded-lg flex items-center justify-center text-white`}>
-                          <StageIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-                            {stage.title}
-                            <StatusIcon className={`w-4 h-4 ${stage.progress === 100 ? 'text-green-500' : stage.progress > 0 ? 'text-yellow-500' : 'text-gray-400'}`} />
-                          </h3>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Tasks */}
-                    <div className="space-y-2">
-                      {stage.tasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className={`flex items-center justify-between p-3 rounded-lg transition-all ${
-                            task.completed 
-                              ? 'bg-green-50 border border-green-200' 
-                              : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                              task.completed ? 'bg-green-500 text-white' : 'bg-gray-300'
-                            }`}>
-                              {task.completed ? <CheckSquare className="w-3 h-3" /> : <Circle className="w-3 h-3" />}
-                            </div>
-                            <span className={`font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-900'}`}>
-                              {task.title}
-                            </span>
-                            {task.automated && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                <Zap className="w-3 h-3 mr-1" />
-                                Auto
-                              </span>
-                            )}
-                          </div>
-                          
-                          {!task.completed && (
-                            <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-                              Start
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <Timeline 
+          stages={workflowStages}
+          onTaskStatusChange={handleTaskStatusChange}
+          onTaskStart={handleTaskStart}
+        />
       </div>
     </div>
   );

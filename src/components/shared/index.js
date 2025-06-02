@@ -14,4 +14,7 @@ export {
   PaymentDetailsModal,
   PaymentModal,
   StudentDetailsModal
-}; 
+};
+
+// Checklist components
+export * from './checklist'; 

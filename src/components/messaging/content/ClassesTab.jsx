@@ -93,7 +93,8 @@ export const ClassesTab = ({
     getEnrollmentStats: getClassStats,
     getClassEnrollments,
     getCourseEnrollments,
-    getEnrichedEnrollments
+    getEnrichedEnrollments,
+    updateEnrollment
   } = useEnrollments();
 
   // Use the students hook for creating/managing student records
@@ -401,24 +402,52 @@ export const ClassesTab = ({
 
   const handlePaymentSubmit = async (paymentData) => {
     try {
-      // Create payment with enrollment linking
-      const enrichedPaymentData = {
+      console.log('Processing payment for existing enrollment:', paymentData);
+      console.log('Payment modal data:', paymentModalData);
+      
+      // For existing enrollments, we should NOT trigger auto-enrollment
+      // Instead, we should create a payment and update the existing enrollment
+      
+      // Step 1: Create the payment record
+      const paymentDataForCreation = {
         ...paymentData,
         enrollmentId: paymentModalData.enrollmentId,
-        additionalData: {
-          enrollmentId: paymentModalData.enrollmentId
-        }
+        studentId: paymentModalData.studentId,
+        courseId: paymentModalData.courseId,
+        // Remove fields that might trigger auto-enrollment logic
+        // We'll handle enrollment updates separately
+        skipAutoEnrollment: true
       };
 
-      // Create the payment using the usePayments hook
-      const result = await addPayment(enrichedPaymentData);
+      console.log('Creating payment record:', paymentDataForCreation);
+      
+      // Create the payment using the usePayments hook (but avoid auto-enrollment)
+      const result = await addPayment(paymentDataForCreation);
       
       console.log('Payment created successfully:', result);
       
-      // Update the enrollment with payment information if needed
-      // This could be handled automatically in your payment creation function
+      // Step 2: Update the existing enrollment with payment information
+      const enrollmentUpdates = {
+        paymentStatus: 'paid', // Update payment status
+        // Update the total amount paid (you might want to accumulate this)
+        lastPaymentDate: new Date(),
+        lastPaymentAmount: parseFloat(paymentData.amount) || 0,
+        lastPaymentId: result.paymentId,
+        // Add any other payment-related fields you want to track
+        updatedAt: new Date()
+      };
       
-      // Refresh the enrollment data
+      console.log('Updating enrollment with payment info:', {
+        enrollmentId: paymentModalData.enrollmentId,
+        updates: enrollmentUpdates
+      });
+      
+      // Update the enrollment record
+      await updateEnrollment(paymentModalData.enrollmentId, enrollmentUpdates);
+      
+      console.log('Enrollment updated successfully with payment information');
+      
+      // Step 3: Refresh the enrollment data to show updated payment info
       await loadEnrichedEnrollments();
       
       // Close modal
@@ -428,14 +457,14 @@ export const ClassesTab = ({
       // Show payment success toast
       setPaymentSuccessToast({
         isVisible: true,
-        autoEnrolled: result.autoEnrolled || false,
+        autoEnrolled: false, // This is not auto-enrollment, it's payment for existing enrollment
         studentName: paymentModalData?.studentName || 'Unknown Student',
         courseName: paymentModalData?.courseName || 'Unknown Course',
-        amount: parseFloat(enrichedPaymentData.amount) || 0,
-        currency: enrichedPaymentData.currency || 'VND'
+        amount: parseFloat(paymentData.amount) || 0,
+        currency: paymentData.currency || 'VND'
       });
     } catch (error) {
-      console.error('Error creating payment:', error);
+      console.error('Error processing payment:', error);
       throw error; // Let the modal handle the error
     }
   };

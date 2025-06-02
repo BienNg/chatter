@@ -84,10 +84,13 @@ export const usePayments = () => {
         try {
             console.log('Processing payment with automatic enrollment check:', paymentData);
 
+            // Check if auto-enrollment should be skipped (for existing enrollments)
+            const skipAutoEnrollment = paymentData.skipAutoEnrollment;
+            
             // Check if the payment includes student and course information for auto-enrollment
             const { studentId, courseId, studentName, studentEmail, courseName } = paymentData;
             
-            if (studentId && courseId) {
+            if (studentId && courseId && !skipAutoEnrollment) {
                 // Check if student is already enrolled in the course
                 const alreadyEnrolled = isStudentEnrolled(studentId, courseId);
                 console.log(`Student ${studentName} enrollment status for course ${courseName}:`, alreadyEnrolled);
@@ -135,16 +138,20 @@ export const usePayments = () => {
                 } else {
                     console.log(`Student ${studentName} is already enrolled in course ${courseName}`);
                 }
+            } else if (skipAutoEnrollment) {
+                console.log('Skipping auto-enrollment logic - payment for existing enrollment');
             }
 
-            // Create the payment
+            // Create the payment (remove skipAutoEnrollment from the data before saving)
+            const { skipAutoEnrollment: _, ...cleanPaymentData } = paymentData;
+            
             const payment = {
-                ...paymentData,
+                ...cleanPaymentData,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 createdBy: currentUser.uid,
                 // Ensure we have required fields
-                currency: paymentData.currency || 'EUR',
+                currency: paymentData.currency || 'VND',
                 paymentType: paymentData.paymentType || 'full_payment'
             };
 

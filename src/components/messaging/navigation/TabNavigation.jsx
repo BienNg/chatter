@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Globe } from 'lucide-react';
+import { User, Globe, Clock } from 'lucide-react';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 import { useDirectMessages } from '../../../hooks/useDirectMessages';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -49,13 +49,40 @@ export const TabNavigation = ({
   // Render format/location for class channels
   const renderClassMeta = () => {
     if (channel.type !== 'class' || !classInfo) return null;
-    if (!classInfo.format && !classInfo.formatOption) return null;
+    
+    const hasFormatInfo = classInfo.format || classInfo.formatOption;
+    const hasTimeInfo = classInfo.startTime || classInfo.endTime || classInfo.timezone;
+    
+    if (!hasFormatInfo && !hasTimeInfo) return null;
+    
     return (
-      <span className="flex items-center ml-2 gap-1 text-gray-700 text-xs">
-        <Globe className="w-3 h-3 text-indigo-500 mr-1" />
-        <span className="font-semibold">{classInfo.format}</span>
-        {classInfo.format && classInfo.formatOption && <span className="mx-1">·</span>}
-        {classInfo.formatOption && <span>{classInfo.formatOption}</span>}
+      <span className="flex items-center ml-2 gap-2 text-gray-700 text-xs">
+        {hasFormatInfo && (
+          <span className="flex items-center gap-1">
+            <Globe className="w-3 h-3 text-indigo-500" />
+            <span className="font-semibold">{classInfo.format}</span>
+            {classInfo.format && classInfo.formatOption && <span className="mx-1">·</span>}
+            {classInfo.formatOption && <span>{classInfo.formatOption}</span>}
+          </span>
+        )}
+        
+        {hasTimeInfo && (
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3 text-emerald-500" />
+            <span className="font-semibold">
+              {classInfo.startTime && classInfo.endTime 
+                ? `${classInfo.startTime} - ${classInfo.endTime}`
+                : classInfo.startTime || classInfo.endTime || 'Time not set'
+              }
+            </span>
+            {classInfo.timezone && (
+              <>
+                <span className="mx-1">·</span>
+                <span className="uppercase font-medium">{classInfo.timezone}</span>
+              </>
+            )}
+          </span>
+        )}
       </span>
     );
   };

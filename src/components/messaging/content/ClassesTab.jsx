@@ -44,6 +44,7 @@ import StudentDetailsModal from '../../shared/StudentDetailsModal';
 import PaymentSuccessToast from '../../shared/PaymentSuccessToast';
 import ActionsDropdown from '../../shared/ActionsDropdown';
 import SendCourseStudentToChatModal from './SendCourseStudentToChatModal';
+import SendCourseToChatModal from './SendCourseToChatModal';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 
 /**
@@ -72,6 +73,8 @@ export const ClassesTab = ({
   const [autoEnrollCourseId, setAutoEnrollCourseId] = useState(null); // For auto-enrolling new students in specific course
   const [showSendToChatModal, setShowSendToChatModal] = useState(false);
   const [sendToChatData, setSendToChatData] = useState(null); // { enrollment, course, payments }
+  const [showSendCourseToChatModal, setShowSendCourseToChatModal] = useState(false);
+  const [courseToChatData, setCourseToChatData] = useState(null); // { course, classData, enrollments }
   const [paymentSuccessToast, setPaymentSuccessToast] = useState({
     isVisible: false,
     autoEnrolled: false,
@@ -512,6 +515,23 @@ export const ClassesTab = ({
   const handleCloseSendToChat = () => {
     setShowSendToChatModal(false);
     setSendToChatData(null);
+  };
+
+  const handleSendCourseToChat = (course) => {
+    // Get enrollments for this course
+    const courseEnrollments = enrichedEnrollments[course.id] || getCourseEnrollments(course.id);
+    
+    setCourseToChatData({
+      course,
+      classData,
+      enrollments: courseEnrollments
+    });
+    setShowSendCourseToChatModal(true);
+  };
+
+  const handleCloseSendCourseToChat = () => {
+    setShowSendCourseToChatModal(false);
+    setCourseToChatData(null);
   };
 
   const formatDate = (dateString) => {
@@ -1025,6 +1045,24 @@ export const ClassesTab = ({
                             <span className="font-medium text-gray-700">{course.level}</span>
                           </div>
                           
+                          {(course.startTime || course.endTime || course.timezone || classData?.startTime || classData?.endTime || classData?.timezone) && (
+                            <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/20">
+                              <Clock className="w-4 h-4 text-emerald-500" />
+                              <span className="font-medium text-gray-700">
+                                {(course.startTime || classData?.startTime) && (course.endTime || classData?.endTime)
+                                  ? `${course.startTime || classData?.startTime} - ${course.endTime || classData?.endTime}`
+                                  : (course.startTime || classData?.startTime) || (course.endTime || classData?.endTime) || 'Time not set'
+                                }
+                              </span>
+                              {(course.timezone || classData?.timezone) && (
+                                <>
+                                  <span className="text-gray-500">•</span>
+                                  <span className="text-gray-600 uppercase text-xs font-medium">{course.timezone || classData?.timezone}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          
                           <div className="flex items-center space-x-2">
                             {getStatusBadgeEnhanced(getCourseStatus(course))}
                           </div>
@@ -1034,22 +1072,36 @@ export const ClassesTab = ({
                     
                     {/* Action Buttons */}
                     {course.id !== 'default' && (
-                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button 
-                          onClick={() => handleEditCourse(course)}
-                          className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-white/80 rounded-xl transition-all duration-200 backdrop-blur-sm border border-transparent hover:border-indigo-200"
-                          title="Edit course"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteCourse(course.id)}
-                          className="p-3 text-gray-400 hover:text-red-500 hover:bg-white/80 rounded-xl transition-all duration-200 backdrop-blur-sm border border-transparent hover:border-red-200"
-                          title="Delete course"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
+                      <ActionsDropdown
+                        itemId={course.id}
+                        item={course}
+                        actions={[
+                          {
+                            key: 'edit',
+                            label: 'Edit Course',
+                            icon: Edit,
+                            onClick: (course) => handleEditCourse(course),
+                            title: 'Edit course details'
+                          },
+                          {
+                            key: 'sendToChannel',
+                            label: 'Send to Channel',
+                            icon: MessageSquare,
+                            onClick: (course) => handleSendCourseToChat(course),
+                            title: 'Share course details with your team'
+                          },
+                          {
+                            key: 'delete',
+                            label: 'Delete Course',
+                            icon: Trash2,
+                            onClick: (course) => handleDeleteCourse(course.id),
+                            isDanger: true,
+                            separator: true,
+                            title: 'Delete this course'
+                          }
+                        ]}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      />
                     )}
                   </div>
                 </div>
@@ -1100,6 +1152,32 @@ export const ClassesTab = ({
                             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-500" style={{width: '75%'}}></div>
                           </div>
                         </div>
+                        
+                        {/* Course Resources */}
+                        {course.sheetUrl && (
+                          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-medium text-gray-500 flex items-center">
+                                <FileText className="w-4 h-4 mr-1.5" />
+                                Resources
+                              </span>
+                            </div>
+                            <a
+                              href={course.sheetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group w-full"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                  <FileText className="w-4 h-4 text-green-600" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-900">Course Materials</span>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1865,6 +1943,15 @@ export const ClassesTab = ({
         enrollment={sendToChatData?.enrollment}
         course={sendToChatData?.course}
         payments={sendToChatData?.payments}
+      />
+
+      {/* Send Course to Chat Modal */}
+      <SendCourseToChatModal
+        isOpen={showSendCourseToChatModal}
+        onClose={handleCloseSendCourseToChat}
+        course={courseToChatData?.course}
+        classData={courseToChatData?.classData}
+        enrollments={courseToChatData?.enrollments}
       />
     </div>
   );

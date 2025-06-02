@@ -1,14 +1,8 @@
-import React from 'react';
-import { 
-  Hash,
-  Users,
-  Settings,
-  MessageSquare,
-  User,
-  DollarSign,
-  Plus
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Hash } from 'lucide-react';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
+import { CHANNEL_TYPE_METADATA, getChannelTypeMetadata, getChannelTypePriority } from '../../../utils/channelTypes';
+import { ChannelTypeModal } from './ChannelTypeModal';
 
 /**
  * ChannelList - Organized channel display with grouping
@@ -16,44 +10,14 @@ import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navig
  * Excludes DM channels which are handled by DirectMessages component
  */
 export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedChannelType, setSelectedChannelType] = useState(null);
+  const [selectedMetadata, setSelectedMetadata] = useState(null);
+
   // Filter out DM channels - they're handled by DirectMessages component
   const regularChannels = channels.filter(channel => 
     !channel.isDM && channel.type !== 'direct-message'
   );
-
-  // Channel type metadata
-  const typeMetadata = {
-    'general': {
-      icon: Hash,
-      label: 'General Channels',
-      description: 'General discussion and announcements'
-    },
-    'team': {
-      icon: Users,
-      label: 'Team Channels',
-      description: 'Team collaboration and meetings'
-    },
-    'project': {
-      icon: Settings,
-      label: 'Project Channels',
-      description: 'Project-specific discussions'
-    },
-    'social': {
-      icon: MessageSquare,
-      label: 'Social Channels',
-      description: 'Casual conversations and social topics'
-    },
-    'support': {
-      icon: User,
-      label: 'Support Channels',
-      description: 'Help and support discussions'
-    },
-    'sales': {
-      icon: DollarSign,
-      label: 'Sales Channels', 
-      description: 'Sales and business discussions'
-    }
-  };
 
   // Group channels by type
   const groupedChannels = regularChannels.reduce((groups, channel) => {
@@ -68,16 +32,22 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
   // Sort groups by priority and channels within groups by name
   const sortedGroups = Object.entries(groupedChannels)
     .sort(([a], [b]) => {
-      const priority = { general: 0, team: 1, project: 2, social: 3, support: 4, sales: 5 };
-      return (priority[a] || 999) - (priority[b] || 999);
+      return getChannelTypePriority(a) - getChannelTypePriority(b);
     })
     .map(([type, channelList]) => [
       type,
       channelList.sort((a, b) => a.name.localeCompare(b.name))
     ]);
 
+  const handleChannelTypeClick = (type, metadata) => {
+    setSelectedChannelType(type);
+    setSelectedMetadata(metadata);
+    setModalOpen(true);
+  };
+
   const renderChannel = (channel) => {
-    const Icon = typeMetadata[channel.type]?.icon || Hash;
+    const metadata = getChannelTypeMetadata(channel.type);
+    const Icon = metadata.icon;
     const isActive = channel.id === activeChannelId;
     const url = generateChannelUrl(channel.id, 'messages');
     
@@ -117,28 +87,44 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
   }
 
   return (
-    <div className="space-y-4">
-      {sortedGroups.map(([type, channelList]) => {
-        const metadata = typeMetadata[type] || typeMetadata.general;
-        
-        return (
-          <div key={type} className="space-y-1">
-            {/* Group Header */}
-            <div className="flex items-center px-2 py-1 mb-2">
-              <metadata.icon className="w-3 h-3 mr-2 text-indigo-300" />
-              <span className="text-xs font-medium text-indigo-300 uppercase tracking-wider">
-                {metadata.label}
-              </span>
-              <div className="flex-1 h-px bg-indigo-700/30 ml-2"></div>
+    <>
+      <div className="space-y-4">
+        {sortedGroups.map(([type, channelList]) => {
+          const metadata = getChannelTypeMetadata(type);
+          
+          return (
+            <div key={type} className="space-y-1">
+              {/* Group Header - Now Clickable */}
+              <button
+                onClick={() => handleChannelTypeClick(type, metadata)}
+                className="flex items-center px-2 py-1 mb-2 w-full hover:bg-indigo-700/30 rounded-md transition-colors group"
+              >
+                <metadata.icon className="w-3 h-3 mr-2 text-indigo-300 group-hover:text-indigo-200" />
+                <span className="text-xs font-medium text-indigo-300 uppercase tracking-wider group-hover:text-indigo-200">
+                  {metadata.label}
+                </span>
+                <div className="flex-1 h-px bg-indigo-700/30 ml-2 group-hover:bg-indigo-600/40"></div>
+                <span className="text-xs text-indigo-400 group-hover:text-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                  Click to manage
+                </span>
+              </button>
+              
+              {/* Channels in Group */}
+              <div className="space-y-1">
+                {channelList.map(renderChannel)}
+              </div>
             </div>
-            
-            {/* Channels in Group */}
-            <div className="space-y-1">
-              {channelList.map(renderChannel)}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+
+      {/* Channel Type Modal */}
+      <ChannelTypeModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        channelType={selectedChannelType}
+        metadata={selectedMetadata}
+      />
+    </>
   );
 }; 

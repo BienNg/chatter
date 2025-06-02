@@ -13,6 +13,9 @@ service cloud.firestore {
     match /channels/{channelId} {
       // Users can read channels they are members of
       allow read: if request.auth != null && request.auth.uid in resource.data.members;
+      // Allow authenticated users to list channels for name availability checking
+      // This allows queries like where('name', '==', 'channel-name') for duplicate checking
+      allow list: if request.auth != null;
       // Allow any authenticated user to create new channels
       allow create: if request.auth != null;
       // Users can update channels they are members of

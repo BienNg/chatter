@@ -28,6 +28,9 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     beginDate: '',
     endDate: '',
     days: [],
+    startTime: '09:00',
+    endTime: '10:30',
+    timezone: '',
     sheetUrl: '',
     totalDays: '',
   });
@@ -240,6 +243,9 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
       beginDate: '',
       endDate: '',
       days: classData?.days || [],
+      startTime: '09:00',
+      endTime: '10:30',
+      timezone: '',
       sheetUrl: '',
       totalDays: '',
     });
@@ -294,7 +300,10 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
         format: form.format,
         formatOption: form.formatOption,
         classType: form.type,
-        days: form.days // Course Days should be in classes collection
+        days: form.days, // Course Days should be in classes collection
+        startTime: form.startTime,
+        endTime: form.endTime,
+        timezone: form.timezone,
       };
 
       await updateClass(currentClassId, classUpdates);
@@ -309,6 +318,9 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           beginDate: form.beginDate,
           endDate: form.endDate,
           days: form.days, // Course Days should also be in courses collection
+          startTime: form.startTime,
+          endTime: form.endTime,
+          timezone: form.timezone,
           sheetUrl: form.sheetUrl,
           totalDays: form.totalDays,
         });
@@ -322,6 +334,9 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           beginDate: form.beginDate,
           endDate: form.endDate,
           days: form.days, // Course Days should also be in courses collection
+          startTime: form.startTime,
+          endTime: form.endTime,
+          timezone: form.timezone,
           sheetUrl: form.sheetUrl,
           totalDays: form.totalDays,
         };
@@ -416,6 +431,9 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           beginDate: initialData.beginDate || '',
           endDate: initialData.endDate || '',
           days: currentClassData?.days || initialData.days || [],
+          startTime: initialData.startTime || '09:00',
+          endTime: initialData.endTime || '10:30',
+          timezone: initialData.timezone || '',
           sheetUrl: initialData.sheetUrl || initialData.googleDriveUrl || '',
           totalDays: initialData.totalDays || '',
         });

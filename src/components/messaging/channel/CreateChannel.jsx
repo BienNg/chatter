@@ -5,6 +5,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'fire
 import { db } from '../../../firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChannelClassSync } from '../../../hooks/useChannelClassSync';
+import { CHANNEL_TYPE_OPTIONS } from '../../../utils/channelTypes';
 
 const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
     const [channelData, setChannelData] = useState({
@@ -18,16 +19,6 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
 
     const { currentUser } = useAuth();
     const { handleChannelTypeChange } = useChannelClassSync();
-
-    const channelTypes = [
-        { id: 'general', name: 'General' },
-        { id: 'class', name: 'Class' },
-        { id: 'import', name: 'Import' },
-        { id: 'social-media', name: 'Social Media' },
-        { id: 'management', name: 'Management' },
-        { id: 'customer-support', name: 'Customer Support' },
-        { id: 'bookkeeping', name: 'Bookkeeping' }
-    ];
 
     // Function to check if channel name already exists
     const checkChannelNameExists = async (channelName) => {
@@ -170,13 +161,13 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
                                 className="w-full px-4 py-2 text-left border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                             >
                                 <span className="text-sm text-gray-900">
-                                    {channelTypes.find(t => t.id === channelData.type)?.name || 'Select type'}
+                                    {CHANNEL_TYPE_OPTIONS.find(t => t.id === channelData.type)?.name || 'Select type'}
                                 </span>
                             </button>
                             
                             {channelData.showTypeDropdown && (
                                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                                    {channelTypes.map((type) => (
+                                    {CHANNEL_TYPE_OPTIONS.map((type) => (
                                         <button
                                             key={type.id}
                                             type="button"

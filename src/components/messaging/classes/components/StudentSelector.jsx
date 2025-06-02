@@ -22,9 +22,9 @@ const StudentSelector = ({
   // Filter students based on search term and exclude already enrolled students
   const filteredStudents = students.filter(student => {
     // Use the isStudentEnrolled hook as the single source of truth for enrollment status
-    // Only check enrollment if we have both courseId and student.studentId
-    const isAlreadyEnrolled = courseId && student.studentId 
-      ? isStudentEnrolled(student.studentId, courseId)
+    // Check enrollment using the student's database ID (student.id)
+    const isAlreadyEnrolled = courseId && student.id 
+      ? isStudentEnrolled(student.id, courseId)
       : false;
     
     // Filter by search term
@@ -71,7 +71,7 @@ const StudentSelector = ({
     // Prepare enrollment data for the new enrollment system
     const enrollmentData = {
       // References
-      studentId: student.studentId || student.id, // Reference to the students collection
+      studentId: student.id, // Use the student's database ID from the students collection
       courseId: courseId,
       classId: classId,
       

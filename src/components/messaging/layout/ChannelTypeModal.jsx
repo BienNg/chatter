@@ -32,7 +32,15 @@ import {
   Award,
   Eye,
   MoreHorizontal,
-  Info
+  Info,
+  Clipboard,
+  GraduationCap,
+  Briefcase,
+  FileSpreadsheet,
+  HandCoins,
+  FileCheck,
+  UserCheck,
+  Search
 } from 'lucide-react';
 import { Timeline } from '../../shared/checklist';
 import { CustomDragLayer } from '../../shared/checklist/CustomDragLayer';
@@ -42,6 +50,72 @@ import { CustomDragLayer } from '../../shared/checklist/CustomDragLayer';
  */
 export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => {
   const [activeTab, setActiveTab] = useState('checklists');
+  const [selectedTemplate, setSelectedTemplate] = useState('student-onboarding');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Mock checklist templates data
+  const checklistTemplates = [
+    {
+      id: 'student-onboarding',
+      name: 'Student Onboarding',
+      description: 'Complete student enrollment process',
+      icon: GraduationCap,
+      color: 'bg-indigo-500',
+      updatedAt: '2023-11-10T10:30:00Z',
+      tasksCount: 16,
+      stagesCount: 5
+    },
+    {
+      id: 'sales-process',
+      name: 'Sales Process',
+      description: 'Standardized sales pipeline workflow',
+      icon: HandCoins,
+      color: 'bg-green-500',
+      updatedAt: '2023-11-05T14:45:00Z',
+      tasksCount: 12,
+      stagesCount: 4
+    },
+    {
+      id: 'client-project',
+      name: 'Client Project',
+      description: 'Project delivery and management',
+      icon: Briefcase,
+      color: 'bg-blue-500',
+      updatedAt: '2023-10-28T09:15:00Z',
+      tasksCount: 18,
+      stagesCount: 6
+    },
+    {
+      id: 'course-creation',
+      name: 'Course Creation',
+      description: 'New course development workflow',
+      icon: BookOpen,
+      color: 'bg-purple-500',
+      updatedAt: '2023-10-15T11:20:00Z',
+      tasksCount: 15,
+      stagesCount: 5
+    },
+    {
+      id: 'compliance-review',
+      name: 'Compliance Review',
+      description: 'Legal and regulatory compliance checks',
+      icon: FileCheck,
+      color: 'bg-amber-500',
+      updatedAt: '2023-10-02T16:30:00Z',
+      tasksCount: 10,
+      stagesCount: 3
+    },
+    {
+      id: 'employee-onboarding',
+      name: 'Employee Onboarding',
+      description: 'New staff member integration process',
+      icon: UserCheck,
+      color: 'bg-emerald-500',
+      updatedAt: '2023-09-20T13:40:00Z',
+      tasksCount: 14,
+      stagesCount: 4
+    }
+  ];
 
   // Mock checklist data - exact replica from ImportTab.jsx
   const [workflowStages, setWorkflowStages] = useState([
@@ -122,6 +196,14 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     { id: 'checklists', label: 'Checklists', icon: CheckSquare },
     { id: 'info', label: 'Info', icon: Info }
   ];
+
+  // Filter templates based on search query
+  const filteredTemplates = searchQuery 
+    ? checklistTemplates.filter(template => 
+        template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        template.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : checklistTemplates;
 
   const handleTaskStatusChange = (taskId, completed) => {
     // Update the workflow stages when a task's status changes
@@ -237,18 +319,116 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     );
   };
 
+  // Format date to relative time
+  const formatRelativeDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    
+    return date.toLocaleDateString();
+  };
+
   const renderChecklistsTab = () => (
-    <div className="flex-1 overflow-y-auto">
-      <div className="p-6">
-        <Timeline 
-          stages={workflowStages}
-          onTaskStatusChange={handleTaskStatusChange}
-          onTaskStart={handleTaskStart}
-          onAddTask={handleAddTask}
-          onReorderTasks={handleReorderTasks}
-          onTitleChange={handleStageTitleChange}
-          onTaskTitleChange={handleTaskTitleChange}
-        />
+    <div className="flex-1 flex overflow-hidden">
+      {/* Left Sidebar - Templates List */}
+      <div className="w-80 border-r border-gray-200 flex flex-col">
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-2">
+            {filteredTemplates.map(template => (
+              <div
+                key={template.id}
+                onClick={() => setSelectedTemplate(template.id)}
+                className={`p-3 rounded-lg mb-2 cursor-pointer transition-all ${
+                  selectedTemplate === template.id
+                    ? 'bg-indigo-50 border-l-4 border-indigo-500'
+                    : 'hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center mb-1">
+                  <div className={`${template.color} w-8 h-8 rounded-lg mr-3 flex items-center justify-center text-white`}>
+                    <template.icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{template.name}</h4>
+                    <p className="text-xs text-gray-500">{template.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                  <div>Updated {formatRelativeDate(template.updatedAt)}</div>
+                  <div className="flex items-center space-x-3">
+                    <span className="flex items-center">
+                      <CheckSquare className="w-3 h-3 mr-1" />
+                      {template.tasksCount}
+                    </span>
+                    <span className="flex items-center">
+                      <Clipboard className="w-3 h-3 mr-1" />
+                      {template.stagesCount}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-3 border-t border-gray-200">
+          <button className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors">
+            <Plus className="w-4 h-4" />
+            <span>New Template</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Right Content - Template Detail */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6">
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {checklistTemplates.find(t => t.id === selectedTemplate)?.name || 'Template'}
+              </h3>
+              <div className="flex space-x-2">
+                <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600">
+              {checklistTemplates.find(t => t.id === selectedTemplate)?.description}
+            </p>
+          </div>
+          
+          <Timeline 
+            stages={workflowStages}
+            onTaskStatusChange={handleTaskStatusChange}
+            onTaskStart={handleTaskStart}
+            onAddTask={handleAddTask}
+            onReorderTasks={handleReorderTasks}
+            onTitleChange={handleStageTitleChange}
+            onTaskTitleChange={handleTaskTitleChange}
+          />
+        </div>
       </div>
     </div>
   );
@@ -319,7 +499,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">

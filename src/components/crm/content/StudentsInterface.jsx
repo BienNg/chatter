@@ -227,8 +227,13 @@ const StudentsInterface = () => {
 
   const handleEditStart = (e, studentId, field, currentValue) => {
     e.stopPropagation(); // Prevent row click
-    setEditingCell({ studentId, field });
-    setEditValue(currentValue || '');
+    
+    // Only allow editing if the field is empty
+    const isEmpty = !currentValue || currentValue.trim() === '';
+    if (isEmpty) {
+      setEditingCell({ studentId, field });
+      setEditValue(currentValue || '');
+    }
   };
 
   const handleEditCancel = () => {
@@ -249,10 +254,11 @@ const StudentsInterface = () => {
   // Inline editable text component
   const renderInlineEditableText = (student, field, value, placeholder = "Add value") => {
     const isEditing = editingCell.studentId === student.id && editingCell.field === field;
+    const isEmpty = !value || value.trim() === '';
     
     // Custom placeholders based on field type
     let customPlaceholder = placeholder;
-    if (!value) {
+    if (isEmpty) {
       switch (field) {
         case 'email':
           customPlaceholder = 'Add email';
@@ -296,15 +302,21 @@ const StudentsInterface = () => {
     }
     
     const displayValue = value || customPlaceholder;
-    const isPlaceholder = !value;
+    const isPlaceholder = isEmpty;
+    
+    // Only make the cell appear editable if it's empty
+    const isEditable = isEmpty;
+    const cursorStyle = isEditable ? 'cursor-pointer' : 'cursor-default';
+    const hoverStyle = isEditable ? 'hover:bg-gray-100 hover:underline' : '';
+    const titleText = isEditable ? 'Click to add information' : 'Field already has data';
     
     return (
       <span
-        className={`text-sm cursor-pointer hover:bg-gray-100 hover:underline transition-all block ${
+        className={`text-sm ${cursorStyle} ${hoverStyle} transition-all block ${
           isPlaceholder ? 'text-gray-400 italic' : 'text-gray-900'
         }`}
-        onClick={(e) => handleEditStart(e, student.id, field, value)}
-        title="Click to edit"
+        onClick={(e) => isEditable ? handleEditStart(e, student.id, field, value) : e.stopPropagation()}
+        title={titleText}
         style={{ padding: '0', margin: '0' }}
       >
         {displayValue}
@@ -434,6 +446,7 @@ const StudentsInterface = () => {
                       fieldDisplayName="Country"
                       options={countries}
                       addOption={addCountry}
+                      allowEditExisting={false}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
@@ -445,6 +458,7 @@ const StudentsInterface = () => {
                       fieldDisplayName="City"
                       options={cities}
                       addOption={addCity}
+                      allowEditExisting={false}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap w-32 h-20" onClick={(e) => e.stopPropagation()}>
@@ -456,6 +470,7 @@ const StudentsInterface = () => {
                       fieldDisplayName="Category"
                       options={categories}
                       addOption={addCategory}
+                      allowEditExisting={false}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap w-36 h-20">
@@ -473,6 +488,7 @@ const StudentsInterface = () => {
                       fieldDisplayName="Platform"
                       options={platforms}
                       addOption={addPlatform}
+                      allowEditExisting={false}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap w-36 h-20">

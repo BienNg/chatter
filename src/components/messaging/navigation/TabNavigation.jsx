@@ -1,8 +1,9 @@
 import React from 'react';
-import { User } from 'lucide-react';
+import { User, Globe } from 'lucide-react';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 import { useDirectMessages } from '../../../hooks/useDirectMessages';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useClasses } from '../../../hooks/useClasses';
 import MemberAvatarStack from '../../shared/MemberAvatarStack';
 
 /**
@@ -20,6 +21,8 @@ export const TabNavigation = ({
 }) => {
   const { getOtherParticipant, isDMChannel } = useDirectMessages();
   const { currentUser } = useAuth();
+  const { classes } = useClasses(channel?.id);
+  const classInfo = classes && classes.length > 0 ? classes[0] : null;
 
   if (!channel) return null;
 
@@ -43,6 +46,20 @@ export const TabNavigation = ({
     return '#';
   };
 
+  // Render format/location for class channels
+  const renderClassMeta = () => {
+    if (channel.type !== 'class' || !classInfo) return null;
+    if (!classInfo.format && !classInfo.formatOption) return null;
+    return (
+      <span className="flex items-center ml-2 gap-1 text-gray-700 text-xs">
+        <Globe className="w-3 h-3 text-indigo-500 mr-1" />
+        <span className="font-semibold">{classInfo.format}</span>
+        {classInfo.format && classInfo.formatOption && <span className="mx-1">·</span>}
+        {classInfo.formatOption && <span>{classInfo.formatOption}</span>}
+      </span>
+    );
+  };
+
   return (
     <>
       {/* Channel Header */}
@@ -53,7 +70,10 @@ export const TabNavigation = ({
             className="flex items-center text-xl font-semibold text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer"
           >
             {getHeaderIcon()}
-            {getChannelDisplayName()}
+            <span className="flex items-center">
+              {getChannelDisplayName()}
+              {renderClassMeta()}
+            </span>
           </button>
           {/* Show "Direct message" text for DMs */}
           {isDirectMessage && (

@@ -22,6 +22,7 @@ import { db } from '../../firebase';
  * @param {string} props.searchPlaceholder - Placeholder for the search input
  * @param {string} props.noResultsText - Text to show when no results are found
  * @param {string} props.placeholder - Placeholder text when no value is selected
+ * @param {boolean} props.allowEditExisting - Whether to allow editing when the field already has values (default: false)
  */
 const FirebaseMultiSelectSelector = ({
   collectionName,
@@ -34,7 +35,8 @@ const FirebaseMultiSelectSelector = ({
   addNewLabel = `New ${fieldDisplayName}...`,
   searchPlaceholder = `Search ${fieldDisplayName.toLowerCase()}s...`,
   noResultsText = `No ${fieldDisplayName.toLowerCase()}s found`,
-  placeholder = `Select ${fieldDisplayName.toLowerCase()}s`
+  placeholder = `Select ${fieldDisplayName.toLowerCase()}s`,
+  allowEditExisting = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,6 +47,10 @@ const FirebaseMultiSelectSelector = ({
   
   // Get the current selected values from the record
   const selectedValues = Array.isArray(record[fieldName]) ? record[fieldName] : [];
+  
+  // Determine if the field is editable - only if it's empty or editing existing values is allowed
+  const isEmpty = selectedValues.length === 0;
+  const isEditable = isEmpty || allowEditExisting;
   
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -196,16 +202,16 @@ const FirebaseMultiSelectSelector = ({
       <div className="relative w-full" ref={dropdownRef}>
         <div
           onClick={() => {
-            if (!isLoading) {
+            if (!isLoading && isEditable) {
               if (!isOpen) {
                 updateDropdownPosition();
               }
               setIsOpen(!isOpen);
             }
           }}
-          className={`w-full py-2 cursor-pointer flex items-center justify-between transition-colors ${
-            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : 'hover:bg-gray-50'
-          } ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
+          className={`w-full py-2 flex items-center justify-between transition-colors ${
+            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : isEditable ? 'hover:bg-gray-50' : ''
+          } ${isLoading ? 'cursor-wait' : isEditable ? 'cursor-pointer' : 'cursor-default'}`}
         >
           <div className="flex-1 flex flex-wrap gap-1.5 min-h-[24px]">
             {selectedValues.length > 0 ? (
@@ -215,15 +221,17 @@ const FirebaseMultiSelectSelector = ({
                   className="inline-flex items-center bg-indigo-50 text-indigo-700 rounded-full px-2.5 py-0.5 text-xs font-medium"
                 >
                   <span>{value}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(value);
-                    }}
-                    className="ml-1.5 text-indigo-500 hover:text-indigo-700 rounded-full flex items-center justify-center"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {isEditable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemove(value);
+                      }}
+                      className="ml-1.5 text-indigo-500 hover:text-indigo-700 rounded-full flex items-center justify-center"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               ))
             ) : (
@@ -237,9 +245,9 @@ const FirebaseMultiSelectSelector = ({
             <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-          ) : (
+          ) : isEditable ? (
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-          )}
+          ) : null}
         </div>
       </div>
 

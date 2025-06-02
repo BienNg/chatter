@@ -26,6 +26,7 @@ import { db } from '../../firebase';
  * @param {string} props.searchPlaceholder - Placeholder for the search input
  * @param {string} props.noResultsText - Text to show when no results are found
  * @param {string} props.placeholder - Placeholder text when no value is selected
+ * @param {boolean} props.allowEditExisting - Whether to allow editing when the field already has a value (default: false)
  */
 const FirebaseCollectionSelector = ({
   collectionName,
@@ -38,7 +39,8 @@ const FirebaseCollectionSelector = ({
   addNewLabel = `New ${fieldDisplayName}...`,
   searchPlaceholder = `Search ${fieldDisplayName.toLowerCase()}s...`,
   noResultsText = `No ${fieldDisplayName.toLowerCase()}s found`,
-  placeholder = `Select ${fieldDisplayName.toLowerCase()}`
+  placeholder = `Select ${fieldDisplayName.toLowerCase()}`,
+  allowEditExisting = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -153,6 +155,9 @@ const FirebaseCollectionSelector = ({
   // Use the field value if it exists, otherwise use the placeholder
   const displayValue = record[fieldName] || placeholder;
   const isPlaceholder = !record[fieldName];
+  
+  // Determine if the field is editable
+  const isEditable = isPlaceholder || allowEditExisting;
 
   // Calculate dropdown position
   const updateDropdownPosition = () => {
@@ -171,16 +176,16 @@ const FirebaseCollectionSelector = ({
       <div className="relative w-full" ref={dropdownRef}>
         <div
           onClick={() => {
-            if (!isLoading) {
+            if (!isLoading && isEditable) {
               if (!isOpen) {
                 updateDropdownPosition();
               }
               setIsOpen(!isOpen);
             }
           }}
-          className={`w-full py-2 cursor-pointer flex items-center justify-between transition-colors ${
-            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : 'hover:bg-gray-50'
-          } ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
+          className={`w-full py-2 flex items-center justify-between transition-colors ${
+            isOpen ? 'bg-gray-50' : isLoading ? 'bg-gray-100' : isEditable ? 'hover:bg-gray-50' : ''
+          } ${isLoading ? 'cursor-wait' : isEditable ? 'cursor-pointer' : 'cursor-default'}`}
         >
           <span className={`text-sm ${isPlaceholder ? 'text-gray-400' : 'text-gray-900'}`}>
             {isLoading ? 'Saving...' : displayValue}
@@ -191,9 +196,9 @@ const FirebaseCollectionSelector = ({
             <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-          ) : (
+          ) : isEditable ? (
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-          )}
+          ) : null}
         </div>
       </div>
 

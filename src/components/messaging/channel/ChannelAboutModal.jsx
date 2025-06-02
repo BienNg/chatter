@@ -28,6 +28,7 @@ import { useChannelManagement } from '../../../hooks/useChannelManagement';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChannelClassSync } from '../../../hooks/useChannelClassSync';
 import { canDeleteChannel as canDeleteChannelUtil } from '../../../utils/roleUtils';
+import { useClasses } from '../../../hooks/useClasses';
 import DeleteChannelModal from './DeleteChannelModal';
 
 const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDeleted, initialTab = 'about' }) => {
@@ -50,6 +51,8 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
     const [tempChannelName, setTempChannelName] = useState(channel?.name || '');
     const [tempTopic, setTempTopic] = useState(channel?.topic || '');
     const [tempDescription, setTempDescription] = useState(channel?.description || '');
+    const { classes } = useClasses(channel?.id);
+    const classInfo = classes && classes.length > 0 ? classes[0] : null;
 
     const { userProfile } = useAuth();
     const {
@@ -286,6 +289,20 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
         });
     };
 
+    // Render format/location for class channels
+    const renderClassMeta = () => {
+        if (channel.type !== 'class' || !classInfo) return null;
+        if (!classInfo.format && !classInfo.formatOption) return null;
+        return (
+            <span className="flex items-center ml-2 gap-1 text-gray-100 text-xs">
+                <Globe className="w-3 h-3 text-indigo-200 mr-1" />
+                <span className="font-semibold">{classInfo.format}</span>
+                {classInfo.format && classInfo.formatOption && <span className="mx-1">·</span>}
+                {classInfo.formatOption && <span>{classInfo.formatOption}</span>}
+            </span>
+        );
+    };
+
     const renderMembersTab = () => (
         <div className="space-y-6">
             {/* Enhanced Search and Add Members Section */}
@@ -514,9 +531,9 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
                             <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
                                 <Hash className="h-6 w-6" />
                             </div>
-                            <div>
+                            <div className="flex items-center">
                                 <h2 className="text-2xl font-bold">#{channel.name}</h2>
-                                <p className="text-indigo-100 text-sm">{getCurrentChannelType().description}</p>
+                                {renderClassMeta()}
                             </div>
                         </div>
                         <div className="flex items-center space-x-3">

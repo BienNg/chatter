@@ -1,5 +1,5 @@
-import React from 'react';
-import { CheckCircle2, Timer, Circle } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, Timer, Circle, Plus } from 'lucide-react';
 import { ChecklistItem } from './ChecklistItem';
 
 /**
@@ -14,6 +14,7 @@ import { ChecklistItem } from './ChecklistItem';
  * @param {Array} props.tasks - Array of task objects
  * @param {function} props.onTaskStatusChange - Callback when task status changes
  * @param {function} props.onTaskStart - Callback when task start button is clicked
+ * @param {function} props.onAddTask - Callback when adding a new task
  */
 export const ChecklistStage = ({ 
   id, 
@@ -23,8 +24,11 @@ export const ChecklistStage = ({
   progress = 0, 
   tasks = [], 
   onTaskStatusChange,
-  onTaskStart 
+  onTaskStart,
+  onAddTask
 }) => {
+  const [hoverIndex, setHoverIndex] = useState(null);
+  
   const getStageStatusIcon = () => {
     if (progress === 100) return CheckCircle2;
     if (progress > 0) return Timer;
@@ -32,6 +36,12 @@ export const ChecklistStage = ({
   };
   
   const StatusIcon = getStageStatusIcon();
+
+  const handleAddTask = (index) => {
+    if (onAddTask) {
+      onAddTask(id, index);
+    }
+  };
 
   return (
     <div className="relative mb-8">
@@ -57,19 +67,59 @@ export const ChecklistStage = ({
           </div>
         </div>
 
-        {/* Tasks */}
-        <div className="space-y-2">
-          {tasks.map((task) => (
-            <ChecklistItem
-              key={task.id}
-              id={task.id}
-              title={task.title}
-              completed={task.completed}
-              automated={task.automated}
-              onStatusChange={onTaskStatusChange}
-              onStartClick={onTaskStart}
-            />
-          ))}
+        {/* Tasks with Add Task Indicators */}
+        <div 
+          className="space-y-3 relative" 
+          onMouseLeave={() => setHoverIndex(null)}
+        >
+          <div className="relative">
+            {/* Initial add area (top of list) */}
+            <div 
+              className="absolute w-full h-6 top-0 transform -translate-y-3 z-10 cursor-pointer"
+              onMouseEnter={() => setHoverIndex(-1)}
+              onClick={() => handleAddTask(0)}
+            >
+              <div 
+                className={`absolute left-1/2 transform -translate-x-1/2 top-1/2 -translate-y-1/2 transition-all duration-200 ${
+                  hoverIndex === -1 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                }`}
+              >
+                <div className="h-6 w-6 bg-indigo-100 hover:bg-indigo-200 rounded-full flex items-center justify-center shadow-sm">
+                  <Plus className="w-4 h-4 text-indigo-600" />
+                </div>
+              </div>
+            </div>
+
+            {tasks.map((task, index) => (
+              <div key={task.id} className="relative mb-3">
+                <ChecklistItem
+                  id={task.id}
+                  title={task.title}
+                  completed={task.completed}
+                  automated={task.automated}
+                  onStatusChange={onTaskStatusChange}
+                  onStartClick={onTaskStart}
+                />
+                
+                {/* Add task area (between items) */}
+                <div 
+                  className="absolute w-full h-6 bottom-0 transform translate-y-1/2 z-10 cursor-pointer"
+                  onMouseEnter={() => setHoverIndex(index)}
+                  onClick={() => handleAddTask(index + 1)}
+                >
+                  <div 
+                    className={`absolute left-1/2 transform -translate-x-1/2 top-1/2 -translate-y-1/2 transition-all duration-200 ${
+                      hoverIndex === index ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                    }`}
+                  >
+                    <div className="h-6 w-6 bg-indigo-100 hover:bg-indigo-200 rounded-full flex items-center justify-center shadow-sm">
+                      <Plus className="w-4 h-4 text-indigo-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

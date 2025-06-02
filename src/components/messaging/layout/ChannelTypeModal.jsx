@@ -154,6 +154,40 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     // Implement task start functionality here
   };
 
+  const handleAddTask = (stageId, position) => {
+    // Create a new task with a unique ID
+    const newTaskId = `new-task-${Date.now()}`;
+    const newTask = {
+      id: newTaskId,
+      title: "New Task",
+      completed: false,
+      automated: false
+    };
+
+    // Update the workflow stages to include the new task
+    const updatedStages = workflowStages.map(stage => {
+      if (stage.id === stageId) {
+        // Create a new tasks array with the new task inserted at the specified position
+        const updatedTasks = [...stage.tasks];
+        updatedTasks.splice(position, 0, newTask);
+        
+        // Recalculate progress
+        const totalTasks = updatedTasks.length;
+        const completedCount = updatedTasks.filter(task => task.completed).length;
+        const newProgress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+        
+        return {
+          ...stage,
+          tasks: updatedTasks,
+          progress: newProgress
+        };
+      }
+      return stage;
+    });
+    
+    setWorkflowStages(updatedStages);
+  };
+
   const renderChecklistsTab = () => (
     <div className="flex-1 overflow-y-auto">
       <div className="p-6">
@@ -161,6 +195,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
           stages={workflowStages}
           onTaskStatusChange={handleTaskStatusChange}
           onTaskStart={handleTaskStart}
+          onAddTask={handleAddTask}
         />
       </div>
     </div>

@@ -8,8 +8,14 @@ import { ChecklistStage } from './ChecklistStage';
  * @param {Array} props.stages - Array of stage objects
  * @param {function} props.onTaskStatusChange - Callback when task status changes
  * @param {function} props.onTaskStart - Callback when task start button is clicked
+ * @param {function} props.onAddTask - Callback when a new task is added
  */
-export const Timeline = ({ stages = [], onTaskStatusChange, onTaskStart }) => {
+export const Timeline = ({ 
+  stages = [], 
+  onTaskStatusChange, 
+  onTaskStart,
+  onAddTask 
+}) => {
   return (
     <div className="max-w-4xl mx-auto pb-16">
       <div className="relative min-h-full">
@@ -30,6 +36,7 @@ export const Timeline = ({ stages = [], onTaskStatusChange, onTaskStart }) => {
             tasks={stage.tasks}
             onTaskStatusChange={onTaskStatusChange}
             onTaskStart={onTaskStart}
+            onAddTask={onAddTask}
           />
         ))}
       </div>

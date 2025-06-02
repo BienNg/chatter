@@ -9,6 +9,7 @@ import { MessagingInterface } from './components/messaging';
 import { CRMInterface } from './components/crm';
 import { BookkeepingInterface } from './components/bookkeeping';
 import AdminToggle from './components/shared/AdminToggle';
+import PermissionTestComponent from './components/shared/PermissionTestComponent';
 
 
 // Protected Route wrapper component
@@ -82,6 +83,18 @@ function App() {
                                     </OnboardingRoute>
                                 } 
                             />
+
+                            {/* Permission Test Route (Development Only) */}
+                            {process.env.NODE_ENV === 'development' && (
+                                <Route
+                                    path="/permission-test"
+                                    element={
+                                        <ProtectedRoute>
+                                            <PermissionTestComponent />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                            )}
 
                             {/* Protected Routes */}
                             <Route

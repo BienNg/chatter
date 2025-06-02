@@ -30,8 +30,8 @@ import { useChannelClassSync } from '../../../hooks/useChannelClassSync';
 import { canDeleteChannel as canDeleteChannelUtil } from '../../../utils/roleUtils';
 import DeleteChannelModal from './DeleteChannelModal';
 
-const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDeleted }) => {
-    const [activeTab, setActiveTab] = useState('about');
+const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDeleted, initialTab = 'about' }) => {
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [searchQuery, setSearchQuery] = useState('');
     const [allUsers, setAllUsers] = useState([]);
     const [channelMembers, setChannelMembers] = useState([]);
@@ -80,8 +80,9 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
             setTempChannelName(channel?.name || '');
             setTempTopic(channel?.topic || '');
             setTempDescription(channel?.description || '');
+            setActiveTab(initialTab);
         }
-    }, [isOpen, channel]);
+    }, [isOpen, channel, initialTab]);
 
     if (!isOpen) return null;
 

@@ -3,6 +3,7 @@ import { User } from 'lucide-react';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 import { useDirectMessages } from '../../../hooks/useDirectMessages';
 import { useAuth } from '../../../contexts/AuthContext';
+import MemberAvatarStack from '../../shared/MemberAvatarStack';
 
 /**
  * TabNavigation - Channel tab navigation component
@@ -14,7 +15,8 @@ export const TabNavigation = ({
   currentTab, 
   onTabSelect,
   channel,
-  onChannelClick 
+  onChannelClick,
+  onOpenChannelMembers
 }) => {
   const { getOtherParticipant, isDMChannel } = useDirectMessages();
   const { currentUser } = useAuth();
@@ -31,14 +33,6 @@ export const TabNavigation = ({
       return otherParticipant.displayName || otherParticipant.fullName || otherParticipant.email?.split('@')[0] || 'Unknown User';
     }
     return channel.name;
-  };
-
-  // Get member count text
-  const getMemberCountText = () => {
-    if (isDirectMessage) {
-      return 'Direct message';
-    }
-    return `${channel.members?.length || 0} members`;
   };
 
   // Get header icon
@@ -61,10 +55,26 @@ export const TabNavigation = ({
             {getHeaderIcon()}
             {getChannelDisplayName()}
           </button>
-          <span className="ml-2 text-sm text-gray-500">
-            {getMemberCountText()}
-          </span>
+          {/* Show "Direct message" text for DMs */}
+          {isDirectMessage && (
+            <span className="ml-2 text-sm text-gray-500">
+              Direct message
+            </span>
+          )}
         </div>
+        
+        {/* Member Avatar Stack - positioned at top right for non-DM channels */}
+        {!isDirectMessage && (
+          <div className="flex items-center">
+            <MemberAvatarStack 
+              channel={channel} 
+              maxVisible={4} 
+              size="sm" 
+              showTooltip={true}
+              onStackClick={onOpenChannelMembers}
+            />
+          </div>
+        )}
       </div>
 
       {/* Tab Navigation */}

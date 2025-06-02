@@ -46,6 +46,7 @@ const MessagingInterface = () => {
   // Modal states
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showChannelAbout, setShowChannelAbout] = useState(false);
+  const [channelAboutInitialTab, setChannelAboutInitialTab] = useState('about');
   const [scrollToMessageId, setScrollToMessageId] = useState(null);
   
   // Route and navigation
@@ -218,6 +219,12 @@ const MessagingInterface = () => {
   };
 
   const handleChannelClick = () => {
+    setChannelAboutInitialTab('about');
+    setShowChannelAbout(true);
+  };
+
+  const handleOpenChannelMembers = () => {
+    setChannelAboutInitialTab('members');
     setShowChannelAbout(true);
   };
 
@@ -340,6 +347,7 @@ const MessagingInterface = () => {
             onTabSelect={handleTabSelect}
             channel={activeChannel}
             onChannelClick={handleChannelClick}
+            onOpenChannelMembers={handleOpenChannelMembers}
           />
         )}
 
@@ -368,6 +376,7 @@ const MessagingInterface = () => {
           channel={activeChannel}
           onUpdate={handleChannelUpdate}
           onChannelDeleted={handleChannelDeleted}
+          initialTab={channelAboutInitialTab}
         />
       )}
     </InterfaceWrapper>

@@ -9,7 +9,7 @@ import PaymentSuccessToast from '../shared/PaymentSuccessToast';
 import PaymentsList from './PaymentsList';
 import RevenueChart from './RevenueChart';
 import InterfaceWrapper from '../shared/InterfaceWrapper';
-import { Plus, Download } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 /**
  * BookkeepingInterface - Main bookkeeping application component
@@ -62,10 +62,7 @@ const BookkeepingInterface = () => {
     }
   };
 
-  const handleExportData = () => {
-    // Handle data export
-    console.log('Exporting financial data...');
-  };
+
 
   useEffect(() => {
     if (params.paymentId) {
@@ -94,7 +91,7 @@ const BookkeepingInterface = () => {
             </button>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center">
             <select
               value={selectedCurrency}
               onChange={(e) => setSelectedCurrency(e.target.value)}
@@ -104,13 +101,6 @@ const BookkeepingInterface = () => {
               <option value="VND">VND</option>
               <option value="USD">USD</option>
             </select>
-            <button
-              onClick={handleExportData}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-              title="Export Data"
-            >
-              <Download className="h-5 w-5" />
-            </button>
           </div>
         </div>
 

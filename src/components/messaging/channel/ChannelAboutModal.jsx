@@ -22,7 +22,7 @@ import {
     AlertCircle,
     Check
 } from 'lucide-react';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, query, where, getDocs, collection } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { useChannelManagement } from '../../../hooks/useChannelManagement';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -51,6 +51,7 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
     const [tempChannelName, setTempChannelName] = useState(channel?.name || '');
     const [tempTopic, setTempTopic] = useState(channel?.topic || '');
     const [tempDescription, setTempDescription] = useState(channel?.description || '');
+    const [nameError, setNameError] = useState('');
     const { classes } = useClasses(channel?.id);
     const classInfo = classes && classes.length > 0 ? classes[0] : null;
 
@@ -301,6 +302,120 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
                 {classInfo.formatOption && <span>{classInfo.formatOption}</span>}
             </span>
         );
+    };
+
+    // Function to check if channel name already exists (excluding current channel)
+    const checkChannelNameExists = async (channelName) => {
+        try {
+            const channelsRef = collection(db, 'channels');
+            const q = query(channelsRef, where('name', '==', channelName.trim()));
+            const snapshot = await getDocs(q);
+            
+            // Check if any found channel is different from current channel
+            return snapshot.docs.some(doc => doc.id !== channel.id);
+        } catch (error) {
+            console.error('Error checking channel name:', error);
+            throw new Error('Unable to verify channel name availability');
+        }
+    };
+
+    // Handle channel name update
+    const handleUpdateChannelName = async () => {
+        if (tempChannelName.trim() === channel.name) {
+            setEditingName(false);
+            return;
+        }
+
+        if (!tempChannelName.trim()) {
+            setNameError('Channel name cannot be empty. Please enter a valid name.');
+            return;
+        }
+
+        try {
+            setNameError('');
+            setUpdating(true);
+            
+            // Check if channel name already exists
+            const nameExists = await checkChannelNameExists(tempChannelName);
+            if (nameExists) {
+                setNameError(`The name "${tempChannelName}" is already taken by another channel. Please try something like "${tempChannelName}-2" or "${tempChannelName}-updated".`);
+                return;
+            }
+            
+            const channelRef = doc(db, 'channels', channel.id);
+            await updateDoc(channelRef, {
+                name: tempChannelName.trim(),
+                updatedAt: serverTimestamp()
+            });
+            
+            setEditingName(false);
+            onUpdate?.(); // Notify parent component to refresh
+        } catch (error) {
+            console.error('Failed to update channel name:', error);
+            if (error.message.includes('Unable to verify channel name availability')) {
+                setNameError('Unable to verify if this name is available. Please check your connection and try again.');
+            } else {
+                setNameError('Unable to save the new channel name. Please try again in a moment.');
+            }
+            // Reset to original value on error
+            setTempChannelName(channel?.name || '');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    // Handle channel topic update
+    const handleUpdateChannelTopic = async () => {
+        if (tempTopic.trim() === (channel.topic || '')) {
+            setEditingTopic(false);
+            return;
+        }
+
+        try {
+            setUpdating(true);
+            
+            const channelRef = doc(db, 'channels', channel.id);
+            await updateDoc(channelRef, {
+                topic: tempTopic.trim(),
+                updatedAt: serverTimestamp()
+            });
+            
+            setEditingTopic(false);
+            onUpdate?.(); // Notify parent component to refresh
+        } catch (error) {
+            console.error('Failed to update channel topic:', error);
+            // Reset to original value on error
+            setTempTopic(channel?.topic || '');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    // Handle channel description update
+    const handleUpdateChannelDescription = async () => {
+        if (tempDescription.trim() === (channel.description || '')) {
+            setEditingDescription(false);
+            return;
+        }
+
+        try {
+            setUpdating(true);
+            
+            const channelRef = doc(db, 'channels', channel.id);
+            await updateDoc(channelRef, {
+                description: tempDescription.trim(),
+                updatedAt: serverTimestamp()
+            });
+            
+            setEditingDescription(false);
+            onUpdate?.(); // Notify parent component to refresh
+        } catch (error) {
+            console.error('Failed to update channel description:', error);
+            // Reset to original value on error
+            setTempDescription(channel?.description || '');
+        } finally {
+            setUpdating(false);
+        }
     };
 
     const renderMembersTab = () => (
@@ -600,17 +715,31 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
                                             </button>
                                         </div>
                                         {editingName ? (
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={tempChannelName}
-                                                    onChange={(e) => setTempChannelName(e.target.value)}
-                                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                    placeholder="Enter channel name"
-                                                />
-                                                <button className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                                                    Save
-                                                </button>
+                                            <div className="space-y-2">
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={tempChannelName}
+                                                        onChange={(e) => {
+                                                            setTempChannelName(e.target.value);
+                                                            setNameError(''); // Clear error on change
+                                                        }}
+                                                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                        placeholder="Enter channel name"
+                                                    />
+                                                    <button 
+                                                        onClick={handleUpdateChannelName}
+                                                        disabled={updating}
+                                                        className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {updating ? 'Saving...' : 'Save'}
+                                                    </button>
+                                                </div>
+                                                {nameError && (
+                                                    <div className="text-sm text-red-600 mt-1">
+                                                        {nameError}
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
@@ -722,8 +851,12 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
                                                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                                     placeholder="Add a topic for this channel"
                                                 />
-                                                <button className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                                                    Save
+                                                <button 
+                                                    onClick={handleUpdateChannelTopic}
+                                                    disabled={updating}
+                                                    className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                                >
+                                                    {updating ? 'Saving...' : 'Save'}
                                                 </button>
                                             </div>
                                         ) : (
@@ -756,8 +889,12 @@ const ChannelAboutModal = ({ isOpen, onClose, channel, onUpdate, onChannelDelete
                                                     placeholder="Add a description for this channel"
                                                 />
                                                 <div className="flex justify-end">
-                                                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
-                                                        Save
+                                                    <button 
+                                                        onClick={handleUpdateChannelDescription}
+                                                        disabled={updating}
+                                                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50"
+                                                    >
+                                                        {updating ? 'Saving...' : 'Save'}
                                                     </button>
                                                 </div>
                                             </div>

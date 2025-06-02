@@ -1,7 +1,7 @@
 // src/components/CreateChannel.jsx
 import React, { useState } from 'react';
 import { X, Hash, Lock } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChannelClassSync } from '../../../hooks/useChannelClassSync';
@@ -29,17 +29,37 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
         { id: 'bookkeeping', name: 'Bookkeeping' }
     ];
 
+    // Function to check if channel name already exists
+    const checkChannelNameExists = async (channelName) => {
+        try {
+            const channelsRef = collection(db, 'channels');
+            const q = query(channelsRef, where('name', '==', channelName.trim()));
+            const snapshot = await getDocs(q);
+            return !snapshot.empty;
+        } catch (error) {
+            console.error('Error checking channel name:', error);
+            throw new Error('Unable to verify channel name availability');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (!channelData.name.trim()) {
-            setError('Channel name is required');
+            setError('Please enter a channel name to continue.');
             return;
         }
 
         try {
             setError('');
             setLoading(true);
+
+            // Check if channel name already exists
+            const nameExists = await checkChannelNameExists(channelData.name);
+            if (nameExists) {
+                setError(`A channel named "${channelData.name}" already exists in this workspace. Please try a different name like "${channelData.name}-2" or "${channelData.name}-new".`);
+                return;
+            }
 
             const timestamp = serverTimestamp();
             const channelRef = await addDoc(collection(db, 'channels'), {
@@ -85,7 +105,11 @@ const CreateChannel = ({ isOpen, onClose, onChannelCreated }) => {
             });
         } catch (error) {
             console.error('Error creating channel:', error);
-            setError('Failed to create channel: ' + error.message);
+            if (error.message.includes('Unable to verify channel name availability')) {
+                setError('Unable to check if this channel name is available. Please check your internet connection and try again.');
+            } else {
+                setError('Something went wrong while creating your channel. Please try again in a moment.');
+            }
         } finally {
             setLoading(false);
         }

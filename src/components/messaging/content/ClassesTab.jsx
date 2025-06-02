@@ -898,39 +898,41 @@ export const ClassesTab = ({
     if (courses.length === 0) {
       return (
         <div className="bg-gray-50 h-full flex flex-col">
-          {/* Header Section */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
-                <p className="text-sm text-gray-500">No courses available</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setShowCreateCourse(true)}
-                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Course
-                </button>
+          <div className="flex-1 overflow-y-auto">
+            {/* Header Section */}
+            <div className="bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
+                  <p className="text-sm text-gray-500">No courses available</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setShowCreateCourse(true)}
+                    className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Course
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* No Courses Message */}
-          <div className="flex-1 flex flex-col items-center justify-center py-12">
-            <BookOpen className="w-16 h-16 text-gray-300 mb-6" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">No Courses Available</h3>
-            <p className="text-gray-500 text-center mb-8 max-w-md">
-              This class doesn't have any courses yet. Create your first course to get started with managing your curriculum and students.
-            </p>
-            <button 
-              onClick={() => setShowCreateCourse(true)}
-              className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create First Course
-            </button>
+            {/* No Courses Message */}
+            <div className="flex flex-col items-center justify-center py-12">
+              <BookOpen className="w-16 h-16 text-gray-300 mb-6" />
+              <h3 className="text-xl font-medium text-gray-900 mb-2">No Courses Available</h3>
+              <p className="text-gray-500 text-center mb-8 max-w-md">
+                This class doesn't have any courses yet. Create your first course to get started with managing your curriculum and students.
+              </p>
+              <button 
+                onClick={() => setShowCreateCourse(true)}
+                className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Create First Course
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -938,27 +940,27 @@ export const ClassesTab = ({
 
     return (
       <div className="bg-gray-50 h-full flex flex-col">
-        {/* Header Section */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
-              <p className="text-sm text-gray-500">{courses.length} course{courses.length !== 1 ? 's' : ''} available</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowCreateCourse(true)}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Course
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Courses List - Scrollable Container */}
         <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+          {/* Header Section */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
+                <p className="text-sm text-gray-500">{courses.length} course{courses.length !== 1 ? 's' : ''} available</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setShowCreateCourse(true)}
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Course
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-8 px-8 pt-8 pb-24">
             {courses.map((course, index) => (
               <div 

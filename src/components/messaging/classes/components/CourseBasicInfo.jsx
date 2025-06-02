@@ -26,7 +26,8 @@ const CourseBasicInfo = ({
   calculateTotalDays,
   isFormatDisabled = false,
   isLocationDisabled = false,
-  isTypeDisabled = false
+  isTypeDisabled = false,
+  isEditing = false
 }) => {
   const handleLevelSelect = (level) => {
     setForm((prev) => ({ 
@@ -69,17 +70,22 @@ const CourseBasicInfo = ({
 
   return (
     <div className="space-y-6">
-      {/* Class Name and Level Row */}
+      {/* Course Name/Class Name and Level Row */}
       <div className="grid grid-cols-2 gap-4">
-        {/* Class Name */}
+        {/* Course Name (Edit) / Class Name (Create) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Class Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {isEditing ? 'Course Name *' : 'Class Name *'}
+          </label>
           <input
             type="text"
             name="className"
             value={form.className}
             onChange={handleChange}
-            placeholder="Enter class name (e.g., G35)"
+            placeholder={isEditing 
+              ? "Enter course name (e.g., German A1 Evening Course)" 
+              : "Enter class name (e.g., G35)"
+            }
             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
           />
@@ -122,6 +128,17 @@ const CourseBasicInfo = ({
         </div>
       </div>
       
+      {/* Course Name Preview for Create Mode */}
+      {!isEditing && form.className && form.level && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center">
+            <div className="text-sm text-blue-700">
+              <span className="font-medium">Generated Course Name:</span> {form.className} - {form.level}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Format */}
       <div className="flex items-end space-x-6">
         <div className="flex-1">
@@ -204,17 +221,6 @@ const CourseBasicInfo = ({
           )}
         </div>
       </div>
-      
-      {/* Course Name Preview */}
-      {form.className && form.level && form.format && form.formatOption && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-center">
-            <div className="text-sm text-blue-700">
-              <span className="font-medium">Course Name Preview:</span> {form.className} - {form.level} - {form.format} - {form.formatOption}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Type - custom dropdown */}
       <div className="relative" ref={typeRef}>

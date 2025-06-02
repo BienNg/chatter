@@ -69,6 +69,7 @@ const CreateCourseModal = ({
                 isFormatDisabled={courseForm.isFormatDisabled}
                 isLocationDisabled={courseForm.isLocationDisabled}
                 isTypeDisabled={courseForm.isTypeDisabled}
+                isEditing={isEditing}
               />
 
               {/* Right Column - Schedule */}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLevels } from '../../../../hooks/useLevels';
 import { useTypes } from '../../../../hooks/useTypes';
 import { useTeachers } from '../../../../hooks/useTeachers';
@@ -15,6 +15,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
   // State to store the classId and class data
   const [classId, setClassId] = useState(null);
   const [classData, setClassData] = useState(null);
+  const [formInitialized, setFormInitialized] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -77,7 +78,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
   ];
 
   // Function to calculate total days based on format and level
-  const calculateTotalDays = (format, level) => {
+  const calculateTotalDays = useCallback((format, level) => {
     if (!format || !level) return '';
     
     if (format === 'Offline') {
@@ -94,7 +95,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     }
     
     return '';
-  };
+  }, []);
 
   // Helper functions
   const isStartToday = (day) => {
@@ -254,7 +255,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
 
     // Validate required fields
     if (!form.className.trim()) {
-      alert('Class name is required');
+      alert(isEditing ? 'Course name is required' : 'Class name is required');
       return;
     }
     
@@ -298,14 +299,11 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
 
       await updateClass(currentClassId, classUpdates);
 
-      // Construct the final course name
-      const finalCourseName = `${form.className} - ${form.level} - ${form.format} - ${form.formatOption}`;
-
       let result;
       if (isEditing && initialData) {
         // Update existing course - exclude format, formatOption, and type as they're now in classes
         result = await updateCourse(initialData.id, {
-          className: form.className,
+          courseName: form.className, // When editing, className field contains the courseName
           level: form.level,
           teachers: form.teachers,
           beginDate: form.beginDate,
@@ -313,13 +311,12 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           days: form.days, // Course Days should also be in courses collection
           sheetUrl: form.sheetUrl,
           totalDays: form.totalDays,
-          courseName: finalCourseName,
-          googleDriveUrl: form.sheetUrl,
         });
       } else {
-        // Create new course - exclude format, formatOption, and type as they're now in classes
+        // Create new course - generate courseName from className + level
+        const generatedCourseName = `${form.className} - ${form.level}`;
         const courseData = {
-          className: form.className,
+          courseName: generatedCourseName,
           level: form.level,
           teachers: form.teachers,
           beginDate: form.beginDate,
@@ -327,8 +324,6 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           days: form.days, // Course Days should also be in courses collection
           sheetUrl: form.sheetUrl,
           totalDays: form.totalDays,
-          courseName: finalCourseName,
-          googleDriveUrl: form.sheetUrl,
         };
         result = await createCourse(courseData, currentClassId);
       }
@@ -369,7 +364,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
 
   // Update form with class data when it becomes available
   useEffect(() => {
-    if (isOpen && classData && !isEditing) {
+    if (isOpen && classData && !isEditing && !formInitialized) {
       // Only update if fields are currently empty (haven't been manually changed)
       if (!form.format && classData.format) {
         setForm(prev => ({
@@ -380,14 +375,15 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           days: classData.days || prev.days,
           totalDays: calculateTotalDays(classData.format, prev.level) || prev.totalDays
         }));
+        setFormInitialized(true);
       }
     }
-  }, [classData, isOpen, isEditing, form.format, calculateTotalDays]);
+  }, [classData, isOpen, isEditing, form.format, calculateTotalDays, formInitialized]);
 
   // Populate form with initial data when editing
   useEffect(() => {
     const populateFormData = async () => {
-      if (isOpen && isEditing && initialData) {
+      if (isOpen && isEditing && initialData && !formInitialized) {
         // Get class data to populate format, formatOption, and type
         let currentClassData = classData;
         if (!currentClassData && channelId) {
@@ -401,13 +397,8 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           }
         }
 
-        let extractedClassName = initialData.courseName || initialData.className || '';
-        if (initialData.level && extractedClassName.includes(` - ${initialData.level}`)) {
-          extractedClassName = extractedClassName.replace(` - ${initialData.level}`, '');
-        }
-        
         setForm({
-          className: extractedClassName,
+          className: initialData.courseName || '', // When editing, put courseName into className field
           level: initialData.level || '',
           format: currentClassData?.format || initialData.format || '',
           formatOption: currentClassData?.formatOption || initialData.formatOption || '',
@@ -416,14 +407,23 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           beginDate: initialData.beginDate || '',
           endDate: initialData.endDate || '',
           days: currentClassData?.days || initialData.days || [],
-          sheetUrl: initialData.googleDriveUrl || '',
+          sheetUrl: initialData.sheetUrl || initialData.googleDriveUrl || '',
           totalDays: initialData.totalDays || '',
         });
+        
+        setFormInitialized(true);
       }
     };
 
     populateFormData();
-  }, [isOpen, isEditing, initialData, channelId, getClassByChannelId]);
+  }, [isOpen, isEditing, initialData, channelId, formInitialized]);
+
+  // Reset form initialization flag when modal closes or mode changes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormInitialized(false);
+    }
+  }, [isOpen]);
 
   // Initialize form for new courses - only run once when modal opens
   useEffect(() => {
@@ -469,7 +469,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     if (newTotalDays !== form.totalDays) {
       setForm(prev => ({ ...prev, totalDays: newTotalDays }));
     }
-  }, [form.format, form.level]);
+  }, [form.format, form.level, calculateTotalDays]);
 
   // Fetch class data when channelId changes
   useEffect(() => {
@@ -488,7 +488,7 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
     };
 
     fetchClassData();
-  }, [channelId, getClassByChannelId]);
+  }, [channelId]);
 
   // Check if all required fields are filled
   const isFormValid = form.className.trim() && form.level.trim() && form.format.trim() && form.formatOption.trim();

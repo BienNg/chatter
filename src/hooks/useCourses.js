@@ -81,7 +81,7 @@ export const useCourses = (classId = null) => {
             const newCourse = {
                 classId,
                 courseName: courseData.courseName,
-                googleDriveUrl: courseData.googleDriveUrl || '',
+                sheetUrl: courseData.sheetUrl || '',
                 teachers: courseData.teachers || [],
                 level: courseData.level || '',
                 beginDate: courseData.beginDate || '',

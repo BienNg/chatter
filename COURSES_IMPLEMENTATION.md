@@ -13,6 +13,7 @@ This implementation separates courses from classes, creating a one-to-many relat
 {
   id: "auto-generated-id",
   classId: "class-id", // Links to the classes collection
+  channelId: "channel-id", // Links to the channels collection
   courseName: "ENGLISH C1.1 - Online - Zoom", // Full course name
   courseType: "G", // From classTypes collection
   format: "Online", // Online or Offline
@@ -39,7 +40,8 @@ Channel (1) -> Class (1) -> Courses (many)
 
 - Each channel can have one class
 - Each class can have multiple courses
-- Each course belongs to exactly one class
+- Each course belongs to exactly one class AND one channel
+- The channelId provides direct linkage for efficient querying
 
 ## Key Components
 
@@ -47,12 +49,13 @@ Channel (1) -> Class (1) -> Courses (many)
 
 Provides CRUD operations for courses:
 
-- `createCourse(courseData, classId)` - Creates a new course linked to a class
+- `createCourse(courseData, classId, channelId)` - Creates a new course linked to a class and channel
 - `updateCourse(courseId, updates)` - Updates an existing course
-- `deleteCourse(courseId)` - Deletes a course
+- `deleteCourse(courseId)` - Deletes a course and automatically cleans up class fields if it's the last course
 - `archiveCourse(courseId)` - Archives a course
 - `getCoursesByClassId(classId)` - Retrieves courses for a specific class
-- `queryCourses(filters)` - Query courses by teacher, level, type, status, classId
+- `getCoursesByChannelId(channelId)` - Retrieves courses for a specific channel
+- `queryCourses(filters)` - Query courses by teacher, level, type, status, classId, or channelId
 
 ### 2. Updated useCourseForm Hook (`src/components/messaging/classes/hooks/useCourseForm.js`)
 
@@ -136,4 +139,95 @@ match /courses/{courseId} {
 1. **Scalability**: Classes can now have multiple courses without data duplication
 2. **Organization**: Clear separation between class metadata and course details
 3. **Flexibility**: Easier to manage and query courses independently
-4. **Maintainability**: Cleaner data structure and better code organization 
+4. **Maintainability**: Cleaner data structure and better code organization
+5. **Direct Channel Linking**: Courses are now directly linked to channels for efficient querying
+6. **Automatic Cleanup**: Class fields are automatically cleaned when the last course is deleted
+
+## Automatic Class Cleanup
+
+When the last course of a class is deleted, the system automatically cleans up the class record by removing course-specific fields:
+
+### Fields Removed on Last Course Deletion:
+- `format` (Online/Offline)
+- `formatOption` (Location/platform details)
+- `classType` (Course type)
+- `days` (Course schedule days)
+
+### How It Works:
+1. **Course Deletion**: When a course is deleted, the system checks how many active courses remain for that class
+2. **Last Course Check**: If no active courses remain (excluding the one being deleted), cleanup is triggered
+3. **Field Removal**: The specified fields are completely removed from the class document using `deleteField()`
+4. **Logging**: The cleanup operation is logged for debugging and verification
+
+### Example:
+```javascript
+// Before deleting the last course
+Class Document: {
+  id: "class-123",
+  className: "ENGLISH ADVANCED",
+  format: "Online",
+  formatOption: "Zoom",
+  classType: "G",
+  days: ["Mon", "Wed", "Fri"],
+  // ... other fields
+}
+
+// After deleting the last course
+Class Document: {
+  id: "class-123", 
+  className: "ENGLISH ADVANCED",
+  // format, formatOption, classType, days fields are completely removed
+  // ... other fields remain
+}
+```
+
+This ensures that class records remain clean and only contain relevant data when courses exist.
+
+## Usage Examples
+
+### Creating a Course with Channel and Class ID
+
+```javascript
+import { useCourses } from '../hooks/useCourses';
+
+const { createCourse } = useCourses();
+
+const handleCreateCourse = async () => {
+  const courseData = {
+    courseName: "ENGLISH C1.1 - Advanced Grammar",
+    level: "C1.1",
+    teachers: ["John Doe", "Jane Smith"],
+    beginDate: "2024-01-15",
+    endDate: "2024-06-15",
+    days: ["Mon", "Wed", "Fri"],
+    totalDays: "20",
+    sheetUrl: "https://drive.google.com/..."
+  };
+
+  // Both classId and channelId are now stored in the database
+  const newCourse = await createCourse(courseData, classId, channelId);
+  console.log('Course created with IDs:', {
+    courseId: newCourse.id,
+    classId: newCourse.classId,
+    channelId: newCourse.channelId
+  });
+};
+```
+
+### Querying Courses by Channel ID
+
+```javascript
+import { useCourses } from '../hooks/useCourses';
+
+const { getCoursesByChannelId, queryCourses } = useCourses();
+
+// Get all courses for a specific channel
+const channelCourses = await getCoursesByChannelId("channel-123");
+
+// Query courses with multiple filters including channelId
+const filteredCourses = await queryCourses({
+  channelId: "channel-123",
+  level: "C1.1",
+  status: "active"
+});
+``` 

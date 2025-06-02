@@ -325,7 +325,16 @@ export const useCourseForm = (channelName, channelId, initialData, isEditing, is
           sheetUrl: form.sheetUrl,
           totalDays: form.totalDays,
         };
-        result = await createCourse(courseData, currentClassId);
+        result = await createCourse(courseData, currentClassId, channelId);
+        
+        // Log successful course creation with IDs
+        console.log('Course created successfully with background IDs:', {
+          courseId: result.id,
+          courseName: result.courseName,
+          classId: result.classId,
+          channelId: result.channelId,
+          createdAt: result.createdAt
+        });
       }
 
       if (onCreate) {

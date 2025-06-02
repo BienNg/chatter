@@ -27,7 +27,8 @@ import {
   DollarSign,
   AlertCircle,
   Circle,
-  Navigation
+  Navigation,
+  MessageSquare
 } from 'lucide-react';
 import { useClasses } from '../../../hooks/useClasses';
 import { useCourses } from '../../../hooks/useCourses';
@@ -42,6 +43,7 @@ import PaymentModal from '../../shared/PaymentModal';
 import StudentDetailsModal from '../../shared/StudentDetailsModal';
 import PaymentSuccessToast from '../../shared/PaymentSuccessToast';
 import ActionsDropdown from '../../shared/ActionsDropdown';
+import SendCourseStudentToChatModal from './SendCourseStudentToChatModal';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 
 /**
@@ -68,6 +70,8 @@ export const ClassesTab = ({
   const [showStudentDetailsModal, setShowStudentDetailsModal] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState(null); // For student details modal
   const [autoEnrollCourseId, setAutoEnrollCourseId] = useState(null); // For auto-enrolling new students in specific course
+  const [showSendToChatModal, setShowSendToChatModal] = useState(false);
+  const [sendToChatData, setSendToChatData] = useState(null); // { enrollment, course, payments }
   const [paymentSuccessToast, setPaymentSuccessToast] = useState({
     isVisible: false,
     autoEnrolled: false,
@@ -491,6 +495,23 @@ export const ClassesTab = ({
   const handleCloseStudentDetails = () => {
     setShowStudentDetailsModal(false);
     setSelectedEnrollment(null);
+  };
+
+  const handleSendToChat = (enrollment, course) => {
+    // Get payments for this enrollment
+    const payments = enrollmentPayments[enrollment.id] || [];
+    
+    setSendToChatData({
+      enrollment,
+      course,
+      payments
+    });
+    setShowSendToChatModal(true);
+  };
+
+  const handleCloseSendToChat = () => {
+    setShowSendToChatModal(false);
+    setSendToChatData(null);
   };
 
   const formatDate = (dateString) => {
@@ -1312,6 +1333,16 @@ export const ClassesTab = ({
                                                     title: `Add payment for ${enrollment.studentName}`
                                                   },
                                                   {
+                                                    key: 'sendToChannel',
+                                                    label: 'Send to Channel',
+                                                    icon: MessageSquare,
+                                                    onClick: (enrollmentItem, e) => {
+                                                      e.stopPropagation();
+                                                      handleSendToChat(enrollmentItem, course);
+                                                    },
+                                                    title: `Share ${enrollment.studentName}'s enrollment details`
+                                                  },
+                                                  {
                                                     key: 'removeStudent',
                                                     label: 'Remove from Course',
                                                     icon: Trash2,
@@ -1826,6 +1857,15 @@ export const ClassesTab = ({
           onCourseSelect={scrollToCourse}
         />
       )}
+
+      {/* Send to Chat Modal */}
+      <SendCourseStudentToChatModal
+        isOpen={showSendToChatModal}
+        onClose={handleCloseSendToChat}
+        enrollment={sendToChatData?.enrollment}
+        course={sendToChatData?.course}
+        payments={sendToChatData?.payments}
+      />
     </div>
   );
 };

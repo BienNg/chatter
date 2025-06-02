@@ -168,8 +168,8 @@ export const DraggableItem = ({
     // If the whole list is animating
     if (animating) {
       return {
-        transition: 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.5s ease',
-        willChange: 'transform, opacity, background-color',
+        transition: 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        willChange: 'transform, opacity',
       };
     }
 
@@ -191,8 +191,7 @@ export const DraggableItem = ({
         opacity: 0.3,
         transform: 'scale(0.98)',
         boxShadow: 'none',
-        backgroundColor: 'rgba(99, 102, 241, 0.05)',
-        transition: 'transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease',
+        transition: 'transform 0.2s ease, opacity 0.2s ease',
         willChange: 'transform, opacity',
       };
     }
@@ -204,7 +203,6 @@ export const DraggableItem = ({
         transform: `translateY(${shift})`,
         boxShadow: '0 0 10px rgba(99, 102, 241, 0.4)',
         transition: 'transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease',
-        background: 'rgba(99, 102, 241, 0.05)',
         zIndex: 5,
         willChange: 'transform, box-shadow',
       };
@@ -215,10 +213,9 @@ export const DraggableItem = ({
       return {
         transform: 'translateY(0) scale(1.02)',
         boxShadow: '0 0 15px rgba(99, 102, 241, 0.5)',
-        transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease',
-        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+        transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         zIndex: 1,
-        willChange: 'transform, box-shadow, background-color',
+        willChange: 'transform, box-shadow',
       };
     }
     
@@ -240,8 +237,8 @@ export const DraggableItem = ({
     
     if (hasRecentlyMoved) {
       classes.push('passive-move-animation');
-      if (moveDirection === 'up') classes.push('moved-up');
-      if (moveDirection === 'down') classes.push('moved-down');
+      if (moveDirection === 'up') classes.push('moved-up-no-flash');
+      if (moveDirection === 'down') classes.push('moved-down-no-flash');
     }
     
     return classes.join(' ');

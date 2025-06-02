@@ -24,6 +24,7 @@
   100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
 }
 
+/* Original animations with background color flash */
 .passive-move-animation {
   animation: fadeInBackground 0.5s ease-out;
 }
@@ -34,6 +35,15 @@
 
 .passive-move-animation.moved-down {
   animation: floatDown 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), fadeInBackground 0.5s ease-out;
+}
+
+/* New animations without background color flash */
+.passive-move-animation.moved-up-no-flash {
+  animation: floatUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.passive-move-animation.moved-down-no-flash {
+  animation: floatDown 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Hover state for draggable items */

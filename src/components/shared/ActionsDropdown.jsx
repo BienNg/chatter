@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { MoreVertical } from 'lucide-react';
 
 /**
@@ -33,7 +34,42 @@ const ActionsDropdown = ({
   showSeparators = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState('bottom');
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, position: 'bottom' });
+  const buttonRef = useRef(null);
+
+  const updateDropdownPosition = () => {
+    if (!buttonRef.current) return;
+    
+    const button = buttonRef.current;
+    const rect = button.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const dropdownHeight = Math.max(actions.length * 40 + 16, 100); // Approximate dropdown height
+    const dropdownWidthPx = dropdownWidth * 16; // Convert rem to pixels (assuming 16px = 1rem)
+    
+    // Calculate optimal position
+    let top = rect.bottom + 4; // 4px margin below button
+    let left = rect.right - dropdownWidthPx; // Align right edge with button
+    let position = 'bottom';
+    
+    // If dropdown would go below viewport, position above
+    if (rect.bottom + dropdownHeight + 8 > viewportHeight) {
+      top = rect.top - dropdownHeight - 4; // 4px margin above button
+      position = 'top';
+    }
+    
+    // If dropdown would go off left edge, align left edge with button
+    if (left < 8) {
+      left = rect.left;
+    }
+    
+    // If dropdown would go off right edge, align right edge with viewport
+    if (left + dropdownWidthPx > viewportWidth - 8) {
+      left = viewportWidth - dropdownWidthPx - 8;
+    }
+    
+    setDropdownPosition({ top, left, position });
+  };
 
   const handleDropdownToggle = (e) => {
     e.stopPropagation(); // Prevent parent element click events
@@ -43,16 +79,7 @@ const ActionsDropdown = ({
       return;
     }
     
-    // Calculate position based on button position
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const dropdownHeight = Math.max(actions.length * 40 + 16, 100); // Approximate dropdown height
-    
-    // If there's not enough space below, position above
-    const shouldPositionAbove = rect.bottom + dropdownHeight > viewportHeight;
-    setDropdownPosition(shouldPositionAbove ? 'top' : 'bottom');
-    
+    updateDropdownPosition();
     setIsOpen(true);
   };
 
@@ -67,13 +94,38 @@ const ActionsDropdown = ({
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
-      setIsOpen(false);
+    const handleClickOutside = (event) => {
+      if (buttonRef.current && !buttonRef.current.contains(event.target)) {
+        // Also check if click is inside the dropdown portal
+        const dropdownElement = document.querySelector('[data-actions-dropdown-portal]');
+        if (!dropdownElement || !dropdownElement.contains(event.target)) {
+          setIsOpen(false);
+        }
+      }
+    };
+
+    const handleScroll = () => {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
+    };
+
+    const handleResize = () => {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
     };
 
     if (isOpen) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true); // Use capture to catch all scroll events
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
     }
   }, [isOpen]);
 
@@ -89,23 +141,30 @@ const ActionsDropdown = ({
     : actions;
 
   return (
-    <div className={`relative ${className}`}>
-      <button
-        onClick={handleDropdownToggle}
-        className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
-        disabled={disabled}
-        title="More actions"
-      >
-        <MoreVertical className="h-4 w-4" />
-      </button>
+    <>
+      <div className={`relative ${className}`}>
+        <button
+          ref={buttonRef}
+          onClick={handleDropdownToggle}
+          className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+          disabled={disabled}
+          title="More actions"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      </div>
       
-      {/* Dropdown Menu */}
-      {isOpen && (
+      {/* Dropdown Menu - Rendered as Portal */}
+      {isOpen && ReactDOM.createPortal(
         <div 
-          className={`absolute right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
-            dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
-          }`}
-          style={{ width: `${dropdownWidth}rem` }}
+          data-actions-dropdown-portal
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg"
+          style={{ 
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: `${dropdownWidth}rem`,
+            minWidth: '180px'
+          }}
         >
           <div className="py-1">
             {groupedActions.map((action, index) => {
@@ -158,9 +217,10 @@ const ActionsDropdown = ({
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 

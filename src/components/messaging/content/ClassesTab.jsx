@@ -41,6 +41,7 @@ import { StudentSelector } from '../classes/components';
 import PaymentModal from '../../shared/PaymentModal';
 import StudentDetailsModal from '../../shared/StudentDetailsModal';
 import PaymentSuccessToast from '../../shared/PaymentSuccessToast';
+import ActionsDropdown from '../../shared/ActionsDropdown';
 import { generateChannelUrl, getMiddleClickHandlers } from '../../../utils/navigation';
 
 /**
@@ -1242,10 +1243,17 @@ export const ClassesTab = ({
                                                     Payment
                                                   </span>
                                                 ) : (
-                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                                    <AlertCircle className="w-3 h-3 mr-1" />
-                                                    No Payment
-                                                  </span>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleAddPayment(enrollment, course);
+                                                    }}
+                                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors cursor-pointer"
+                                                    title={`Add payment for ${enrollment.studentName}`}
+                                                  >
+                                                    <CreditCard className="w-3 h-3 mr-1" />
+                                                    Add Payment
+                                                  </button>
                                                 )}
                                               </div>
                                               
@@ -1288,37 +1296,40 @@ export const ClassesTab = ({
 
                                           {/* Actions Column */}
                                           <div className="col-span-2">
-                                            <div className="flex items-center justify-end space-x-2">
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleAddPayment(enrollment, course);
-                                                }}
-                                                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors duration-150"
-                                                title={`Add payment for ${enrollment.studentName}`}
-                                              >
-                                                <CreditCard className="w-4 h-4" />
-                                              </button>
-                                              
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleRemoveStudent(enrollment.id, enrollment.studentName, course.courseName);
-                                                }}
+                                            <div className="flex items-center justify-end">
+                                              <ActionsDropdown
+                                                itemId={enrollment.id}
+                                                item={enrollment}
+                                                actions={[
+                                                  {
+                                                    key: 'addPayment',
+                                                    label: 'Add Payment',
+                                                    icon: CreditCard,
+                                                    onClick: (enrollmentItem, e) => {
+                                                      e.stopPropagation();
+                                                      handleAddPayment(enrollmentItem, course);
+                                                    },
+                                                    title: `Add payment for ${enrollment.studentName}`
+                                                  },
+                                                  {
+                                                    key: 'removeStudent',
+                                                    label: 'Remove from Course',
+                                                    icon: Trash2,
+                                                    onClick: (enrollmentItem, e) => {
+                                                      e.stopPropagation();
+                                                      handleRemoveStudent(enrollmentItem.id, enrollmentItem.studentName, course.courseName);
+                                                    },
+                                                    disabled: removingEnrollmentId === enrollment.id,
+                                                    loading: removingEnrollmentId === enrollment.id,
+                                                    loadingLabel: 'Removing...',
+                                                    isDanger: true,
+                                                    separator: true,
+                                                    title: `Remove ${enrollment.studentName} from course`
+                                                  }
+                                                ]}
                                                 disabled={removingEnrollmentId === enrollment.id}
-                                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150 ${
-                                                  removingEnrollmentId === enrollment.id
-                                                    ? 'text-gray-300 cursor-not-allowed'
-                                                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                                                }`}
-                                                title={`Remove ${enrollment.studentName} from course`}
-                                              >
-                                                {removingEnrollmentId === enrollment.id ? (
-                                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-                                                ) : (
-                                                  <Trash2 className="w-4 h-4" />
-                                                )}
-                                              </button>
+                                                className="justify-end"
+                                              />
                                             </div>
                                           </div>
                                         </div>

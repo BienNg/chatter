@@ -132,27 +132,6 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
   const renderChecklistsTab = () => (
     <div className="flex-1 overflow-y-auto">
       <div className="p-6">
-        {/* Progress Overview */}
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Template Progress</h3>
-              <p className="text-sm text-gray-600">Default checklist for {metadata?.label || 'channels'}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-indigo-600">{Math.round(overallProgress)}%</div>
-              <div className="text-sm text-gray-500">{completedTasks}/{totalTasks} tasks</div>
-            </div>
-          </div>
-          
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${overallProgress}%` }}
-            ></div>
-          </div>
-        </div>
-
         {/* Timeline Workflow Stages */}
         <div className="max-w-4xl mx-auto pb-16">
           <div className="relative min-h-full">
@@ -183,7 +162,6 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
                             {stage.title}
                             <StatusIcon className={`w-4 h-4 ${stage.progress === 100 ? 'text-green-500' : stage.progress > 0 ? 'text-yellow-500' : 'text-gray-400'}`} />
                           </h3>
-                          <p className="text-sm text-gray-600">{stage.description}</p>
                         </div>
                       </div>
                     </div>

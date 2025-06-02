@@ -9,12 +9,18 @@ import { ChecklistStage } from './ChecklistStage';
  * @param {function} props.onTaskStatusChange - Callback when task status changes
  * @param {function} props.onTaskStart - Callback when task start button is clicked
  * @param {function} props.onAddTask - Callback when a new task is added
+ * @param {function} props.onReorderTasks - Callback when tasks are reordered
+ * @param {function} props.onTitleChange - Callback when stage title is edited
+ * @param {function} props.onTaskTitleChange - Callback when task title is edited
  */
 export const Timeline = ({ 
   stages = [], 
   onTaskStatusChange, 
   onTaskStart,
-  onAddTask 
+  onAddTask,
+  onReorderTasks,
+  onTitleChange,
+  onTaskTitleChange
 }) => {
   return (
     <div className="max-w-4xl mx-auto pb-16">
@@ -37,6 +43,9 @@ export const Timeline = ({
             onTaskStatusChange={onTaskStatusChange}
             onTaskStart={onTaskStart}
             onAddTask={onAddTask}
+            onReorderTasks={onReorderTasks}
+            onTitleChange={onTitleChange}
+            onTaskTitleChange={onTaskTitleChange}
           />
         ))}
       </div>

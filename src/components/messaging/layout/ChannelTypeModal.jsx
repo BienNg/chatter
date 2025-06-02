@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
   X, 
   CheckCircle2, 
@@ -33,6 +35,7 @@ import {
   Info
 } from 'lucide-react';
 import { Timeline } from '../../shared/checklist';
+import { CustomDragLayer } from '../../shared/checklist/CustomDragLayer';
 
 /**
  * ChannelTypeModal - Modal for managing channel type settings and checklists
@@ -188,6 +191,52 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     setWorkflowStages(updatedStages);
   };
 
+  const handleReorderTasks = (stageId, dragIndex, hoverIndex) => {
+    setWorkflowStages(prevStages => 
+      prevStages.map(stage => {
+        if (stage.id === stageId) {
+          const updatedTasks = [...stage.tasks];
+          const draggedTask = updatedTasks[dragIndex];
+          
+          // Remove the dragged task from its position
+          updatedTasks.splice(dragIndex, 1);
+          // Insert the dragged task at the new position
+          updatedTasks.splice(hoverIndex, 0, draggedTask);
+          
+          return {
+            ...stage,
+            tasks: updatedTasks
+          };
+        }
+        return stage;
+      })
+    );
+  };
+  
+  const handleStageTitleChange = (stageId, newTitle) => {
+    setWorkflowStages(prevStages => 
+      prevStages.map(stage => 
+        stage.id === stageId ? { ...stage, title: newTitle } : stage
+      )
+    );
+  };
+  
+  const handleTaskTitleChange = (stageId, taskId, newTitle) => {
+    setWorkflowStages(prevStages => 
+      prevStages.map(stage => {
+        if (stage.id === stageId) {
+          return {
+            ...stage,
+            tasks: stage.tasks.map(task => 
+              task.id === taskId ? { ...task, title: newTitle } : task
+            )
+          };
+        }
+        return stage;
+      })
+    );
+  };
+
   const renderChecklistsTab = () => (
     <div className="flex-1 overflow-y-auto">
       <div className="p-6">
@@ -196,6 +245,9 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
           onTaskStatusChange={handleTaskStatusChange}
           onTaskStart={handleTaskStart}
           onAddTask={handleAddTask}
+          onReorderTasks={handleReorderTasks}
+          onTitleChange={handleStageTitleChange}
+          onTaskTitleChange={handleTaskTitleChange}
         />
       </div>
     </div>
@@ -304,8 +356,11 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
         </div>
 
         {/* Content */}
-        {activeTab === 'checklists' && renderChecklistsTab()}
-        {activeTab === 'info' && renderInfoTab()}
+        <DndProvider backend={HTML5Backend}>
+          {activeTab === 'checklists' && renderChecklistsTab()}
+          {activeTab === 'info' && renderInfoTab()}
+          <CustomDragLayer />
+        </DndProvider>
       </div>
     </div>
   );

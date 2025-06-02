@@ -9,6 +9,8 @@ import { useCountries } from '../../../hooks/useCountries';
 import { useCities } from '../../../hooks/useCities';
 import { usePlatforms } from '../../../hooks/usePlatforms';
 import { useCategories } from '../../../hooks/useCategories';
+import { useClasses } from '../../../hooks/useClasses';
+import { useEnrollments } from '../../../hooks/useEnrollments';
 import FirebaseCollectionSelector from '../../shared/FirebaseCollectionSelector.jsx';
 import { FirebaseMultiSelectSelector, ActionsDropdown } from '../../shared/index.js';
 
@@ -28,6 +30,7 @@ const StudentsInterface = () => {
 
   // Database hooks
   const { students, loading, error, addStudent, deleteStudent, updateStudent } = useStudents();
+  const { getStudentEnrollments, updateEnrollment } = useEnrollments();
   const { countries, addCountry } = useCountries();
   const { cities, addCity } = useCities();
   const { platforms, addPlatform } = usePlatforms();
@@ -76,6 +79,51 @@ const StudentsInterface = () => {
   const handleAutoSave = useCallback(async () => {
     if (!editingCell.studentId || !editingCell.field) return;
     
+    // Function to update all enrollment records when student data changes
+    const updateEnrollmentRecords = async (studentId, updates) => {
+      try {
+        console.log('=== CRM updateEnrollmentRecords DEBUG ===');
+        console.log('Looking for enrollments with studentId:', studentId);
+        console.log('Updates to apply:', updates);
+        
+        // Get all enrollments for this student
+        const enrollments = await getStudentEnrollments(studentId);
+        console.log('Found enrollments:', enrollments);
+        console.log('Number of enrollments found:', enrollments.length);
+        
+        // Prepare enrollment updates based on what student fields changed
+        const enrollmentUpdates = {};
+        
+        if (updates.name) {
+          enrollmentUpdates.studentName = updates.name;
+        }
+        
+        if (updates.email) {
+          enrollmentUpdates.studentEmail = updates.email;
+        }
+        
+        // Only update if there are relevant changes
+        if (Object.keys(enrollmentUpdates).length > 0) {
+          console.log(`Updating ${enrollments.length} enrollment records for student ${studentId}`);
+          console.log('Enrollment updates to apply:', enrollmentUpdates);
+          
+          // Update each enrollment record
+          const updatePromises = enrollments.map(enrollment => {
+            console.log('Updating enrollment:', enrollment.id, 'with updates:', enrollmentUpdates);
+            return updateEnrollment(enrollment.id, enrollmentUpdates);
+          });
+          
+          await Promise.all(updatePromises);
+          console.log('Successfully updated all enrollment records');
+        } else {
+          console.log('No relevant enrollment updates to apply');
+        }
+      } catch (error) {
+        console.error('Error updating enrollment records:', error);
+        // Don't throw here - we don't want to fail the student update if enrollment sync fails
+      }
+    };
+    
     // Only save if the value has actually changed
     const student = students.find(s => s.id === editingCell.studentId);
     const currentValue = student?.[editingCell.field] || '';
@@ -104,6 +152,11 @@ const StudentsInterface = () => {
         }
         
         await updateStudent(editingCell.studentId, updates);
+        
+        // Update enrollment records if name or email changed
+        if (editingCell.field === 'name' || editingCell.field === 'email') {
+          await updateEnrollmentRecords(student.studentId || editingCell.studentId, updates);
+        }
       } catch (error) {
         console.error('Error updating student:', error);
       }
@@ -111,7 +164,7 @@ const StudentsInterface = () => {
     
     setEditingCell({ studentId: null, field: null });
     setEditValue('');
-  }, [editingCell.studentId, editingCell.field, editValue, students, updateStudent]);
+  }, [editingCell.studentId, editingCell.field, editValue, students, updateStudent, getStudentEnrollments, updateEnrollment]);
 
   // Handle click outside to auto-save
   useEffect(() => {

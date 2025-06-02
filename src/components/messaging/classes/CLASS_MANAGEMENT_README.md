@@ -76,35 +76,58 @@ Enhanced course creation modal with auto-generate functionality.
 
 ## Backend Integration
 
-### useClassStudents Hook
-Manages student enrollment and class-specific data.
+### useEnrollments Hook
+Manages student enrollment and class-specific data using the modern enrollments system.
 
 **Methods:**
-- `enrollStudent(studentData)` - Add new student to class
-- `updateStudentEnrollment(id, updates)` - Update student information
-- `removeStudentFromClass(id)` - Remove student from class
-- `updateStudentProgress(id, progress)` - Update progress percentage
-- `updateStudentAttendance(id, attendance)` - Update attendance percentage
-- `getClassStats()` - Get class statistics and analytics
-- `searchStudents(term, filters)` - Search and filter students
+- `enrollStudent(enrollmentData)` - Add new student enrollment
+- `updateEnrollment(id, updates)` - Update enrollment information
+- `removeEnrollment(id)` - Remove student enrollment
+- `getEnrollmentStats()` - Get enrollment statistics and analytics
+- `getClassEnrollments(classId)` - Get enrollments for a specific class
+- `getCourseEnrollments(courseId)` - Get enrollments for a specific course
+- `searchEnrollments(term, filters)` - Search and filter enrollments
 
 **Data Structure:**
 ```javascript
 {
-  classId: "class-id",
-  studentId: "student-id", // Optional reference
-  name: "Student Name",
-  email: "student@example.com",
-  avatar: "SN",
-  avatarColor: "bg-blue-500",
-  amount: 5900000,
-  currency: "VND",
-  enrollmentDate: Date,
-  status: "active", // active | pending | inactive
+  studentId: "student-id", // Reference to students collection
+  courseId: "course-id", // Reference to courses collection
+  classId: "class-id", // Reference to classes collection
+  
+  // Denormalized student data
+  studentName: "Student Name",
+  studentEmail: "student@example.com",
+  
+  // Denormalized course data
+  courseName: "Advanced English",
+  courseLevel: "B2",
+  
+  // Denormalized class data
+  className: "English Class 2024",
+  
+  // Enrollment specific data
+  status: "active", // active | completed | dropped | suspended
   progress: 85, // 0-100
   attendance: 92, // 0-100
-  phone: "+84 123 456 789",
-  notes: "Additional notes"
+  grade: "A", // Final grade
+  
+  // Payment information
+  amount: 5900000,
+  currency: "VND",
+  paymentStatus: "paid", // pending | paid | partial | overdue
+  paymentId: "payment-id", // Reference to payments collection
+  
+  // Dates
+  enrollmentDate: Date,
+  startDate: Date,
+  endDate: Date,
+  completionDate: Date,
+  
+  // Additional information
+  notes: "Additional notes",
+  avatar: "SN",
+  avatarColor: "bg-blue-500"
 }
 ```
 
@@ -162,15 +185,21 @@ function ClassTab({ channelId, channelName }) {
 
 ### With Custom Student Management
 ```jsx
-import { useClassStudents } from '../../../hooks/useClassStudents';
+import { useEnrollments } from '../../../hooks/useEnrollments';
 import { AddStudentToClassModal } from '../classes';
 
 function CustomStudentManager({ classId }) {
-  const { enrollStudent, classStudents } = useClassStudents(classId);
+  const { enrollStudent, getClassEnrollments } = useEnrollments();
   const [showModal, setShowModal] = useState(false);
+  
+  const classEnrollments = getClassEnrollments(classId);
 
   const handleAddStudent = async (studentData) => {
-    await enrollStudent(studentData);
+    await enrollStudent({
+      ...studentData,
+      classId: classId,
+      status: 'active'
+    });
     setShowModal(false);
   };
 
@@ -196,7 +225,7 @@ function CustomStudentManager({ classId }) {
 1. **Class Creation**: User creates class through CreateCourseModal
 2. **Backend Storage**: Class data stored in Firestore `classes` collection
 3. **Student Enrollment**: Students added through AddStudentToClassModal
-4. **Student Storage**: Enrollment data stored in `classStudents` collection
+4. **Student Storage**: Enrollment data stored in `enrollments` collection
 5. **Real-time Updates**: UI updates automatically with new data
 6. **Progress Tracking**: Student progress and attendance updated in real-time
 

@@ -85,20 +85,6 @@
       ]
     },
     {
-      "collectionGroup": "classStudents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "classId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "enrollmentDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "enrollments",
       "queryScope": "COLLECTION",
       "fields": [

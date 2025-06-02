@@ -34,6 +34,7 @@ import ChannelAboutModal from './channel/ChannelAboutModal';
 // Shared components
 import InterfaceWrapper from '../shared/InterfaceWrapper';
 import ManagerQuickStatus from '../shared/ManagerQuickStatus';
+import ProtectedComponent from '../shared/ProtectedComponent';
 
 /**
  * MessagingInterface - Main messaging application component
@@ -346,8 +347,10 @@ const MessagingInterface = () => {
         {renderTabContent()}
       </AppLayout>
 
-      {/* Manager Quick Status */}
-      <ManagerQuickStatus />
+      {/* Manager Quick Status - ONLY for admins */}
+      <ProtectedComponent roles={['admin']}>
+        <ManagerQuickStatus />
+      </ProtectedComponent>
 
       {/* Modals */}
       {showCreateChannel && (

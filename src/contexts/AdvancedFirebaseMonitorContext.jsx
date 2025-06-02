@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import firebaseTracker, { startTracking, stopTracking, getStats, getRecentOperations } from '../utils/comprehensiveFirebaseTracker';
 import ManagerFirebaseDashboard from '../components/shared/ManagerFirebaseDashboard';
+import ProtectedComponent from '../components/shared/ProtectedComponent';
 
 const AdvancedFirebaseMonitorContext = createContext({});
 
@@ -212,13 +213,15 @@ export const AdvancedFirebaseMonitorProvider = ({ children }) => {
     <AdvancedFirebaseMonitorContext.Provider value={contextValue}>
       {children}
       
-      {/* Render the manager dashboard */}
-      <ManagerFirebaseDashboard
-        stats={currentStats}
-        recentOperations={recentOperations}
-        isVisible={isDashboardVisible}
-        onToggle={toggleDashboard}
-      />
+      {/* Render the manager dashboard - ONLY for admins */}
+      <ProtectedComponent roles={['admin']}>
+        <ManagerFirebaseDashboard
+          stats={currentStats}
+          recentOperations={recentOperations}
+          isVisible={isDashboardVisible}
+          onToggle={toggleDashboard}
+        />
+      </ProtectedComponent>
     </AdvancedFirebaseMonitorContext.Provider>
   );
 };

@@ -1,9 +1,16 @@
 import React from 'react';
 import { Activity, AlertTriangle, DollarSign, Database } from 'lucide-react';
 import { useManagerDashboard } from '../../contexts/AdvancedFirebaseMonitorContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const ManagerQuickStatus = () => {
   const { quickStatus, hasAlerts, toggleDashboard } = useManagerDashboard();
+  const { isAdmin } = usePermissions();
+
+  // Only render for admins
+  if (!isAdmin) {
+    return null;
+  }
 
   const getStatusColor = (color) => {
     const colors = {

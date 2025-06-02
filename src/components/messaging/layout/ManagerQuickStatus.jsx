@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 import { useManagerFirebaseMonitor } from '../../../contexts/AdvancedFirebaseMonitorContext';
 import { enableDebugMode, getRecentOperations, getStats } from '../../../utils/comprehensiveFirebaseTracker';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 const ManagerQuickStatus = () => {
   const { stats, isActive } = useManagerFirebaseMonitor();
   const [showContextMenu, setShowContextMenu] = useState(false);
+  const { isAdmin } = usePermissions();
+
+  // Only render for admins
+  if (!isAdmin) {
+    return null;
+  }
 
   if (!isActive || !stats) {
     return (

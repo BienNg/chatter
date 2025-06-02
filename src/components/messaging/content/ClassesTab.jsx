@@ -30,12 +30,12 @@ import {
   Navigation
 } from 'lucide-react';
 import { useClasses } from '../../../hooks/useClasses';
-import { useClassStudents } from '../../../hooks/useClassStudents';
 import { useCourses } from '../../../hooks/useCourses';
 import { useEnrollments } from '../../../hooks/useEnrollments';
+import { useStudents } from '../../../hooks/useStudents';
 import { usePayments } from '../../../hooks/usePayments';
 import CreateCourseModal from '../classes/CreateCourseModal';
-import AddStudentToClassModal from '../classes/AddStudentToClassModal';
+import AddStudentModal from '../../crm/content/AddStudentModal';
 import ClassDetailsView from '../classes/ClassDetailsView';
 import { StudentSelector } from '../classes/components';
 import PaymentModal from '../../shared/PaymentModal';
@@ -66,6 +66,7 @@ export const ClassesTab = ({
   const [paymentModalData, setPaymentModalData] = useState(null); // For pre-filling payment modal
   const [showStudentDetailsModal, setShowStudentDetailsModal] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState(null); // For student details modal
+  const [autoEnrollCourseId, setAutoEnrollCourseId] = useState(null); // For auto-enrolling new students in specific course
   const [paymentSuccessToast, setPaymentSuccessToast] = useState({
     isVisible: false,
     autoEnrolled: false,
@@ -82,26 +83,24 @@ export const ClassesTab = ({
   const [isNavigationVisible, setIsNavigationVisible] = useState(false);
   const lastActiveCourseRef = useRef(0);
 
-  // Use the class students hook
+  // Use the enrollments hook for all student management
   const {
-    classStudents,
+    enrollments,
     loading: studentsLoading,
     error: studentsError,
     enrollStudent,
-    getClassStats
-  } = useClassStudents(classData?.id);
+    removeEnrollment: removeStudentFromClass,
+    getEnrollmentStats: getClassStats,
+    getClassEnrollments,
+    getCourseEnrollments,
+    getEnrichedEnrollments
+  } = useEnrollments();
+
+  // Use the students hook for creating/managing student records
+  const { addStudent } = useStudents();
 
   // Use the courses hook
   const { courses, loading: coursesLoading, createCourse, deleteCourse, updateCourse, refetch: refetchCourses } = useCourses(classData?.id);
-
-  // Use the new enrollments hook
-  const { 
-    enrollStudent: enrollStudentInCourse, 
-    getCourseEnrollments,
-    getClassEnrollments,
-    removeEnrollment,
-    getEnrichedEnrollments
-  } = useEnrollments();
 
   // Use the payments hook for creating payments
   const { addPayment, getPaymentsByEnrollment } = usePayments();
@@ -109,8 +108,8 @@ export const ClassesTab = ({
   const [enrichedEnrollments, setEnrichedEnrollments] = useState({});
   const [enrollmentPayments, setEnrollmentPayments] = useState({}); // Store payment data by enrollment ID
 
-  // Use only real students from the collection
-  const displayStudents = classStudents;
+  // Get class-specific students from enrollments
+  const displayStudents = classData?.id ? getClassEnrollments(classData.id) : [];
 
   useEffect(() => {
     const loadClassData = async () => {
@@ -162,17 +161,146 @@ export const ClassesTab = ({
 
   const handleAddStudent = async (studentData) => {
     try {
-      await enrollStudent(studentData);
-      setShowAddStudentModal(false);
+      console.log('Creating new student for class enrollment:', studentData);
+      
+      // Step 1: Create the student record in the students collection first
+      const newStudentData = {
+        name: studentData.name,
+        email: studentData.email,
+        phone: studentData.phone || '',
+        notes: studentData.notes || '',
+        avatar: studentData.avatar,
+        avatarColor: studentData.avatarColor,
+        // Additional fields from the CRM modal
+        location: studentData.location,
+        city: studentData.city,
+        platform: studentData.platform,
+        categories: studentData.categories || []
+      };
+
+      console.log('Creating student record in students collection:', newStudentData);
+      
+      // Use the useStudents hook to create the student record
+      const studentDocId = await addStudent(newStudentData);
+      
+      console.log('Student record created successfully with ID:', studentDocId);
+
+      // Step 2: Create class-level enrollment using the actual student document ID
+      const enrollmentData = {
+        studentId: studentDocId, // Use the actual database ID from the student record
+        studentName: studentData.name,
+        studentEmail: studentData.email,
+        classId: classData?.id,
+        className: classData?.className || '',
+        courseId: null, // Class-level enrollment, not course-specific
+        courseName: '',
+        courseLevel: '',
+        status: 'active',
+        progress: 0,
+        attendance: 0,
+        amount: 0,
+        currency: 'VND',
+        notes: studentData.notes || '',
+        avatar: studentData.avatar,
+        avatarColor: studentData.avatarColor
+      };
+      
+      const result = await enrollStudent(enrollmentData);
+      console.log('Student created and enrolled successfully in class:', {
+        studentName: newStudentData.name,
+        studentId: studentDocId,
+        enrollmentId: result
+      });
+      
+      // Don't close modal here - let the CRM modal handle it
+      // setShowAddStudentModal(false);
     } catch (error) {
       console.error('Error adding student:', error);
+      // Re-throw the error so the CRM modal can handle it
+      throw error;
     }
+  };
+
+  const handleCreateStudentForCourse = async (studentData) => {
+    try {
+      console.log('Creating new student for course enrollment:', studentData);
+      
+      // Step 1: Create the student record in the students collection first
+      const newStudentData = {
+        name: studentData.name,
+        email: studentData.email,
+        phone: studentData.phone || '',
+        notes: studentData.notes || '',
+        avatar: studentData.avatar,
+        avatarColor: studentData.avatarColor,
+        // Additional fields from the CRM modal
+        location: studentData.location,
+        city: studentData.city,
+        platform: studentData.platform,
+        categories: studentData.categories || []
+      };
+
+      console.log('Creating student record in students collection:', newStudentData);
+      
+      // Use the useStudents hook to create the student record
+      const studentDocId = await addStudent(newStudentData);
+      
+      console.log('Student record created successfully with ID:', studentDocId);
+
+      // Step 2: If auto-enrollment course is specified, create enrollment with the actual student ID
+      if (autoEnrollCourseId) {
+        const course = courses.find(c => c.id === autoEnrollCourseId);
+        if (course) {
+          console.log('Creating enrollment for student ID:', studentDocId, 'in course:', course.courseName);
+          
+          // Create enrollment using the actual student document ID
+          await enrollStudent({
+            studentId: studentDocId, // Use the actual database ID from the student record
+            studentName: newStudentData.name,
+            studentEmail: newStudentData.email,
+            courseId: autoEnrollCourseId,
+            classId: classData?.id,
+            courseName: course.courseName || '',
+            courseLevel: course.level || '',
+            className: classData?.className || '',
+            status: 'active',
+            progress: 0,
+            attendance: 0,
+            amount: 0,
+            currency: 'VND',
+            notes: newStudentData.notes,
+            avatar: newStudentData.avatar,
+            avatarColor: newStudentData.avatarColor
+          });
+          
+          console.log('Student created and enrolled successfully:', {
+            studentName: newStudentData.name,
+            studentId: studentDocId,
+            courseName: course.courseName
+          });
+          
+          // Refresh enriched enrollment data
+          await loadEnrichedEnrollments();
+        }
+      }
+      
+      // Don't close modal here - let the CRM modal handle it
+    } catch (error) {
+      console.error('Error creating student for course:', error);
+      // Re-throw the error so the CRM modal can handle it
+      throw error;
+    }
+  };
+
+  const handleOpenCreateStudentForCourse = (courseId) => {
+    setAutoEnrollCourseId(courseId);
+    setShowAddStudentModal(true);
   };
 
   const handleSelectExistingStudent = async (enrollmentData, courseId) => {
     try {
-      // Use the new enrollment system
-      await enrollStudentInCourse({
+      // Use the enrollment system directly
+      await enrollStudent({
         ...enrollmentData,
         courseId: courseId,
         classId: classData?.id,
@@ -238,7 +366,9 @@ export const ClassesTab = ({
     
     try {
       setRemovingEnrollmentId(enrollmentId);
-      await removeEnrollment(enrollmentId);
+      
+      // Remove the enrollment
+      await removeStudentFromClass(enrollmentId);
       console.log('Student removed successfully from course:', studentName);
       
       // Refresh enriched enrollment data
@@ -459,8 +589,8 @@ export const ClassesTab = ({
 
   // Filter students based on search term
   const filteredStudents = displayStudents.filter(student =>
-    student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    student.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.studentEmail?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Sub-tabs for Classes
@@ -935,6 +1065,13 @@ export const ClassesTab = ({
                             {(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length} student{(enrichedEnrollments[course.id] || getCourseEnrollments(course.id)).length !== 1 ? 's' : ''} enrolled
                           </span>
                         </div>
+                        <button
+                          onClick={() => handleOpenCreateStudentForCourse(course.id)}
+                          className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
+                        >
+                          <Plus className="w-4 h-4 mr-1.5" />
+                          Create Student
+                        </button>
                       </div>
                     </div>
 
@@ -1511,11 +1648,13 @@ export const ClassesTab = ({
       </div>
 
       {/* Add Student Modal */}
-      <AddStudentToClassModal
+      <AddStudentModal
         isOpen={showAddStudentModal}
-        onClose={() => setShowAddStudentModal(false)}
-        onAddStudent={handleAddStudent}
-        className={classData?.className}
+        onClose={() => {
+          setShowAddStudentModal(false);
+          setAutoEnrollCourseId(null); // Reset auto-enroll course when modal is closed
+        }}
+        onSubmit={autoEnrollCourseId ? handleCreateStudentForCourse : handleAddStudent}
       />
 
       {/* Delete Confirmation Modal */}

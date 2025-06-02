@@ -26,7 +26,7 @@ const StudentDetailsModal = ({
 
   // Hooks
   const { getStudentById, updateStudent, addStudent } = useStudents();
-  const { getStudentEnrollments } = useEnrollments();
+  const { getStudentEnrollments, updateEnrollment } = useEnrollments();
   const { getPaymentsByStudent } = usePayments();
   const { countries, addCountry } = useCountries();
   const { cities, addCity } = useCities();
@@ -126,11 +126,18 @@ const StudentDetailsModal = ({
         setStudentData(newStudent);
         
         console.log('Successfully created new student record:', newStudent);
+        
+        // Update enrollment records with the new student data
+        await updateEnrollmentRecords(enrollment?.studentId, updates);
+        
         return;
       }
 
       // If student record exists, update it normally
       await updateStudent(actualStudentId, updates);
+      
+      // Update enrollment records with the changed data
+      await updateEnrollmentRecords(enrollment?.studentId, updates);
       
       // Refresh student data after update
       if (enrollment?.studentId) {
@@ -140,6 +147,89 @@ const StudentDetailsModal = ({
     } catch (error) {
       console.error('Error updating student record:', error);
       throw error;
+    }
+  };
+
+  // Function to update all enrollment records when student data changes
+  const updateEnrollmentRecords = async (studentId, updates) => {
+    try {
+      console.log('=== updateEnrollmentRecords DEBUG ===');
+      console.log('Looking for enrollments with studentId:', studentId);
+      console.log('Updates to apply:', updates);
+      
+      // Get all enrollments for this student
+      const enrollments = await getStudentEnrollments(studentId);
+      console.log('Found enrollments:', enrollments);
+      console.log('Number of enrollments found:', enrollments.length);
+      
+      // If no enrollments found, try alternative approaches
+      if (enrollments.length === 0) {
+        console.log('No enrollments found with exact studentId match. Trying alternative searches...');
+        
+        // Try searching by studentName and studentEmail as fallback
+        const allEnrollments = await getStudentEnrollments(); // Get all enrollments
+        console.log('Total enrollments in system:', allEnrollments?.length || 0);
+        
+        // Search by name and email
+        const enrollmentsByName = allEnrollments?.filter(enrollment => 
+          enrollment.studentName === (studentData?.name || enrollment?.studentName) ||
+          enrollment.studentEmail === (studentData?.email || enrollment?.studentEmail)
+        ) || [];
+        
+        console.log('Enrollments found by name/email match:', enrollmentsByName);
+        
+        if (enrollmentsByName.length > 0) {
+          console.log('Using name/email matched enrollments for update');
+          // Use these enrollments instead
+          const updatePromises = enrollmentsByName.map(enrollment => {
+            console.log('Updating enrollment:', enrollment.id, 'with updates:', updates);
+            return updateEnrollment(enrollment.id, updates);
+          });
+          
+          await Promise.all(updatePromises);
+          console.log('Successfully updated all enrollment records via name/email match');
+          
+          // Refresh the enrollments data in the modal
+          const updatedEnrollments = await getStudentEnrollments(studentId);
+          setStudentEnrollments(updatedEnrollments);
+          return;
+        }
+      }
+      
+      // Prepare enrollment updates based on what student fields changed
+      const enrollmentUpdates = {};
+      
+      if (updates.name) {
+        enrollmentUpdates.studentName = updates.name;
+      }
+      
+      if (updates.email) {
+        enrollmentUpdates.studentEmail = updates.email;
+      }
+      
+      // Only update if there are relevant changes
+      if (Object.keys(enrollmentUpdates).length > 0) {
+        console.log(`Updating ${enrollments.length} enrollment records for student ${studentId}`);
+        console.log('Enrollment updates to apply:', enrollmentUpdates);
+        
+        // Update each enrollment record
+        const updatePromises = enrollments.map(enrollment => {
+          console.log('Updating enrollment:', enrollment.id, 'with updates:', enrollmentUpdates);
+          return updateEnrollment(enrollment.id, enrollmentUpdates);
+        });
+        
+        await Promise.all(updatePromises);
+        console.log('Successfully updated all enrollment records');
+        
+        // Refresh the enrollments data in the modal
+        const updatedEnrollments = await getStudentEnrollments(studentId);
+        setStudentEnrollments(updatedEnrollments);
+      } else {
+        console.log('No relevant enrollment updates to apply');
+      }
+    } catch (error) {
+      console.error('Error updating enrollment records:', error);
+      // Don't throw here - we don't want to fail the student update if enrollment sync fails
     }
   };
 

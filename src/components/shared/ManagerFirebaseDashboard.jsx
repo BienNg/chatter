@@ -2,14 +2,19 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Activity, AlertTriangle, TrendingUp, TrendingDown, DollarSign, 
   Clock, Database, Users, MessageCircle, Eye, EyeOff, RefreshCw,
-  CheckCircle, AlertCircle, Info, Download, BarChart3, Zap
+  CheckCircle, AlertCircle, Info, Download, BarChart3, Zap,
+  Monitor, Calendar, Radio, MapPin, Trash2, BookOpen, FileText
 } from 'lucide-react';
-import { getRecentOperations, getStats } from '../../utils/comprehensiveFirebaseTracker';
+import { getRecentOperations, getStats, syncWithFirebaseConsole, importTrackedListeners } from '../../utils/comprehensiveFirebaseTracker';
+import { getActiveListeners, getAllListeners, clearInactiveListeners, getListenerReadStats } from '../../utils/listenerTrackingUtils';
 
-const ManagerFirebaseDashboard = ({ stats, recentOperations, isVisible, onToggle }) => {
+const ManagerFirebaseDashboard = ({ stats, recentOperations, isVisible, onToggle, channels = [], users = [] }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [trackedListeners, setTrackedListeners] = useState([]);
+  const [listenerHistory, setListenerHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Auto-refresh every 5 seconds
   useEffect(() => {
@@ -17,10 +22,20 @@ const ManagerFirebaseDashboard = ({ stats, recentOperations, isVisible, onToggle
     
     const interval = setInterval(() => {
       setLastUpdate(Date.now());
+      
+      // Update tracked listeners
+      setTrackedListeners(getActiveListeners());
+      setListenerHistory(getAllListeners());
     }, 5000);
 
     return () => clearInterval(interval);
   }, [autoRefresh]);
+  
+  // Initial load of listeners
+  useEffect(() => {
+    setTrackedListeners(getActiveListeners());
+    setListenerHistory(getAllListeners());
+  }, []);
 
   // Memoized calculations for performance
   const dashboardData = useMemo(() => {
@@ -53,9 +68,19 @@ const ManagerFirebaseDashboard = ({ stats, recentOperations, isVisible, onToggle
       costPerMinute,
       performanceStatus,
       collections: stats.collections || [],
-      realtimeListeners: stats.realtimeListeners || { active: 0, list: [] }
+      realtimeListeners: stats.realtimeListeners || { active: 0, list: [] },
+      trackedListeners: trackedListeners || []
     };
-  }, [stats, lastUpdate]);
+  }, [stats, lastUpdate, trackedListeners]);
+
+  // Function to force sync tracked listeners
+  const handleForceSync = () => {
+    const activeTrackedListeners = getActiveListeners();
+    if (activeTrackedListeners.length > 0) {
+      importTrackedListeners(activeTrackedListeners);
+      setLastUpdate(Date.now()); // Force refresh
+    }
+  };
 
   if (!isVisible) {
     return (
@@ -104,6 +129,14 @@ const ManagerFirebaseDashboard = ({ stats, recentOperations, isVisible, onToggle
             </div>
             <div className="flex items-center space-x-3">
               <button
+                onClick={handleForceSync}
+                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all flex items-center space-x-1"
+                title="Force sync tracked listeners"
+              >
+                <RefreshCw size={16} />
+                <span className="text-sm">Sync</span>
+              </button>
+              <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
                   autoRefresh 
@@ -133,7 +166,9 @@ const ManagerFirebaseDashboard = ({ stats, recentOperations, isVisible, onToggle
               { id: 'overview', name: 'Overview', icon: BarChart3 },
               { id: 'activity', name: 'Live Activity', icon: Zap },
               { id: 'costs', name: 'Costs & Usage', icon: DollarSign },
-              { id: 'details', name: 'Technical Details', icon: Database }
+              { id: 'details', name: 'Technical Details', icon: Database },
+              { id: 'listeners', name: 'Snapshot Listeners', icon: Activity },
+              { id: 'listener-tracking', name: 'Listener Tracking', icon: Radio }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -164,6 +199,12 @@ const ManagerFirebaseDashboard = ({ stats, recentOperations, isVisible, onToggle
           )}
           {activeTab === 'details' && (
             <DetailsTab data={dashboardData} />
+          )}
+          {activeTab === 'listeners' && (
+            <SnapshotListenersTab data={dashboardData} users={users} channels={channels} />
+          )}
+          {activeTab === 'listener-tracking' && (
+            <ListenerTab realtimeListeners={dashboardData.realtimeListeners} channels={channels} users={users} />
           )}
         </div>
       </div>
@@ -799,6 +840,703 @@ ${allOperations.slice(0, 50).map(op =>
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Snapshot Listeners Tab Component
+const SnapshotListenersTab = ({ data, users = [], channels = [] }) => {
+  const { realtimeListeners } = data;
+  const listenerList = realtimeListeners.list || [];
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Function to refresh listener data
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 500);
+  };
+  
+  // Group listeners by collection
+  const listenersByCollection = listenerList.reduce((groups, listener) => {
+    const collection = listener.collection;
+    if (!groups[collection]) {
+      groups[collection] = [];
+    }
+    groups[collection].push(listener);
+    return groups;
+  }, {});
+
+  // Sort collections by number of listeners
+  const sortedCollections = Object.keys(listenersByCollection).sort((a, b) => 
+    listenersByCollection[b].length - listenersByCollection[a].length
+  );
+  
+  // Get source badge style
+  const getSourceBadgeStyle = (source) => {
+    const styles = {
+      'network_detection': 'bg-green-100 text-green-800',
+      'hook_detection': 'bg-blue-100 text-blue-800',
+      'path_detection': 'bg-purple-100 text-purple-800',
+      'auto_detection': 'bg-indigo-100 text-indigo-800',
+      'console_sync': 'bg-yellow-100 text-yellow-800'
+    };
+    return styles[source] || 'bg-gray-100 text-gray-800';
+  };
+  
+  // Get friendly source name
+  const getSourceDisplayName = (source) => {
+    const names = {
+      'network_detection': 'Network Traffic',
+      'hook_detection': 'React Hook',
+      'path_detection': 'Page Route',
+      'auto_detection': 'Auto Detection',
+      'console_sync': 'Manual Sync'
+    };
+    return names[source] || source || 'Unknown';
+  };
+
+  // Get collection icon based on name
+  const getCollectionIcon = (collection) => {
+    const icons = {
+      'messages': MessageCircle,
+      'channels': Users,
+      'tasks': CheckCircle,
+      'users': Users,
+      'accounts': DollarSign,
+      'classes': BookOpen,
+      'enrollments': Calendar
+    };
+    
+    const IconComponent = icons[collection] || Database;
+    return <IconComponent size={16} />;
+  };
+
+  // Format description to be more readable
+  const formatDescription = (description, collection, users = [], channels = []) => {
+    if (!description) return '-';
+    
+    // For channels collection
+    if (collection === 'channels' && description.includes('User channels for')) {
+      const userId = description.split('User channels for ')[1];
+      const user = users.find(u => u.id === userId);
+      return user ? `${user.displayName || user.email}'s Channels` : 'User Channels';
+    }
+    
+    // For messages collection
+    if (collection === 'messages' && description.includes('Channel messages for')) {
+      const channelId = description.split('Channel messages for ')[1];
+      const channel = channels.find(ch => ch.id === channelId);
+      return channel ? `Messages in #${channel.name}` : 'Channel Messages';
+    }
+    
+    return description;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Card */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Activity className="h-10 w-10 text-indigo-600" />
+            <div>
+              <h3 className="text-lg font-semibold text-indigo-900">Active Snapshot Listeners</h3>
+              <p className="text-indigo-700">
+                {realtimeListeners.active === 0 
+                  ? 'No active listeners detected' 
+                  : `${realtimeListeners.active} active real-time listeners consuming data updates`}
+              </p>
+            </div>
+          </div>
+          
+          {/* Refresh button */}
+          <div>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 ${
+                isRefreshing 
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          </div>
+        </div>
+        
+        {/* Detection types info */}
+        <div className="mt-4 text-xs text-indigo-800 grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="flex items-center">
+            <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+            <span>Network Detection: Captures network requests</span>
+          </div>
+          <div className="flex items-center">
+            <span className="h-2 w-2 rounded-full bg-blue-500 mr-2"></span>
+            <span>Hook Detection: Scans React component hooks</span>
+          </div>
+          <div className="flex items-center">
+            <span className="h-2 w-2 rounded-full bg-purple-500 mr-2"></span>
+            <span>Page Detection: Based on current route</span>
+          </div>
+        </div>
+      </div>
+
+      {/* No Listeners Message */}
+      {listenerList.length === 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
+          <EyeOff className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Listeners</h3>
+          <p className="text-gray-600 mb-4">
+            There are currently no active Firestore snapshot listeners tracked in this session.
+          </p>
+          <p className="text-sm text-gray-500">
+            The system is actively scanning for listeners - they'll appear here once detected.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-lg">
+              <div className="flex items-start space-x-3">
+                <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="text-left">
+                  <h4 className="font-medium text-blue-800">Automatic Detection Active</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    The system uses multiple methods to detect active listeners including network monitoring,
+                    React hook scanning, and page route analysis.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Listeners By Collection */}
+      {sortedCollections.map(collection => (
+        <div key={collection} className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Database className="h-5 w-5 mr-2 text-indigo-600" />
+            {getCollectionDisplayName(collection)} Collection
+            <span className="ml-2 px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+              {listenersByCollection[collection].length} listeners
+            </span>
+          </h3>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Listener ID
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Duration
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Read Count
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reads/Minute
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Detection Source
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Details
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {listenersByCollection[collection].map(listener => {
+                  const durationMinutes = listener.duration / 60000;
+                  const readsPerMinute = durationMinutes > 0 
+                    ? (listener.readCount / durationMinutes).toFixed(1) 
+                    : listener.readCount;
+                    
+                  return (
+                    <tr key={listener.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {listener.id.split('_')[0]}_{listener.id.split('_')[2] || ''}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                        {formatDuration(listener.duration)}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                        {listener.readCount}
+                      </td>
+                      <td className={`px-4 py-2 whitespace-nowrap text-sm ${
+                        readsPerMinute > 10 
+                          ? 'text-orange-600 font-medium' 
+                          : 'text-gray-500'
+                      }`}>
+                        {readsPerMinute}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm">
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${getSourceBadgeStyle(listener.source)}`}>
+                          {getSourceDisplayName(listener.source)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                        {formatDescription(listener.details, listener.collection, users, channels)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+
+      {/* Performance Impact */}
+      {listenerList.length > 0 && (
+        <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-6">
+          <h3 className="text-lg font-semibold text-yellow-900 mb-3">⚠️ Performance Impact</h3>
+          <div className="space-y-2 text-yellow-800">
+            <p>• Each snapshot listener consumes bandwidth by receiving real-time updates</p>
+            <p>• High read counts may indicate inefficient queries or excessive update frequency</p>
+            <p>• Consider detaching listeners when components unmount or views change</p>
+            <p>• Use compound queries to minimize the number of listeners needed</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Listener Tab Component
+const ListenerTab = ({ realtimeListeners, channels, users }) => {
+  const [trackedListeners, setTrackedListeners] = useState([]);
+  const [listenerHistory, setListenerHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [readStats, setReadStats] = useState({
+    totalReads: 0,
+    totalDocuments: 0,
+    listenerStats: []
+  });
+  
+  // Effect to get listeners on mount and refresh
+  useEffect(() => {
+    refreshListeners();
+  }, []);
+  
+  // Handle refresh button click
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    refreshListeners();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+  
+  // Refresh listeners data
+  const refreshListeners = () => {
+    setTrackedListeners(getActiveListeners());
+    setListenerHistory(getAllListeners());
+    setReadStats(getListenerReadStats());
+  };
+  
+  // Clear inactive listeners
+  const handleClearInactive = () => {
+    clearInactiveListeners();
+    setListenerHistory(getAllListeners());
+  };
+  
+  // Group listeners by collection
+  const listenersByCollection = useMemo(() => {
+    const grouped = {};
+    
+    trackedListeners.forEach(listener => {
+      if (!grouped[listener.collection]) {
+        grouped[listener.collection] = [];
+      }
+      grouped[listener.collection].push(listener);
+    });
+    
+    return grouped;
+  }, [trackedListeners]);
+  
+  // Get sorted collection names
+  const sortedCollections = useMemo(() => {
+    return Object.keys(listenersByCollection).sort();
+  }, [listenersByCollection]);
+  
+  // Format duration
+  const formatDuration = (milliseconds) => {
+    if (!milliseconds) return 'Just started';
+    
+    const seconds = Math.floor(milliseconds / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+  
+  // Format time for display
+  const formatTime = (date) => {
+    if (!date) return 'N/A';
+    
+    const d = new Date(date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+  
+  // Get collection icon based on name
+  const getCollectionIcon = (collection) => {
+    const icons = {
+      'messages': MessageCircle,
+      'channels': Users,
+      'tasks': CheckCircle,
+      'users': Users,
+      'accounts': DollarSign,
+      'classes': BookOpen,
+      'enrollments': Calendar
+    };
+    
+    const IconComponent = icons[collection] || Database;
+    return <IconComponent size={16} />;
+  };
+
+  // Format description to be more readable
+  const formatDescription = (description, collection, users = [], channels = []) => {
+    if (!description) return '-';
+    
+    // For channels collection
+    if (collection === 'channels' && description.includes('User channels for')) {
+      const userId = description.split('User channels for ')[1];
+      const user = users.find(u => u.id === userId);
+      return user ? `${user.displayName || user.email}'s Channels` : 'User Channels';
+    }
+    
+    // For messages collection
+    if (collection === 'messages' && description.includes('Channel messages for')) {
+      const channelId = description.split('Channel messages for ')[1];
+      const channel = channels.find(ch => ch.id === channelId);
+      return channel ? `Messages in #${channel.name}` : 'Channel Messages';
+    }
+    
+    return description;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Card */}
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Radio className="h-10 w-10 text-purple-600" />
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900">Firestore Listener Tracking</h3>
+              <p className="text-purple-700">
+                {trackedListeners.length === 0 
+                  ? 'No active listeners have been tracked yet' 
+                  : `${trackedListeners.length} active listeners are being tracked in real-time`}
+              </p>
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 bg-purple-100 text-purple-700 hover:bg-purple-200"
+            >
+              {showHistory ? <Eye size={16} /> : <EyeOff size={16} />}
+              <span>{showHistory ? 'Hide History' : 'Show History'}</span>
+            </button>
+            
+            {showHistory && (
+              <button
+                onClick={handleClearInactive}
+                className="px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 bg-red-100 text-red-700 hover:bg-red-200"
+              >
+                <Trash2 size={16} />
+                <span>Clear Inactive</span>
+              </button>
+            )}
+            
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 ${
+                isRefreshing 
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          </div>
+        </div>
+        
+        {/* Reads Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="bg-white rounded-lg p-4 border border-purple-200 flex items-center justify-between">
+            <div className="flex items-center">
+              <Eye className="h-5 w-5 text-purple-600 mr-2" />
+              <span className="text-sm font-medium text-gray-600">Total Reads</span>
+            </div>
+            <span className="text-lg font-semibold text-purple-900">{readStats.totalReads.toLocaleString()}</span>
+          </div>
+          
+          <div className="bg-white rounded-lg p-4 border border-purple-200 flex items-center justify-between">
+            <div className="flex items-center">
+              <FileText className="h-5 w-5 text-purple-600 mr-2" />
+              <span className="text-sm font-medium text-gray-600">Total Documents</span>
+            </div>
+            <span className="text-lg font-semibold text-purple-900">{readStats.totalDocuments.toLocaleString()}</span>
+          </div>
+          
+          <div className="bg-white rounded-lg p-4 border border-purple-200 flex items-center justify-between">
+            <div className="flex items-center">
+              <Radio className="h-5 w-5 text-purple-600 mr-2" />
+              <span className="text-sm font-medium text-gray-600">Active Listeners</span>
+            </div>
+            <span className="text-lg font-semibold text-purple-900">{trackedListeners.length}</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* High-Activity Listeners */}
+      {readStats.listenerStats.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-orange-600" />
+            High-Activity Listeners
+          </h3>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Collection
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reads
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Documents
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reads/Min
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Docs/Read
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Read
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {readStats.listenerStats.slice(0, 5).map((listener, idx) => (
+                  <tr key={listener.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {getCollectionIcon(listener.collection)}
+                        <span className="ml-2 text-sm font-medium text-gray-900">
+                          {getCollectionDisplayName(listener.collection)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {formatDescription(listener.description, listener.collection, users, channels)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {listener.readCount.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {listener.documentCount.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${listener.readsPerMinute > 10 ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
+                        {listener.readsPerMinute}/min
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {listener.avgDocsPerRead}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {listener.lastRead ? formatTime(listener.lastRead) : 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      {/* Listeners by Collection */}
+      {sortedCollections.map(collection => (
+        <div key={collection} className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Database className="h-5 w-5 mr-2 text-indigo-600" />
+            {getCollectionDisplayName(collection)} Collection
+            <span className="ml-2 px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+              {listenersByCollection[collection].length} listeners
+            </span>
+          </h3>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Listener ID
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Duration
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Read Count
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Documents Read
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reads/Minute
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Detection Source
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Details
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {listenersByCollection[collection].map((listener, idx) => {
+                  // Find matching read stats for this listener
+                  const readStat = readStats.listenerStats.find(stat => stat.id === listener.id) || {
+                    readCount: 0,
+                    documentCount: 0,
+                    readsPerMinute: 0,
+                    avgDocsPerRead: 0
+                  };
+                  
+                  return (
+                    <tr key={listener.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-4 py-3 text-sm text-gray-500 font-mono">
+                        {listener.id.split('_')[1]}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {formatDuration(listener.active ? (Date.now() - listener.createdAt) : listener.duration)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {readStat.readCount.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {readStat.documentCount.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                          ${readStat.readsPerMinute > 10 ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
+                          {readStat.readsPerMinute}/min
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {listener.createdBy.file}:{listener.createdBy.line}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {formatDescription(listener.description, listener.collection, users, channels)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+      
+      {/* Show listener history if enabled */}
+      {showHistory && listenerHistory.length > 0 && !trackedListeners.length && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Clock className="h-5 w-5 mr-2 text-gray-600" />
+            Listener History
+            <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded-full">
+              {listenerHistory.filter(l => !l.active).length} closed listeners
+            </span>
+          </h3>
+          
+          {/* Closed listeners table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Collection
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Duration
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reads
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Source
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created At
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Closed At
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {listenerHistory
+                  .filter(l => !l.active)
+                  .sort((a, b) => b.closedAt - a.closedAt)
+                  .slice(0, 10)
+                  .map((listener, idx) => (
+                    <tr key={listener.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {getCollectionIcon(listener.collection)}
+                          <span className="ml-2 text-sm font-medium text-gray-900">
+                            {getCollectionDisplayName(listener.collection)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {formatDescription(listener.description, listener.collection, users, channels)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {formatDuration(listener.duration)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        {listener.readCount || 0}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {listener.createdBy.file}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {formatTime(listener.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {formatTime(listener.closedAt)}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

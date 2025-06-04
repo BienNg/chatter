@@ -12,6 +12,7 @@ import {
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { logRealtimeListener, logFirebaseRead } from '../utils/comprehensiveFirebaseTracker';
+import { trackListener, trackListenerRead } from '../utils/listenerTrackingUtils';
 
 export const useChannels = () => {
     const [channels, setChannels] = useState([]);
@@ -53,12 +54,17 @@ export const useChannels = () => {
             orderBy('createdAt', 'desc') // Changed from updatedAt to createdAt for new channels
         );
 
-        const unsubscribe = onSnapshot(
+        // Create original onSnapshot listener
+        const originalUnsubscribe = onSnapshot(
             channelsQuery,
             {
                 next: (snapshot) => {
                     // Log the Firebase read operation
                     logRealtimeListener('channels', snapshot.size, `Real-time channels listener for user ${currentUser.uid}`);
+                    
+                    // Track this read in our listener tracking system
+                    const documentIds = snapshot.docs.map(doc => doc.id);
+                    trackListenerRead('channels', `User channels for ${currentUser.uid}`, snapshot.size, documentIds);
                     
                     const channelData = snapshot.docs.map((doc) => ({
                         id: doc.id,
@@ -82,10 +88,25 @@ export const useChannels = () => {
             }
         );
 
+        // Use our trackListener utility to enhance the unsubscribe function
+        const unsubscribe = trackListener(
+            originalUnsubscribe,
+            'channels',
+            `User channels for ${currentUser.uid}`,
+            { 
+                userId: currentUser.uid,
+                queryDetails: {
+                    collection: 'channels',
+                    where: ['members', 'array-contains', currentUser.uid],
+                    orderBy: 'createdAt'
+                }
+            }
+        );
+
         unsubscribeRef.current = unsubscribe;
 
         return () => {
-            // Ensure proper cleanup of channels listener
+            // This will now both unsubscribe from Firestore AND track the closure
             if (unsubscribeRef.current) {
                 unsubscribeRef.current();
                 unsubscribeRef.current = null;

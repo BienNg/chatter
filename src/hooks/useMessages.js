@@ -21,6 +21,7 @@ import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { logRealtimeListener, logFirebaseRead, logFirebaseWrite } from '../utils/comprehensiveFirebaseTracker';
+import { trackListener, trackListenerRead } from '../utils/listenerTrackingUtils';
 
 export const useMessages = (channelId) => {
     const [messages, setMessages] = useState([]);
@@ -56,11 +57,16 @@ export const useMessages = (channelId) => {
             limit(10) // Reduced for performance and quota management
         );
 
-        const unsubscribe = onSnapshot(
+        // Create original onSnapshot listener
+        const originalUnsubscribe = onSnapshot(
             messagesQuery,
             (snapshot) => {
                 // Log the Firebase read operation - THIS IS LIKELY YOUR HIGH USAGE SOURCE
                 logRealtimeListener('messages', snapshot.size, `Real-time messages listener for channel ${channelId}`);
+                
+                // Track this read in our listener tracking system
+                const documentIds = snapshot.docs.map(doc => doc.id);
+                trackListenerRead('messages', `Channel messages for ${channelId}`, snapshot.size, documentIds);
                 
                 const messageData = snapshot.docs.map((doc) => ({
                     id: doc.id,
@@ -123,8 +129,23 @@ export const useMessages = (channelId) => {
             }
         );
 
+        // Use our trackListener utility to enhance the unsubscribe function
+        const unsubscribe = trackListener(
+            originalUnsubscribe,
+            'messages',
+            `Channel messages for ${channelId}`,
+            { 
+                channelId, 
+                queryDetails: {
+                    collection: `channels/${channelId}/messages`,
+                    orderBy: 'createdAt',
+                    limit: 10
+                }
+            }
+        );
+
         return () => {
-            // Ensure proper cleanup of listener
+            // This will now both unsubscribe from Firestore AND track the closure
             unsubscribe();
         };
     }, [channelId]);

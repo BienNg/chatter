@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { trackListener, trackListenerRead } from '../utils/listenerTrackingUtils';
 
 /**
  * Custom hook for managing tasks in a channel with unified threading system
@@ -38,8 +39,13 @@ export const useTasks = (channelId) => {
         const tasksRef = collection(db, 'channels', channelId, 'tasks');
         const tasksQuery = query(tasksRef, orderBy('lastActivity', 'desc'));
         
-        const unsubscribe = onSnapshot(tasksQuery, 
+        // Create original onSnapshot listener
+        const originalUnsubscribe = onSnapshot(tasksQuery, 
             (snapshot) => {
+                // Track this read in our listener tracking system
+                const documentIds = snapshot.docs.map(doc => doc.id);
+                trackListenerRead('tasks', `Channel tasks for ${channelId}`, snapshot.size, documentIds);
+                
                 const tasksData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -55,8 +61,22 @@ export const useTasks = (channelId) => {
             }
         );
 
+        // Use our trackListener utility to enhance the unsubscribe function
+        const unsubscribe = trackListener(
+            originalUnsubscribe,
+            'tasks',
+            `Channel tasks for ${channelId}`,
+            { 
+                channelId, 
+                queryDetails: {
+                    collection: `channels/${channelId}/tasks`,
+                    orderBy: 'lastActivity'
+                }
+            }
+        );
+
         return () => {
-            // Ensure proper cleanup to prevent memory leaks
+            // This will now both unsubscribe from Firestore AND track the closure
             unsubscribe();
         };
     }, [channelId]);

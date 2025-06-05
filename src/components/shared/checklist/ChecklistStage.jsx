@@ -62,6 +62,7 @@ export const ChecklistStage = ({
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
       titleInputRef.current.focus();
+      titleInputRef.current.select();
     }
   }, [isEditingTitle]);
   
@@ -101,7 +102,10 @@ export const ChecklistStage = ({
   };
   
   const handleTitleBlur = () => {
-    saveTitle();
+    // Small delay to allow for potential click events to complete
+    setTimeout(() => {
+      saveTitle();
+    }, 100);
   };
   
   const handleTitleKeyDown = (e) => {
@@ -162,22 +166,24 @@ export const ChecklistStage = ({
             <div className={`w-10 h-10 ${color} rounded-lg flex items-center justify-center text-white`}>
               <StageIcon className="w-5 h-5" />
             </div>
-            <div className="relative">
+            <div className="relative flex-1">
               {isEditingTitle ? (
                 <input
                   ref={titleInputRef}
                   type="text"
-                  className="font-semibold text-gray-900 bg-transparent py-1 px-0 focus:outline-none"
+                  className="font-semibold text-gray-900 bg-transparent py-1 px-0 focus:outline-none border-b border-indigo-500 w-full min-w-[180px]"
                   value={editValue}
                   onChange={handleTitleChange}
                   onBlur={handleTitleBlur}
                   onKeyDown={handleTitleKeyDown}
                   onClick={(e) => e.stopPropagation()}
+                  style={{ width: `${Math.max(editValue.length * 10, 180)}px` }}
                 />
               ) : (
                 <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
                   {title}
                   <StatusIcon className={`w-4 h-4 ${progress === 100 ? 'text-green-500' : progress > 0 ? 'text-yellow-500' : 'text-gray-400'}`} />
+                  <Edit2 className="w-3.5 h-3.5 text-gray-400 opacity-0 group-hover/stage:opacity-100 transition-opacity" />
                 </h3>
               )}
             </div>

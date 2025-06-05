@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChecklistStage } from './ChecklistStage';
+import { Plus } from 'lucide-react';
 
 /**
  * Timeline - Reusable component for rendering a timeline of checklist stages
@@ -12,6 +13,7 @@ import { ChecklistStage } from './ChecklistStage';
  * @param {function} props.onReorderTasks - Callback when tasks are reordered
  * @param {function} props.onTitleChange - Callback when stage title is edited
  * @param {function} props.onTaskTitleChange - Callback when task title is edited
+ * @param {function} props.onAddTemplate - Callback when new template button is clicked
  */
 export const Timeline = ({ 
   stages = [], 
@@ -20,7 +22,8 @@ export const Timeline = ({
   onAddTask,
   onReorderTasks,
   onTitleChange,
-  onTaskTitleChange
+  onTaskTitleChange,
+  onAddTemplate
 }) => {
   return (
     <div className="max-w-4xl mx-auto pb-16">
@@ -48,6 +51,25 @@ export const Timeline = ({
             onTaskTitleChange={onTaskTitleChange}
           />
         ))}
+        
+        {/* New Template Button */}
+        <div className="relative mb-8">
+          <div className="absolute left-6 w-4 h-4 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+          </div>
+          
+          <div className="ml-16">
+            <button 
+              onClick={onAddTemplate}
+              className="w-full bg-white rounded-xl border border-gray-200 border-dashed p-6 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all flex items-center justify-center group"
+            >
+              <div className="flex items-center space-x-2 text-gray-500 group-hover:text-indigo-600">
+                <Plus className="w-5 h-5" />
+                <span className="font-medium">New Stage</span>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

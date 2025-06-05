@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
@@ -52,9 +52,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
   const [activeTab, setActiveTab] = useState('checklists');
   const [selectedTemplate, setSelectedTemplate] = useState('student-onboarding');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Mock checklist templates data
-  const checklistTemplates = [
+  const [templates, setTemplates] = useState([
     {
       id: 'student-onboarding',
       name: 'Student Onboarding',
@@ -115,7 +113,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
       tasksCount: 14,
       stagesCount: 4
     }
-  ];
+  ]);
 
   // Mock checklist data - exact replica from ImportTab.jsx
   const [workflowStages, setWorkflowStages] = useState([
@@ -190,6 +188,29 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     }
   ]);
 
+  // Effect to initialize workflow stages when template changes
+  useEffect(() => {
+    // If the selected template is a newly created one, create initial workflow stages
+    const template = templates.find(t => t.id === selectedTemplate);
+    if (template && template.id.startsWith('template-') && workflowStages.length === 0) {
+      setWorkflowStages([{
+        id: `stage-${Date.now()}`,
+        title: "Getting Started",
+        color: template.color || "bg-indigo-500",
+        icon: CheckSquare,
+        progress: 0,
+        tasks: [
+          { 
+            id: `task-${Date.now()}`, 
+            title: "New Task", 
+            completed: false, 
+            automated: false 
+          }
+        ]
+      }]);
+    }
+  }, [selectedTemplate, templates]);
+
   if (!isOpen) return null;
 
   const tabs = [
@@ -199,11 +220,11 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
 
   // Filter templates based on search query
   const filteredTemplates = searchQuery 
-    ? checklistTemplates.filter(template => 
+    ? templates.filter(template => 
         template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         template.description.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : checklistTemplates;
+    : templates;
 
   const handleTaskStatusChange = (taskId, completed) => {
     // Update the workflow stages when a task's status changes
@@ -319,6 +340,70 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     );
   };
 
+  // Handle creating a new template in the list
+  const handleAddNewTemplate = () => {
+    // Generate a unique ID for the new template
+    const newId = `template-${Date.now()}`;
+    
+    // Create a new template object
+    const newTemplate = {
+      id: newId,
+      name: "New Template",
+      description: "Click to customize this template",
+      icon: FileText,
+      color: "bg-indigo-500",
+      updatedAt: new Date().toISOString(),
+      tasksCount: 1,
+      stagesCount: 1
+    };
+    
+    // Add it to the templates list and select it
+    setTemplates(prev => [...prev, newTemplate]);
+    setSelectedTemplate(newId);
+    
+    // Clear existing workflow stages so the useEffect will initialize them for the new template
+    setWorkflowStages([]);
+  };
+
+  // Handle adding a new stage to the current template
+  const handleAddTemplate = () => {
+    // Generate a new unique ID for the stage
+    const newStageId = `stage-${Date.now()}`;
+    
+    // Create a basic stage structure
+    const newStage = {
+      id: newStageId,
+      title: "New Stage",
+      color: "bg-indigo-500",
+      icon: CheckSquare,
+      progress: 0,
+      tasks: [
+        { 
+          id: `task-${Date.now()}`, 
+          title: "New Task", 
+          completed: false, 
+          automated: false 
+        }
+      ]
+    };
+
+    // Add the new stage to the workflow stages
+    setWorkflowStages(prevStages => [...prevStages, newStage]);
+    
+    // Update the selected template's task count and stage count
+    setTemplates(prev => prev.map(template => {
+      if (template.id === selectedTemplate) {
+        return {
+          ...template,
+          stagesCount: template.stagesCount + 1,
+          tasksCount: template.tasksCount + 1,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return template;
+    }));
+  };
+
   // Format date to relative time
   const formatRelativeDate = (dateString) => {
     const date = new Date(dateString);
@@ -390,7 +475,10 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
         </div>
 
         <div className="p-3 border-t border-gray-200">
-          <button className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors">
+          <button 
+            onClick={handleAddNewTemplate}
+            className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors"
+          >
             <Plus className="w-4 h-4" />
             <span>New Template</span>
           </button>
@@ -403,7 +491,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
-                {checklistTemplates.find(t => t.id === selectedTemplate)?.name || 'Template'}
+                {templates.find(t => t.id === selectedTemplate)?.name || 'Template'}
               </h3>
               <div className="flex space-x-2">
                 <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
@@ -415,7 +503,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
               </div>
             </div>
             <p className="text-sm text-gray-600">
-              {checklistTemplates.find(t => t.id === selectedTemplate)?.description}
+              {templates.find(t => t.id === selectedTemplate)?.description}
             </p>
           </div>
           
@@ -427,6 +515,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
             onReorderTasks={handleReorderTasks}
             onTitleChange={handleStageTitleChange}
             onTaskTitleChange={handleTaskTitleChange}
+            onAddTemplate={handleAddTemplate}
           />
         </div>
       </div>

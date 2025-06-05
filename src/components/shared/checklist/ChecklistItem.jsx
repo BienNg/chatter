@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CheckCircle2, Circle, Zap, Edit2 } from 'lucide-react';
+import { CheckCircle2, Circle, Zap, Edit2, MoreVertical, MessageSquare, FileText } from 'lucide-react';
+import ReactDOM from 'react-dom';
 
 /**
  * ChecklistItem - Reusable component for individual checklist items
@@ -12,6 +13,8 @@ import { CheckCircle2, Circle, Zap, Edit2 } from 'lucide-react';
  * @param {function} props.onStatusChange - Callback when status changes
  * @param {function} props.onStartClick - Callback when start button is clicked
  * @param {function} props.onTitleChange - Callback when title is edited
+ * @param {function} props.onAddDescription - Callback when add description is clicked
+ * @param {function} props.onAddChannelMessage - Callback when add channel message is clicked
  */
 export const ChecklistItem = ({ 
   id, 
@@ -20,11 +23,16 @@ export const ChecklistItem = ({
   automated = false,
   onStatusChange,
   onStartClick,
-  onTitleChange
+  onTitleChange,
+  onAddDescription,
+  onAddChannelMessage
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const inputRef = useRef(null);
+  const menuButtonRef = useRef(null);
 
   // When entering edit mode, focus the input
   useEffect(() => {
@@ -92,6 +100,83 @@ export const ChecklistItem = ({
 
   const StatusIcon = completed ? CheckCircle2 : automated ? Zap : Circle;
 
+  // Menu handling
+  const updateMenuPosition = () => {
+    if (menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      
+      // Calculate optimal position
+      let top = rect.bottom + 4; // 4px margin below button
+      let left = rect.right - 180; // Align right edge with button (menu width: 180px)
+      
+      // If menu would go below viewport, position above
+      if (top + 120 > viewportHeight) {
+        top = rect.top - 120 - 4; // 4px margin above button
+      }
+      
+      // If menu would go off left edge, align left edge with button
+      if (left < 8) {
+        left = rect.left;
+      }
+      
+      // If menu would go off right edge, align right edge with viewport
+      if (left + 180 > viewportWidth - 8) {
+        left = viewportWidth - 180 - 8;
+      }
+      
+      setMenuPosition({ top, left });
+    }
+  };
+
+  const toggleMenu = (e) => {
+    e.stopPropagation();
+    
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+      return;
+    }
+    
+    updateMenuPosition();
+    setIsMenuOpen(true);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuButtonRef.current && !menuButtonRef.current.contains(event.target)) {
+        const menuElement = document.querySelector('[data-checklist-item-menu]');
+        if (!menuElement || !menuElement.contains(event.target)) {
+          setIsMenuOpen(false);
+        }
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isMenuOpen]);
+
+  const handleAddDescription = (e) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    if (onAddDescription) {
+      onAddDescription(id);
+    }
+  };
+
+  const handleAddChannelMessage = (e) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    if (onAddChannelMessage) {
+      onAddChannelMessage(id);
+    }
+  };
+
   return (
     <div 
       className={`flex items-center p-2 group/item hover:bg-gray-50 rounded-lg transition-colors ${!completed && !automated ? 'cursor-pointer' : ''}`}
@@ -134,13 +219,47 @@ export const ChecklistItem = ({
       <div className="flex-shrink-0 ml-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
         {!automated && !completed && !isEditing && (
           <button 
-            onClick={handleStartClick}
-            className="text-xs font-medium px-2 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
+            ref={menuButtonRef}
+            onClick={toggleMenu}
+            className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-all duration-150 focus:outline-none"
+            title="Options"
           >
-            Start
+            <MoreVertical className="w-4 h-4" />
           </button>
         )}
       </div>
+
+      {/* Dropdown Menu - Rendered as Portal */}
+      {isMenuOpen && ReactDOM.createPortal(
+        <div 
+          data-checklist-item-menu
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg"
+          style={{ 
+            top: menuPosition.top,
+            left: menuPosition.left,
+            width: '180px',
+            minWidth: '180px'
+          }}
+        >
+          <div className="py-1">
+            <button
+              onClick={handleAddDescription}
+              className="w-full px-4 py-2 text-left text-sm flex items-center text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+            >
+              <FileText className="h-4 w-4 mr-3 flex-shrink-0" />
+              Add Description
+            </button>
+            <button
+              onClick={handleAddChannelMessage}
+              className="w-full px-4 py-2 text-left text-sm flex items-center text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+            >
+              <MessageSquare className="h-4 w-4 mr-3 flex-shrink-0" />
+              Add Channel Message
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }; 

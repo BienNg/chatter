@@ -404,6 +404,20 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     }));
   };
 
+  // Handle adding a task description
+  const handleAddTaskDescription = (stageId, taskId) => {
+    console.log(`Adding description to task ${taskId} in stage ${stageId}`);
+    // Implementation for adding description to a task
+    // This would typically open a modal or inline editor
+  };
+
+  // Handle adding a channel message for a task
+  const handleAddTaskChannelMessage = (stageId, taskId) => {
+    console.log(`Adding channel message for task ${taskId} in stage ${stageId}`);
+    // Implementation for adding a channel message related to a task
+    // This would typically open a composer or link to messaging UI
+  };
+
   // Format date to relative time
   const formatRelativeDate = (dateString) => {
     const date = new Date(dateString);
@@ -516,6 +530,8 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
             onTitleChange={handleStageTitleChange}
             onTaskTitleChange={handleTaskTitleChange}
             onAddTemplate={handleAddTemplate}
+            onAddTaskDescription={handleAddTaskDescription}
+            onAddTaskChannelMessage={handleAddTaskChannelMessage}
           />
         </div>
       </div>

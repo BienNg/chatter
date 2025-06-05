@@ -97,15 +97,11 @@ export const ChannelList = ({ channels, activeChannelId, onChannelSelect }) => {
               {/* Group Header - Now Clickable */}
               <button
                 onClick={() => handleChannelTypeClick(type, metadata)}
-                className="flex items-center px-2 py-1 mb-2 w-full hover:bg-indigo-700/30 rounded-md transition-colors group"
+                className="flex items-center px-2 py-1 mb-2 w-full hover:bg-indigo-700/30 rounded-md transition-colors group text-left"
               >
                 <metadata.icon className="w-3 h-3 mr-2 text-indigo-300 group-hover:text-indigo-200" />
                 <span className="text-xs font-medium text-indigo-300 uppercase tracking-wider group-hover:text-indigo-200">
-                  {metadata.label}
-                </span>
-                <div className="flex-1 h-px bg-indigo-700/30 ml-2 group-hover:bg-indigo-600/40"></div>
-                <span className="text-xs text-indigo-400 group-hover:text-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                  Click to manage
+                  {metadata.name}
                 </span>
               </button>
               

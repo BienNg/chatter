@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CheckCircle2, Circle, Zap, Edit2, MoreVertical, MessageSquare, FileText } from 'lucide-react';
+import { CheckCircle2, Circle, Zap, Edit2, MoreVertical, MessageSquare, FileText, X, Save } from 'lucide-react';
 import ReactDOM from 'react-dom';
 
 /**
@@ -15,6 +15,8 @@ import ReactDOM from 'react-dom';
  * @param {function} props.onTitleChange - Callback when title is edited
  * @param {function} props.onAddDescription - Callback when add description is clicked
  * @param {function} props.onAddChannelMessage - Callback when add channel message is clicked
+ * @param {string} props.description - Description text of the checklist item
+ * @param {function} props.onDescriptionChange - Callback when description is saved
  */
 export const ChecklistItem = ({ 
   id, 
@@ -25,14 +27,19 @@ export const ChecklistItem = ({
   onStartClick,
   onTitleChange,
   onAddDescription,
-  onAddChannelMessage
+  onAddChannelMessage,
+  description = '',
+  onDescriptionChange
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [isDescriptionActive, setIsDescriptionActive] = useState(false);
+  const [descriptionValue, setDescriptionValue] = useState(description);
   const inputRef = useRef(null);
   const menuButtonRef = useRef(null);
+  const descriptionInputRef = useRef(null);
 
   // When entering edit mode, focus the input
   useEffect(() => {
@@ -41,10 +48,25 @@ export const ChecklistItem = ({
     }
   }, [isEditing]);
 
+  // When showing description input, focus it
+  useEffect(() => {
+    if (isDescriptionActive && descriptionInputRef.current) {
+      descriptionInputRef.current.focus();
+    }
+  }, [isDescriptionActive]);
+
   // Update edit value when title changes externally
   useEffect(() => {
     setEditValue(title);
   }, [title]);
+
+  // Update description value when description changes externally
+  useEffect(() => {
+    setDescriptionValue(description);
+    if (description) {
+      setIsDescriptionActive(true);
+    }
+  }, [description]);
 
   const handleCheckClick = (e) => {
     e.stopPropagation();
@@ -164,6 +186,7 @@ export const ChecklistItem = ({
   const handleAddDescription = (e) => {
     e.stopPropagation();
     setIsMenuOpen(false);
+    setIsDescriptionActive(true);
     if (onAddDescription) {
       onAddDescription(id);
     }
@@ -177,57 +200,140 @@ export const ChecklistItem = ({
     }
   };
 
+  const handleDescriptionChange = (e) => {
+    setDescriptionValue(e.target.value);
+  };
+
+  const handleDescriptionSave = (e) => {
+    e.stopPropagation();
+    if (onDescriptionChange) {
+      onDescriptionChange(id, descriptionValue);
+    }
+    // Keep description active if there's content, hide it otherwise
+    if (!descriptionValue.trim()) {
+      setIsDescriptionActive(false);
+    } else {
+      // Always close edit mode after saving
+      setIsDescriptionActive(false);
+    }
+  };
+
+  const handleDescriptionCancel = (e) => {
+    e.stopPropagation();
+    setDescriptionValue(description);
+    // Hide description field only if it was empty initially
+    if (!description) {
+      setIsDescriptionActive(false);
+    }
+  };
+
+  const handleDescriptionKeyDown = (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      handleDescriptionSave(e);
+    } else if (e.key === 'Escape') {
+      handleDescriptionCancel(e);
+    }
+  };
+
   return (
     <div 
-      className={`flex items-center p-2 group/item hover:bg-gray-50 rounded-lg transition-colors ${!completed && !automated ? 'cursor-pointer' : ''}`}
+      className={`flex flex-col p-2 group/item hover:bg-gray-50 rounded-lg transition-colors ${!completed && !automated ? 'cursor-pointer' : ''}`}
       onClick={handleRowClick}
     >
-      <div className="flex-shrink-0 mr-3">
-        <div 
-          onClick={handleCheckClick}
-          className="cursor-pointer"
-        >
-          <StatusIcon 
-            className={`w-5 h-5 ${
-              completed 
-                ? 'text-green-500' 
-                : automated 
-                  ? 'text-indigo-500' 
-                  : 'text-gray-300'
-            }`} 
-          />
+      <div className="flex items-center">
+        <div className="flex-shrink-0 mr-3">
+          <div 
+            onClick={handleCheckClick}
+            className="cursor-pointer"
+          >
+            <StatusIcon 
+              className={`w-5 h-5 ${
+                completed 
+                  ? 'text-green-500' 
+                  : automated 
+                    ? 'text-indigo-500' 
+                    : 'text-gray-300'
+              }`} 
+            />
+          </div>
+        </div>
+        <div className="flex-grow">
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              className="w-full bg-transparent text-sm py-1 px-0 focus:outline-none text-gray-700"
+              value={editValue}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              onKeyDown={handleInputKeyDown}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className={`text-sm ${completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+              {title}
+            </span>
+          )}
+        </div>
+        <div className="flex-shrink-0 ml-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+          {!automated && !completed && !isEditing && (
+            <button 
+              ref={menuButtonRef}
+              onClick={toggleMenu}
+              className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-all duration-150 focus:outline-none"
+              title="Options"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
-      <div className="flex-grow">
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            className="w-full bg-transparent text-sm py-1 px-0 focus:outline-none text-gray-700"
-            value={editValue}
-            onChange={handleInputChange}
-            onBlur={handleInputBlur}
-            onKeyDown={handleInputKeyDown}
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span className={`text-sm ${completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
-            {title}
-          </span>
-        )}
-      </div>
-      <div className="flex-shrink-0 ml-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-        {!automated && !completed && !isEditing && (
-          <button 
-            ref={menuButtonRef}
-            onClick={toggleMenu}
-            className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-all duration-150 focus:outline-none"
-            title="Options"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+
+      {/* Description Field */}
+      {isDescriptionActive && (
+        <div className="mt-2 ml-8 relative">
+          <div className="relative">
+            <textarea
+              ref={descriptionInputRef}
+              value={descriptionValue}
+              onChange={handleDescriptionChange}
+              onKeyDown={handleDescriptionKeyDown}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Add a description..."
+              className="w-full min-h-[60px] p-3 pl-4 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-gray-600"
+            />
+            <div className="flex items-center justify-end space-x-2 mt-2">
+              <button
+                onClick={handleDescriptionCancel}
+                className="text-xs flex items-center justify-center space-x-1 px-2 py-1 text-gray-500 hover:text-gray-700 rounded transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel</span>
+              </button>
+              <button
+                onClick={handleDescriptionSave}
+                className="text-xs flex items-center justify-center space-x-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors shadow-sm"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Read-only Description Display */}
+      {description && !isDescriptionActive && (
+        <div 
+          className="mt-2 ml-8 pl-4 py-2 text-sm text-gray-600 cursor-pointer hover:bg-indigo-50/50 rounded-r-lg"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsDescriptionActive(true);
+          }}
+        >
+          {description}
+        </div>
+      )}
 
       {/* Dropdown Menu - Rendered as Portal */}
       {isMenuOpen && ReactDOM.createPortal(

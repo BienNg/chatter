@@ -22,6 +22,8 @@ const ITEM_TYPE = 'checklist-item';
  * @param {function} props.onTitleChange - Callback when title is edited
  * @param {function} props.onAddDescription - Callback when add description is clicked
  * @param {function} props.onAddChannelMessage - Callback when add channel message is clicked
+ * @param {string} props.description - Description text of the checklist item
+ * @param {function} props.onDescriptionChange - Callback when description is saved
  */
 export const DraggableItem = ({ 
   id, 
@@ -35,7 +37,9 @@ export const DraggableItem = ({
   animating = false,
   onTitleChange,
   onAddDescription,
-  onAddChannelMessage
+  onAddChannelMessage,
+  description,
+  onDescriptionChange
 }) => {
   const ref = useRef(null);
   const [isDropping, setIsDropping] = useState(false);
@@ -277,6 +281,8 @@ export const DraggableItem = ({
           onTitleChange={handleTitleChange}
           onAddDescription={onAddDescription}
           onAddChannelMessage={onAddChannelMessage}
+          description={description}
+          onDescriptionChange={onDescriptionChange}
         />
       </div>
       

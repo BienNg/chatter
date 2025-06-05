@@ -16,6 +16,7 @@ import { Plus } from 'lucide-react';
  * @param {function} props.onAddTemplate - Callback when new template button is clicked
  * @param {function} props.onAddTaskDescription - Callback when add description is clicked for a task
  * @param {function} props.onAddTaskChannelMessage - Callback when add channel message is clicked for a task
+ * @param {function} props.onTaskDescriptionChange - Callback when task description is changed
  */
 export const Timeline = ({ 
   stages = [], 
@@ -27,7 +28,8 @@ export const Timeline = ({
   onTaskTitleChange,
   onAddTemplate,
   onAddTaskDescription,
-  onAddTaskChannelMessage
+  onAddTaskChannelMessage,
+  onTaskDescriptionChange
 }) => {
   return (
     <div className="max-w-4xl mx-auto pb-16">
@@ -55,6 +57,7 @@ export const Timeline = ({
             onTaskTitleChange={onTaskTitleChange}
             onAddTaskDescription={onAddTaskDescription}
             onAddTaskChannelMessage={onAddTaskChannelMessage}
+            onTaskDescriptionChange={onTaskDescriptionChange}
           />
         ))}
         

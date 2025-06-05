@@ -21,6 +21,7 @@ import { DraggableItem } from './DraggableItem';
  * @param {function} props.onTaskTitleChange - Callback when task title is edited
  * @param {function} props.onAddTaskDescription - Callback when add description is clicked for a task
  * @param {function} props.onAddTaskChannelMessage - Callback when add channel message is clicked for a task
+ * @param {function} props.onTaskDescriptionChange - Callback when task description is changed
  */
 export const ChecklistStage = ({ 
   id, 
@@ -36,7 +37,8 @@ export const ChecklistStage = ({
   onTitleChange,
   onTaskTitleChange,
   onAddTaskDescription,
-  onAddTaskChannelMessage
+  onAddTaskChannelMessage,
+  onTaskDescriptionChange
 }) => {
   const [hoverIndex, setHoverIndex] = useState(null);
   const [animating, setAnimating] = useState(false);
@@ -154,6 +156,12 @@ export const ChecklistStage = ({
     }
   };
 
+  const handleTaskDescriptionChange = (taskId, description) => {
+    if (onTaskDescriptionChange) {
+      onTaskDescriptionChange(id, taskId, description);
+    }
+  };
+
   // Function to get the animation styles for each item
   const getItemStyle = (index) => {
     if (animating) {
@@ -250,6 +258,8 @@ export const ChecklistStage = ({
                     onTitleChange={handleTaskTitleChange}
                     onAddDescription={handleTaskDescription}
                     onAddChannelMessage={handleTaskChannelMessage}
+                    description={task.description}
+                    onDescriptionChange={handleTaskDescriptionChange}
                   />
                   
                   {/* Add task area (between items) */}

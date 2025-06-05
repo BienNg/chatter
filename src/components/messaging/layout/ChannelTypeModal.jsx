@@ -407,8 +407,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
   // Handle adding a task description
   const handleAddTaskDescription = (stageId, taskId) => {
     console.log(`Adding description to task ${taskId} in stage ${stageId}`);
-    // Implementation for adding description to a task
-    // This would typically open a modal or inline editor
+    // Task description UI is handled by the ChecklistItem component itself
   };
 
   // Handle adding a channel message for a task
@@ -416,6 +415,26 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
     console.log(`Adding channel message for task ${taskId} in stage ${stageId}`);
     // Implementation for adding a channel message related to a task
     // This would typically open a composer or link to messaging UI
+  };
+
+  // Handle saving a task description
+  const handleTaskDescriptionChange = (stageId, taskId, description) => {
+    console.log(`Saving description for task ${taskId} in stage ${stageId}: ${description}`);
+    
+    // Update the workflow stages with the new description
+    const updatedStages = workflowStages.map(stage => {
+      if (stage.id === stageId) {
+        return {
+          ...stage,
+          tasks: stage.tasks.map(task => 
+            task.id === taskId ? { ...task, description } : task
+          )
+        };
+      }
+      return stage;
+    });
+    
+    setWorkflowStages(updatedStages);
   };
 
   // Format date to relative time
@@ -532,6 +551,7 @@ export const ChannelTypeModal = ({ isOpen, onClose, channelType, metadata }) => 
             onAddTemplate={handleAddTemplate}
             onAddTaskDescription={handleAddTaskDescription}
             onAddTaskChannelMessage={handleAddTaskChannelMessage}
+            onTaskDescriptionChange={handleTaskDescriptionChange}
           />
         </div>
       </div>
